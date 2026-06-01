@@ -1,6 +1,7 @@
 package format
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -78,4 +79,10 @@ func (r *Response[T]) Complete(startTime time.Time) {
 // GenerateTraceID returns a new UUID v4 string for use as a trace ID.
 func GenerateTraceID() string {
 	return uuid.New().String()
+}
+
+// MarshalResponseJSON marshals a value to JSON bytes for stdout output.
+// Returns the JSON bytes or an error if serialization fails.
+func MarshalResponseJSON(v any) ([]byte, error) {
+	return json.Marshal(v)
 }

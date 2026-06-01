@@ -1,5 +1,8 @@
 # Go binaries
 bin/
+/querylex
+/querylex-add-db
+/querylex-stats
 *.exe
 *.test
 
