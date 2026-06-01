@@ -1,0 +1,11 @@
+# Go binaries
+bin/
+*.exe
+*.test
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
