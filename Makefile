@@ -1,4 +1,4 @@
-.PHONY: build test clean install lint
+.PHONY: build test clean install lint release
 
 build:
 	go build -o bin/querylex ./cmd/querylex/
@@ -18,3 +18,6 @@ install:
 
 lint:
 	go vet ./...
+
+release: build
+	@echo "Build complete. Use GoReleaser in Phase 6 for multi-platform packaging."

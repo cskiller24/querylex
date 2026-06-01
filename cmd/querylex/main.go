@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/querylex/querylex/internal/format"
+	"github.com/querylex/querylex/internal/cli"
 )
 
 var rootCmd = &cobra.Command{
@@ -31,37 +31,31 @@ SQLite, and Microsoft SQL Server.`,
 
 var addDbCmd = &cobra.Command{
 	Use:   "add-db",
-	Short: "Add a new database connection",
-	Long:  "Interactively add and configure a new database connection for Querylex.",
+	Short: "Add a new database connection through guided setup",
+	Long:  "Interactively add and configure a new database connection for Querylex via guided prompts.",
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
-		traceID := format.GenerateTraceID()
-		resp := format.NewErrorResponse[string](
-			format.ErrCodeInternalError,
-			"Command will be available in a future update.",
-			false,
-			traceID,
-		)
+		resp := cli.RunAddDB()
 		resp.Complete(start)
 		outputResponse(resp)
+		if !resp.Success {
+			os.Exit(1)
+		}
 	},
 }
 
 var statsCmd = &cobra.Command{
-	Use:   "stats",
+	Use:   "workspace-stats",
 	Short: "Show workspace status across connected databases",
 	Long:  "Display Querylex workspace status including connected databases and their indexing status.",
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
-		traceID := format.GenerateTraceID()
-		resp := format.NewErrorResponse[string](
-			format.ErrCodeInternalError,
-			"Command will be available in a future update.",
-			false,
-			traceID,
-		)
+		resp := cli.RunStats()
 		resp.Complete(start)
 		outputResponse(resp)
+		if !resp.Success {
+			os.Exit(1)
+		}
 	},
 }
 
@@ -77,9 +71,6 @@ func main() {
 	}
 }
 
-// initWorkspace ensures the $HOME/.querylex/ and $HOME/.querylex/logs/ directories exist.
-// On first run, it writes a brief startup log entry.
-// It also scans for and removes stale .tmp files in $HOME/.querylex/.
 func initWorkspace() error {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -89,12 +80,10 @@ func initWorkspace() error {
 	querylexDir := filepath.Join(home, ".querylex")
 	logsDir := filepath.Join(querylexDir, "logs")
 
-	// Create directories (no-op if they already exist)
 	if err := os.MkdirAll(logsDir, 0755); err != nil {
 		return fmt.Errorf("cannot create .querylex directory: %w", err)
 	}
 
-	// Scan for .tmp files from previous crashes and remove them
 	entries, err := os.ReadDir(querylexDir)
 	if err == nil {
 		for _, entry := range entries {
@@ -107,7 +96,6 @@ func initWorkspace() error {
 	return nil
 }
 
-// outputResponse writes a format.Response as JSON to stdout with a trailing newline.
 func outputResponse(resp any) {
 	data, err := json.Marshal(resp)
 	if err != nil {
@@ -116,3 +104,4 @@ func outputResponse(resp any) {
 	}
 	fmt.Println(string(data))
 }
+

@@ -1,0 +1,31 @@
+# .goreleaser.yaml
+# Phase 1: Single-platform build. Phase 6 will expand to cross-platform matrix.
+project_name: querylex
+builds:
+  - id: querylex
+    main: ./cmd/querylex/
+    binary: querylex
+    goos:
+      - linux
+    goarch:
+      - amd64
+    env:
+      - CGO_ENABLED=0
+  - id: querylex-add-db
+    main: ./cmd/querylex-add-db/
+    binary: querylex-add-db
+    goos:
+      - linux
+    goarch:
+      - amd64
+    env:
+      - CGO_ENABLED=0
+  - id: querylex-stats
+    main: ./cmd/querylex-stats/
+    binary: querylex-stats
+    goos:
+      - linux
+    goarch:
+      - amd64
+    env:
+      - CGO_ENABLED=0
