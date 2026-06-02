@@ -272,7 +272,7 @@ func TestRunStats_Health_CredentialStatus(t *testing.T) {
 }
 
 // Test placeholder fields (MemoryIndexState, ExplainCacheSummary).
-func TestRunStats_Health_Placeholders(t *testing.T) {
+func TestRunStats_Health_MissingState(t *testing.T) {
 	home := setupStatsTestWorkspace(t, []state.DatabaseEntry{
 		{ID: "db-1", Name: "TestDB", Type: "mysql", Status: state.StatusIndexed, IndexingProgress: 100},
 	})
@@ -286,11 +286,11 @@ func TestRunStats_Health_Placeholders(t *testing.T) {
 	}
 
 	dbHealth := resp.Data.Health.Databases[0]
-	if dbHealth.MemoryIndexState != "not_implemented" {
-		t.Fatalf("expected MemoryIndexState='not_implemented', got '%s'", dbHealth.MemoryIndexState)
+	if dbHealth.MemoryIndexState != "missing" {
+		t.Fatalf("expected MemoryIndexState='missing', got '%s'", dbHealth.MemoryIndexState)
 	}
-	if dbHealth.ExplainCacheSummary != "not_implemented" {
-		t.Fatalf("expected ExplainCacheSummary='not_implemented', got '%s'", dbHealth.ExplainCacheSummary)
+	if dbHealth.ExplainCacheSummary != "unavailable" {
+		t.Fatalf("expected ExplainCacheSummary='unavailable', got '%s'", dbHealth.ExplainCacheSummary)
 	}
 }
 
