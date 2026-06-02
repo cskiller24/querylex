@@ -5,7 +5,7 @@ import (
 )
 
 func TestNewErrorCodesExist(t *testing.T) {
-	// Verify that all 10 new error codes from Phase 2 are defined.
+	// Verify that all new error codes from Phase 2 and 3 are defined.
 	newCodes := []ErrorCode{
 		ErrCodeInvalidSQL,
 		ErrCodeUnsafeSQL,
@@ -17,6 +17,7 @@ func TestNewErrorCodesExist(t *testing.T) {
 		ErrCodeStatsUnavailable,
 		ErrCodeIndexAnalysisFailed,
 		ErrCodeSchemaParseError,
+		ErrCodeTerminologyParse,
 	}
 
 	for _, code := range newCodes {
@@ -55,6 +56,7 @@ func TestAllErrorCodesMapped(t *testing.T) {
 		ErrCodeStatsUnavailable,
 		ErrCodeIndexAnalysisFailed,
 		ErrCodeSchemaParseError,
+		ErrCodeTerminologyParse,
 	}
 
 	for _, code := range allCodes {
@@ -64,7 +66,7 @@ func TestAllErrorCodesMapped(t *testing.T) {
 	}
 
 	// Verify count
-	if len(allCodes) != 18 {
-		t.Fatalf("expected 18 total error codes, got %d", len(allCodes))
+	if len(allCodes) != 19 {
+		t.Fatalf("expected 19 total error codes, got %d", len(allCodes))
 	}
 }

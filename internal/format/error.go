@@ -41,6 +41,8 @@ const (
 	ErrCodeIndexAnalysisFailed ErrorCode = "INDEX_ANALYSIS_FAILED"
 	// ErrCodeSchemaParseError indicates schema data could not be parsed.
 	ErrCodeSchemaParseError ErrorCode = "SCHEMA_PARSE_ERROR"
+	// ErrCodeTerminologyParse indicates the terminologies.md YAML block could not be parsed.
+	ErrCodeTerminologyParse ErrorCode = "TERMINOLOGY_PARSE_ERROR"
 )
 
 // ErrorCodeDescriptions maps each ErrorCode to a human-readable description.
@@ -64,4 +66,5 @@ var ErrorCodeDescriptions = map[ErrorCode]string{
 	ErrCodeStatsUnavailable:       "Table statistics are unavailable for the specified tables.",
 	ErrCodeIndexAnalysisFailed:    "Index metadata extraction failed.",
 	ErrCodeSchemaParseError:       "Schema data could not be parsed or is in an unexpected format.",
+	ErrCodeTerminologyParse:       "The terminologies.md file contains a malformed or missing querylex-terms YAML block.",
 }
