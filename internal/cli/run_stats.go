@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -256,6 +257,42 @@ func checkExplainCacheSummary(dbDir string) string {
 	}
 
 	return fmt.Sprintf("%d entries", count)
+}
+
+// RenderStatsHuman renders workspace stats as a human-readable terminal output.
+func RenderStatsHuman(w io.Writer, data StatsData) {
+	fmt.Fprintf(w, "Querylex Workspace Health\n=========================\n\n")
+
+	if data.ActiveDatabaseID != nil {
+		fmt.Fprintf(w, "Active database: %s\n\n", *data.ActiveDatabaseID)
+	}
+
+	if len(data.ConnectedDatabases) == 0 {
+		fmt.Fprintln(w, "No databases connected. Run 'querylex-add-db' to add one.")
+		return
+	}
+
+	if data.Health == nil {
+		return
+	}
+
+	for _, db := range data.Health.Databases {
+		fmt.Fprintf(w, "  %s (%s)\n", db.DatabaseName, db.DatabaseID)
+		fmt.Fprintf(w, "    Status:         %s\n", db.Status)
+		fmt.Fprintf(w, "    Indexing:       %d%%\n", db.ProgressPercent)
+		fmt.Fprintf(w, "    Credentials:    %s\n", db.CredentialStatus)
+		fmt.Fprintf(w, "    Memory Index:   %s\n", db.MemoryIndexState)
+		fmt.Fprintf(w, "    Explain Cache:  %s\n", db.ExplainCacheSummary)
+
+		if len(db.Artifacts) > 0 {
+			fmt.Fprintf(w, "    Artifacts:\n")
+			for path, state := range db.Artifacts {
+				fmt.Fprintf(w, "      %s: %s\n", path, state)
+			}
+		}
+
+		fmt.Fprintln(w)
+	}
 }
 
 // checkCredentialStatus determines credential availability for a database.

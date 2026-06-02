@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -75,6 +76,12 @@ var statsCmd = &cobra.Command{
 	Short: "Show workspace status across connected databases",
 	Long:  "Display Querylex workspace status including connected databases and their indexing status.",
 	Run: func(cmd *cobra.Command, args []string) {
+		human, _ := cmd.Flags().GetBool("human")
+		if human {
+			resp := cli.RunStats()
+			cli.RenderStatsHuman(os.Stdout, resp.Data)
+			return
+		}
 		start := time.Now()
 		resp := cli.RunStats()
 		resp.Complete(start)
@@ -268,6 +275,20 @@ var aiConfigCmd = &cobra.Command{
 	},
 }
 
+var sqlCmd = &cobra.Command{
+	Use:   "sql <question>",
+	Short: "Generate SQL from natural language (AI-powered)",
+	Long:  "Uses AI to generate dialect-correct SQL from a natural language question, leveraging live database context including schema, terminology, joins, statistics, and indexes.",
+	Args:  cobra.MinimumNArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		question := strings.Join(args, " ")
+		if err := cli.RunSQLGeneration(context.Background(), question); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+			os.Exit(1)
+		}
+	},
+}
+
 var resolveCmd = &cobra.Command{
 	Use:   "resolve <question>",
 	Short: "Resolve natural language to table/column candidates",
@@ -300,6 +321,9 @@ func init() {
 	rootCmd.AddCommand(deleteCmd)
 	rootCmd.AddCommand(resolveCmd)
 	rootCmd.AddCommand(aiConfigCmd)
+	rootCmd.AddCommand(sqlCmd)
+
+	statsCmd.Flags().Bool("human", false, "Render as human-readable summary")
 
 	schemaCmd.Flags().StringArray("table", nil, "Table names (repeatable)")
 	schemaCmd.Flags().String("tables-json", "", "Tables as JSON array")
