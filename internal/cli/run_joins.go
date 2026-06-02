@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/querylex/querylex/internal/db"
-	"github.com/querylex/querylex/internal/format"
-	"github.com/querylex/querylex/internal/index"
+	"github.com/cskiller24/querylex/internal/db"
+	"github.com/cskiller24/querylex/internal/format"
+	"github.com/cskiller24/querylex/internal/index"
 )
 
 // JoinsData is the response data for the joins command.

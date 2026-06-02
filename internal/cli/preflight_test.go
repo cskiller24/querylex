@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/querylex/querylex/internal/format"
-	"github.com/querylex/querylex/internal/index"
-	"github.com/querylex/querylex/internal/state"
+	"github.com/cskiller24/querylex/internal/format"
+	"github.com/cskiller24/querylex/internal/index"
+	"github.com/cskiller24/querylex/internal/state"
 )
 
 // setupPreflightTestWorkspace creates a test workspace and database directory for

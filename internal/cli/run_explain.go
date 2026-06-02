@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/querylex/querylex/internal/analysis"
-	explaincache "github.com/querylex/querylex/internal/cache"
-	"github.com/querylex/querylex/internal/db"
-	"github.com/querylex/querylex/internal/format"
+	"github.com/cskiller24/querylex/internal/analysis"
+	explaincache "github.com/cskiller24/querylex/internal/cache"
+	"github.com/cskiller24/querylex/internal/db"
+	"github.com/cskiller24/querylex/internal/format"
 )
 
 // ExplainData is the response data for the explain command.

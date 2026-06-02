@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/querylex/querylex/internal/credentials"
+	"github.com/cskiller24/querylex/internal/credentials"
 	"golang.org/x/term"
 )
 

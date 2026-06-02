@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/querylex/querylex/internal/db"
+	"github.com/cskiller24/querylex/internal/db"
 )
 
 // ============================================================

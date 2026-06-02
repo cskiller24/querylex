@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/querylex/querylex/internal/rootcmd"
+	"github.com/cskiller24/querylex/internal/rootcmd"
 )
 
 func main() {

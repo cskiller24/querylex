@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/querylex/querylex/internal/db"
+	"github.com/cskiller24/querylex/internal/db"
 )
 
 // BuildSchema transforms a SchemaResult into the full schema.json artifact.

@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/querylex/querylex/internal/cli"
+	"github.com/cskiller24/querylex/internal/cli"
 )
 
 func main() {

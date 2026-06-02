@@ -6,7 +6,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/querylex/querylex/internal/format"
+	"github.com/cskiller24/querylex/internal/format"
 )
 
 // ScoredEntry pairs a memory entry with its similarity score.

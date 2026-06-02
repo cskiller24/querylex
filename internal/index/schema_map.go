@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/querylex/querylex/internal/db"
-	"github.com/querylex/querylex/internal/state"
+	"github.com/cskiller24/querylex/internal/db"
+	"github.com/cskiller24/querylex/internal/state"
 )
 
 // TableMapEntry is the per-table entry in the schema map.

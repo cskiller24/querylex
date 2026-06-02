@@ -11,7 +11,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/querylex/querylex/internal/rootcmd"
+	"github.com/cskiller24/querylex/internal/rootcmd"
 )
 
 func main() {

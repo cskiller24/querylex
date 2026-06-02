@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/querylex/querylex/internal/state"
+	"github.com/cskiller24/querylex/internal/state"
 )
 
 func TestStripMarkdownCodeFences(t *testing.T) {

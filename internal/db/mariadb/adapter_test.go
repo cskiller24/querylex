@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/querylex/querylex/internal/db"
-	_ "github.com/querylex/querylex/internal/db/mariadb"
+	"github.com/cskiller24/querylex/internal/db"
+	_ "github.com/cskiller24/querylex/internal/db/mariadb"
 )
 
 func TestMariaDBAdapter_FactoryRegistration(t *testing.T) {

@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/querylex/querylex/internal/db"
-	_ "github.com/querylex/querylex/internal/db/postgresql"
+	"github.com/cskiller24/querylex/internal/db"
+	_ "github.com/cskiller24/querylex/internal/db/postgresql"
 )
 
 func TestPostgreSQLAdapter_FactoryRegistration(t *testing.T) {

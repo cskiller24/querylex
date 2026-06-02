@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/querylex/querylex/internal/credentials"
-	"github.com/querylex/querylex/internal/index"
-	"github.com/querylex/querylex/internal/state"
+	"github.com/cskiller24/querylex/internal/credentials"
+	"github.com/cskiller24/querylex/internal/index"
+	"github.com/cskiller24/querylex/internal/state"
 )
 
 // setupWorkspaceAndDB creates a test workspace and database directory for RunStats tests.

@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/querylex/querylex/internal/format"
-	"github.com/querylex/querylex/internal/memory"
+	"github.com/cskiller24/querylex/internal/format"
+	"github.com/cskiller24/querylex/internal/memory"
 )
 
 // SaveData is the response data for the save command.

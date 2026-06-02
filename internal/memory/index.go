@@ -7,7 +7,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/querylex/querylex/internal/state"
+	"github.com/cskiller24/querylex/internal/state"
 )
 
 // EmbeddingMetadata stores the embedding vector and model info for a memory entry.

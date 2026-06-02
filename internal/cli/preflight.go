@@ -8,14 +8,14 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/querylex/querylex/internal/ai"
-	"github.com/querylex/querylex/internal/credentials"
-	"github.com/querylex/querylex/internal/db"
-	"github.com/querylex/querylex/internal/db/mysql"
-	"github.com/querylex/querylex/internal/db/postgresql"
-	"github.com/querylex/querylex/internal/format"
-	"github.com/querylex/querylex/internal/index"
-	"github.com/querylex/querylex/internal/state"
+	"github.com/cskiller24/querylex/internal/ai"
+	"github.com/cskiller24/querylex/internal/credentials"
+	"github.com/cskiller24/querylex/internal/db"
+	"github.com/cskiller24/querylex/internal/db/mysql"
+	"github.com/cskiller24/querylex/internal/db/postgresql"
+	"github.com/cskiller24/querylex/internal/format"
+	"github.com/cskiller24/querylex/internal/index"
+	"github.com/cskiller24/querylex/internal/state"
 )
 
 // PreflightResult holds the result of the standard command preflight.

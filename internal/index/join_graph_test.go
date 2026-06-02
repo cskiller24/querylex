@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/querylex/querylex/internal/db"
+	"github.com/cskiller24/querylex/internal/db"
 )
 
 // Test 1: BuildJoinGraph with SchemaResult containing one FK

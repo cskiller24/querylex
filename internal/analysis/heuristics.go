@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/querylex/querylex/internal/db"
+	"github.com/cskiller24/querylex/internal/db"
 )
 
 // HeuristicSignal describes a single optimization signal detected in an ExplainPlan.

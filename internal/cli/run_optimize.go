@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/querylex/querylex/internal/ai"
+	"github.com/cskiller24/querylex/internal/ai"
 	"golang.org/x/sync/errgroup"
 )
 

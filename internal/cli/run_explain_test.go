@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/querylex/querylex/internal/db"
+	"github.com/cskiller24/querylex/internal/db"
 )
 
 // Test 1: RunExplain("SELECT 1", false) returns success with plan and heuristics

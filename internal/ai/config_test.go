@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/querylex/querylex/internal/credentials"
+	"github.com/cskiller24/querylex/internal/credentials"
 )
 
 func TestResolveAIConfig_FromEnvVar(t *testing.T) {

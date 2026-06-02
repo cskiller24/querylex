@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/querylex/querylex/internal/db"
+	"github.com/cskiller24/querylex/internal/db"
 )
 
 // Helper: create a minimal SchemaResult with declared FKs

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/querylex/querylex/internal/db"
-	"github.com/querylex/querylex/internal/format"
+	"github.com/cskiller24/querylex/internal/db"
+	"github.com/cskiller24/querylex/internal/format"
 )
 
 // StatsTablesData is the response data for the stats --table command.

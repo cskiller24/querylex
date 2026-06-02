@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/querylex/querylex/internal/db"
-	_ "github.com/querylex/querylex/internal/db/sqlite"
+	"github.com/cskiller24/querylex/internal/db"
+	_ "github.com/cskiller24/querylex/internal/db/sqlite"
 )
 
 func TestSQLiteAdapter_FactoryRegistration(t *testing.T) {

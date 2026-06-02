@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/querylex/querylex/internal/db"
-	"github.com/querylex/querylex/internal/db/mssql"
+	"github.com/cskiller24/querylex/internal/db"
+	"github.com/cskiller24/querylex/internal/db/mssql"
 )
 
 func TestMSSQLAdapter_FactoryRegistration(t *testing.T) {

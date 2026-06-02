@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/querylex/querylex/internal/db"
+	"github.com/cskiller24/querylex/internal/db"
 )
 
 // Test 1: RunJoins with tables returns Success with join edges

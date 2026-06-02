@@ -10,11 +10,11 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/querylex/querylex/internal/credentials"
-	"github.com/querylex/querylex/internal/format"
-	"github.com/querylex/querylex/internal/index"
-	"github.com/querylex/querylex/internal/memory"
-	"github.com/querylex/querylex/internal/state"
+	"github.com/cskiller24/querylex/internal/credentials"
+	"github.com/cskiller24/querylex/internal/format"
+	"github.com/cskiller24/querylex/internal/index"
+	"github.com/cskiller24/querylex/internal/memory"
+	"github.com/cskiller24/querylex/internal/state"
 )
 
 // HealthReport contains health information for all connected databases.

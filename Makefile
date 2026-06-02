@@ -4,9 +4,9 @@ VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 DATE    ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo "unknown")
 LDFLAGS := -s -w \
-	-X github.com/querylex/querylex/internal/version.Version=$(VERSION) \
-	-X github.com/querylex/querylex/internal/version.Commit=$(COMMIT) \
-	-X github.com/querylex/querylex/internal/version.BuildDate=$(DATE)
+	-X github.com/cskiller24/querylex/internal/version.Version=$(VERSION) \
+	-X github.com/cskiller24/querylex/internal/version.Commit=$(COMMIT) \
+	-X github.com/cskiller24/querylex/internal/version.BuildDate=$(DATE)
 
 build:
 	go build -ldflags="$(LDFLAGS)" -o bin/querylex ./cmd/querylex/

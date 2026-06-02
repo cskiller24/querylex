@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/querylex/querylex/internal/ai"
-	"github.com/querylex/querylex/internal/index"
+	"github.com/cskiller24/querylex/internal/ai"
+	"github.com/cskiller24/querylex/internal/index"
 	"golang.org/x/sync/errgroup"
 )
 

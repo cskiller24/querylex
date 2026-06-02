@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/querylex/querylex/internal/db"
+	"github.com/cskiller24/querylex/internal/db"
 	_ "github.com/microsoft/go-mssqldb"
 )
 

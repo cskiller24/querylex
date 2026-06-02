@@ -12,7 +12,7 @@ brew install querylex/querylex/querylex
 
 ### Linux
 
-Download the `.deb` or `.rpm` package for your architecture from the [latest GitHub Release](https://github.com/querylex/querylex/releases/latest):
+Download the `.deb` or `.rpm` package for your architecture from the [latest GitHub Release](https://github.com/cskiller24/querylex/releases/latest):
 
 **Debian/Ubuntu (.deb):**
 ```bash
@@ -33,7 +33,7 @@ scoop install querylex
 
 ### Manual (any platform)
 
-1. Download the archive for your platform and architecture from the [latest GitHub Release](https://github.com/querylex/querylex/releases/latest).
+1. Download the archive for your platform and architecture from the [latest GitHub Release](https://github.com/cskiller24/querylex/releases/latest).
 2. Extract it:
    ```bash
    tar -xzf querylex_*.tar.gz    # Linux/macOS

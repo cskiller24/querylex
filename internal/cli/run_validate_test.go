@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/querylex/querylex/internal/db"
-	"github.com/querylex/querylex/internal/format"
-	"github.com/querylex/querylex/internal/queryutil"
+	"github.com/cskiller24/querylex/internal/db"
+	"github.com/cskiller24/querylex/internal/format"
+	"github.com/cskiller24/querylex/internal/queryutil"
 )
 
 // Test 3: RunValidate("SELECT * FROM users") returns Valid=true with normalized SQL

@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/querylex/querylex/internal/db"
-	"github.com/querylex/querylex/internal/format"
+	"github.com/cskiller24/querylex/internal/db"
+	"github.com/cskiller24/querylex/internal/format"
 )
 
 // mockStatsAdapter implements db.Adapter for testing Stats().

@@ -3,7 +3,7 @@ package index
 import (
 	"testing"
 
-	"github.com/querylex/querylex/internal/db"
+	"github.com/cskiller24/querylex/internal/db"
 )
 
 func TestBuildSchemaMap(t *testing.T) {

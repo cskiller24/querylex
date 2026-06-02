@@ -26,9 +26,9 @@ builds:
       - -trimpath
     ldflags:
       - -s -w
-      - -X github.com/querylex/querylex/internal/version.Version={{.Version}}
-      - -X github.com/querylex/querylex/internal/version.Commit={{.Commit}}
-      - -X github.com/querylex/querylex/internal/version.BuildDate={{.Date}}
+      - -X github.com/cskiller24/querylex/internal/version.Version={{.Version}}
+      - -X github.com/cskiller24/querylex/internal/version.Commit={{.Commit}}
+      - -X github.com/cskiller24/querylex/internal/version.BuildDate={{.Date}}
     mod_timestamp: "{{ .CommitTimestamp }}"
 
   - id: querylex-add-db
@@ -50,9 +50,9 @@ builds:
       - -trimpath
     ldflags:
       - -s -w
-      - -X github.com/querylex/querylex/internal/version.Version={{.Version}}
-      - -X github.com/querylex/querylex/internal/version.Commit={{.Commit}}
-      - -X github.com/querylex/querylex/internal/version.BuildDate={{.Date}}
+      - -X github.com/cskiller24/querylex/internal/version.Version={{.Version}}
+      - -X github.com/cskiller24/querylex/internal/version.Commit={{.Commit}}
+      - -X github.com/cskiller24/querylex/internal/version.BuildDate={{.Date}}
     mod_timestamp: "{{ .CommitTimestamp }}"
 
   - id: querylex-stats
@@ -74,9 +74,9 @@ builds:
       - -trimpath
     ldflags:
       - -s -w
-      - -X github.com/querylex/querylex/internal/version.Version={{.Version}}
-      - -X github.com/querylex/querylex/internal/version.Commit={{.Commit}}
-      - -X github.com/querylex/querylex/internal/version.BuildDate={{.Date}}
+      - -X github.com/cskiller24/querylex/internal/version.Version={{.Version}}
+      - -X github.com/cskiller24/querylex/internal/version.Commit={{.Commit}}
+      - -X github.com/cskiller24/querylex/internal/version.BuildDate={{.Date}}
     mod_timestamp: "{{ .CommitTimestamp }}"
 
 archives:
@@ -97,7 +97,7 @@ nfpms:
     file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     formats: [deb, rpm]
     vendor: Querylex
-    homepage: "https://github.com/querylex/querylex"
+    homepage: "https://github.com/cskiller24/querylex"
     maintainer: "Querylex Team"
     description: "AI-augmented SQL generation and optimization CLI"
     license: MIT
@@ -116,7 +116,7 @@ brews:
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     directory: Formula
-    homepage: "https://github.com/querylex/querylex"
+    homepage: "https://github.com/cskiller24/querylex"
     description: "AI-augmented SQL generation and optimization CLI"
     license: MIT
     caveats: |
@@ -131,6 +131,6 @@ scoops:
       owner: querylex
       name: scoop-bucket
     directory: bucket
-    homepage: "https://github.com/querylex/querylex"
+    homepage: "https://github.com/cskiller24/querylex"
     description: "AI-augmented SQL generation and optimization CLI"
     license: MIT

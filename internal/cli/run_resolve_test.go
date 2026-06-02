@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/querylex/querylex/internal/queryutil"
+	"github.com/cskiller24/querylex/internal/queryutil"
 )
 
 // makeTestSlim creates a schema_slim.json-like byte slice for testing.

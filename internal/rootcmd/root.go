@@ -15,14 +15,14 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/querylex/querylex/internal/cli"
-	_ "github.com/querylex/querylex/internal/db/mariadb"
-	_ "github.com/querylex/querylex/internal/db/mssql"
-	_ "github.com/querylex/querylex/internal/db/mysql"
-	_ "github.com/querylex/querylex/internal/db/postgresql"
-	_ "github.com/querylex/querylex/internal/db/sqlite"
-	"github.com/querylex/querylex/internal/state"
-	"github.com/querylex/querylex/internal/version"
+	"github.com/cskiller24/querylex/internal/cli"
+	_ "github.com/cskiller24/querylex/internal/db/mariadb"
+	_ "github.com/cskiller24/querylex/internal/db/mssql"
+	_ "github.com/cskiller24/querylex/internal/db/mysql"
+	_ "github.com/cskiller24/querylex/internal/db/postgresql"
+	_ "github.com/cskiller24/querylex/internal/db/sqlite"
+	"github.com/cskiller24/querylex/internal/state"
+	"github.com/cskiller24/querylex/internal/version"
 )
 
 // mergeTableArgs combines --table and --tables-json flags into a single slice.

@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/querylex/querylex/internal/format"
+	"github.com/cskiller24/querylex/internal/format"
 )
 
 // WorkspaceError wraps an error code and underlying error for workspace operations.

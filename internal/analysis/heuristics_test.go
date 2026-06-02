@@ -3,7 +3,7 @@ package analysis
 import (
 	"testing"
 
-	"github.com/querylex/querylex/internal/db"
+	"github.com/cskiller24/querylex/internal/db"
 )
 
 // Helper to create a float64 pointer.

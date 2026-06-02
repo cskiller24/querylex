@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/querylex/querylex/internal/db"
-	"github.com/querylex/querylex/internal/index"
-	"github.com/querylex/querylex/internal/state"
+	"github.com/cskiller24/querylex/internal/db"
+	"github.com/cskiller24/querylex/internal/index"
+	"github.com/cskiller24/querylex/internal/state"
 )
 
 // CacheEntry represents a single cached explain plan entry stored on disk.

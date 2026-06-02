@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/querylex/querylex/internal/state"
+	"github.com/cskiller24/querylex/internal/state"
 )
 
 func TestAIConfig_NoCredentialStore(t *testing.T) {

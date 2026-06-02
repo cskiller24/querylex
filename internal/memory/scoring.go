@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/querylex/querylex/internal/index"
+	"github.com/cskiller24/querylex/internal/index"
 )
 
 // ComputeSimilarity computes a weighted similarity score between

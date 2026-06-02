@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/querylex/querylex/internal/state"
+	"github.com/cskiller24/querylex/internal/state"
 )
 
 // IndexStatus tracks the progress of database indexing.

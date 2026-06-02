@@ -1,4 +1,4 @@
-module github.com/querylex/querylex
+module github.com/cskiller24/querylex
 
 go 1.26.3
 

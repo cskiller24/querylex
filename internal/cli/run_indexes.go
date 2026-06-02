@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/querylex/querylex/internal/db"
-	"github.com/querylex/querylex/internal/format"
+	"github.com/cskiller24/querylex/internal/db"
+	"github.com/cskiller24/querylex/internal/format"
 )
 
 // IndexData is the response data for the indexes command.

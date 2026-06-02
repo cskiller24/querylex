@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/querylex/querylex/internal/db"
+	"github.com/cskiller24/querylex/internal/db"
 )
 
 // JoinGraphResult holds the complete join graph with metadata.

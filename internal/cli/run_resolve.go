@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/querylex/querylex/internal/format"
-	"github.com/querylex/querylex/internal/queryutil"
-	"github.com/querylex/querylex/internal/state"
+	"github.com/cskiller24/querylex/internal/format"
+	"github.com/cskiller24/querylex/internal/queryutil"
+	"github.com/cskiller24/querylex/internal/state"
 )
 
 // ResolveData is the response data for the resolve command.

@@ -10,7 +10,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/querylex/querylex/internal/state"
+	"github.com/cskiller24/querylex/internal/state"
 )
 
 // IndexManifest records metadata and checksums for indexing artifacts.

@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/querylex/querylex/internal/credentials"
-	"github.com/querylex/querylex/internal/state"
+	"github.com/cskiller24/querylex/internal/credentials"
+	"github.com/cskiller24/querylex/internal/state"
 )
 
 type AIConfig struct {

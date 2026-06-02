@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/querylex/querylex/internal/credentials"
-	"github.com/querylex/querylex/internal/state"
+	"github.com/cskiller24/querylex/internal/credentials"
+	"github.com/cskiller24/querylex/internal/state"
 	"golang.org/x/term"
 )
 
