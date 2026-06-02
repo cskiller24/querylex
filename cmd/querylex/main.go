@@ -289,6 +289,21 @@ var sqlCmd = &cobra.Command{
 	},
 }
 
+var optimizeCmd = &cobra.Command{
+	Use:   "optimize <sql>",
+	Short: "Optimize a SQL query (AI-powered)",
+	Long:  "Uses AI-driven three-strategy rewrite with explain plan comparison to optimize SQL. Supports --analyze for runtime plan analysis and --no-index to suppress index recommendations.",
+	Args:  cobra.MinimumNArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		analyze, _ := cmd.Flags().GetBool("analyze")
+		noIndex, _ := cmd.Flags().GetBool("no-index")
+		if err := cli.RunOptimization(context.Background(), args[0], analyze, noIndex); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+			os.Exit(1)
+		}
+	},
+}
+
 var resolveCmd = &cobra.Command{
 	Use:   "resolve <question>",
 	Short: "Resolve natural language to table/column candidates",
@@ -322,8 +337,11 @@ func init() {
 	rootCmd.AddCommand(resolveCmd)
 	rootCmd.AddCommand(aiConfigCmd)
 	rootCmd.AddCommand(sqlCmd)
+	rootCmd.AddCommand(optimizeCmd)
 
 	statsCmd.Flags().Bool("human", false, "Render as human-readable summary")
+	optimizeCmd.Flags().Bool("analyze", false, "Execute query for actual runtime plan (with warning)")
+	optimizeCmd.Flags().Bool("no-index", false, "Suppress index recommendation output")
 
 	schemaCmd.Flags().StringArray("table", nil, "Table names (repeatable)")
 	schemaCmd.Flags().String("tables-json", "", "Tables as JSON array")
