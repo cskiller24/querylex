@@ -22,6 +22,7 @@ type ResponseMeta struct {
 	TraceID          string  `json:"trace_id"`
 	ProtocolVersion  string  `json:"protocol_version"`
 	ActiveDatabaseID *string `json:"active_database_id"`
+	CacheHit         *bool   `json:"cache_hit,omitempty"`
 	DurationMs       int64   `json:"duration_ms"`
 }
 
