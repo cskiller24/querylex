@@ -16,11 +16,12 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/querylex/querylex/internal/cli"
+	_ "github.com/querylex/querylex/internal/db/mariadb"
+	_ "github.com/querylex/querylex/internal/db/mssql"
 	_ "github.com/querylex/querylex/internal/db/mysql"
 	_ "github.com/querylex/querylex/internal/db/postgresql"
 	_ "github.com/querylex/querylex/internal/db/sqlite"
-	_ "github.com/querylex/querylex/internal/db/mariadb"
-	_ "github.com/querylex/querylex/internal/db/mssql"
+	"github.com/querylex/querylex/internal/version"
 )
 
 // mergeTableArgs combines --table and --tables-json flags into a single slice.
@@ -328,6 +329,27 @@ var resolveCmd = &cobra.Command{
 	},
 }
 
+var completionCmd = &cobra.Command{
+	Use:                   "completion [bash|zsh|fish|powershell]",
+	Short:                 "Generate shell completion script",
+	Long:                  "Generate the autocompletion script for querylex for the specified shell.\n\nSee each sub-command's help for details on how to use the generated script.",
+	DisableFlagsInUseLine: true,
+	ValidArgs:             []string{"bash", "zsh", "fish", "powershell"},
+	Args:                  cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
+	Run: func(cmd *cobra.Command, args []string) {
+		switch args[0] {
+		case "bash":
+			cmd.Root().GenBashCompletionV2(os.Stdout, true)
+		case "zsh":
+			cmd.Root().GenZshCompletion(os.Stdout)
+		case "fish":
+			cmd.Root().GenFishCompletion(os.Stdout, true)
+		case "powershell":
+			cmd.Root().GenPowerShellCompletionWithDesc(os.Stdout)
+		}
+	},
+}
+
 func init() {
 	RootCmd.AddCommand(addDbCmd)
 	RootCmd.AddCommand(statsCmd)
@@ -345,6 +367,14 @@ func init() {
 	RootCmd.AddCommand(aiConfigCmd)
 	RootCmd.AddCommand(sqlCmd)
 	RootCmd.AddCommand(optimizeCmd)
+	RootCmd.AddCommand(completionCmd)
+
+	RootCmd.CompletionOptions.HiddenDefaultCmd = true
+	RootCmd.Version = version.Version
+	RootCmd.SetVersionTemplate(
+		fmt.Sprintf("querylex version %s (commit %s, built %s)\n",
+			version.Version, version.Commit, version.BuildDate),
+	)
 
 	statsCmd.Flags().Bool("human", false, "Render as human-readable summary")
 	optimizeCmd.Flags().Bool("analyze", false, "Execute query for actual runtime plan (with warning)")
