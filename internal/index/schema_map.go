@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/querylex/querylex/internal/db"
+	"github.com/querylex/querylex/internal/state"
 )
 
 // TableMapEntry is the per-table entry in the schema map.
@@ -99,6 +100,26 @@ func BuildSchemaMap(result *db.SchemaResult) (SchemaMap, error) {
 				}
 			}
 		}
+	}
+
+	return sm, nil
+}
+
+// ReadSchemaMap reads the schema map from <dbDir>/schema/schema_map.json.
+// Returns nil, nil if the file does not exist.
+func ReadSchemaMap(dbDir string) (SchemaMap, error) {
+	path := filepath.Join(dbDir, "schema", "schema_map.json")
+	data, err := state.AtomicRead(path)
+	if err != nil {
+		return nil, err
+	}
+	if data == nil {
+		return nil, nil
+	}
+
+	var sm SchemaMap
+	if err := json.Unmarshal(data, &sm); err != nil {
+		return nil, fmt.Errorf("parse schema_map.json: %w", err)
 	}
 
 	return sm, nil

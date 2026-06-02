@@ -191,6 +191,38 @@ var joinsCmd = &cobra.Command{
 	},
 }
 
+var saveCmd = &cobra.Command{
+	Use:   "save <input> <sql>",
+	Short: "Save a query to memory",
+	Long:  "Upserts a SQL query into persistent memory with the given natural language input. The entry is stored in memory.sqlite and the keyword index is rebuilt.",
+	Args:  cobra.ExactArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		start := time.Now()
+		resp := cli.RunSave(args[0], args[1])
+		resp.Complete(start)
+		outputResponse(resp)
+		if !resp.Success {
+			os.Exit(1)
+		}
+	},
+}
+
+var memoryCmd = &cobra.Command{
+	Use:   "memory <input>",
+	Short: "Search memory for matching queries",
+	Long:  "Searches saved memory entries for strong matches (similarity >= 0.86) to the given input. Returns the best match or match_found: false.",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		start := time.Now()
+		resp := cli.RunMemory(args[0])
+		resp.Complete(start)
+		outputResponse(resp)
+		if !resp.Success {
+			os.Exit(1)
+		}
+	},
+}
+
 var resolveCmd = &cobra.Command{
 	Use:   "resolve <question>",
 	Short: "Resolve natural language to table/column candidates",
@@ -217,6 +249,8 @@ func init() {
 	rootCmd.AddCommand(explainCmd)
 	rootCmd.AddCommand(validateCmd)
 	rootCmd.AddCommand(joinsCmd)
+	rootCmd.AddCommand(saveCmd)
+	rootCmd.AddCommand(memoryCmd)
 	rootCmd.AddCommand(resolveCmd)
 
 	schemaCmd.Flags().StringArray("table", nil, "Table names (repeatable)")
