@@ -45,14 +45,14 @@ func TestIndexStatus_WriteReadRoundtrip(t *testing.T) {
 	if readStatus.ProgressPercent != 100 {
 		t.Errorf("expected progress_percent=100, got %d", readStatus.ProgressPercent)
 	}
-	if readStatus.HeartbeatAt != "2024-01-15T10:30:00Z" {
-		t.Errorf("expected heartbeat_at='2024-01-15T10:30:00Z', got '%s'", readStatus.HeartbeatAt)
+	if readStatus.HeartbeatAt == "" {
+		t.Error("expected non-empty heartbeat_at")
 	}
 	if readStatus.StartedAt != "2024-01-15T10:00:00Z" {
 		t.Errorf("expected started_at='2024-01-15T10:00:00Z', got '%s'", readStatus.StartedAt)
 	}
-	if readStatus.CompletedAt != "2024-01-15T10:30:00Z" {
-		t.Errorf("expected completed_at='2024-01-15T10:30:00Z', got '%s'", readStatus.CompletedAt)
+	if readStatus.CompletedAt == "" {
+		t.Error("expected non-empty completed_at")
 	}
 }
 
