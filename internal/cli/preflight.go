@@ -173,7 +173,10 @@ func PreflightForCommand() (*PreflightResult, *format.Response[any]) {
 	}
 
 	// 5. Get credentials
-	credStore, _ := selectCredentialStore()
+	credStore, err := credentials.SelectCredentialStore()
+	if err != nil {
+		credStore = nil // preflight tolerates nil credStore — error if actually needed
+	}
 	var password string
 	var credRef *credentials.CredentialReference
 	// Load credential reference from database.json alongside config

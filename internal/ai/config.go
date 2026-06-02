@@ -50,7 +50,10 @@ func ResolveAIConfig(home string) (*AIConfig, error) {
 		return nil, fmt.Errorf("%w: AI provider not configured. Run 'querylex ai-config' to set up.", ErrAIConfigMissing)
 	}
 
-	credStore := selectCredentialStore()
+	credStore, err := credentials.SelectCredentialStore()
+	if err != nil {
+		return nil, fmt.Errorf("%w: no credential store available. Set QUERYLEX_AI_API_KEY environment variable.", ErrAIConfigMissing)
+	}
 	secret, err := credStore.Retrieve(cfgFile.CredentialRef)
 	if err != nil {
 		return nil, fmt.Errorf("%w: AI provider not configured. Run 'querylex ai-config' to set up.", ErrAIConfigMissing)
@@ -111,6 +114,7 @@ func intOr(s string, def int) int {
 	return v
 }
 
+// Deprecated: use credentials.SelectCredentialStore() from factory.go instead.
 func selectCredentialStore() credentials.CredentialStore {
 	stores := []credentials.CredentialStore{
 		credentials.NewKeychainStore(),

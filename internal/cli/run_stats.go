@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/querylex/querylex/internal/credentials"
 	"github.com/querylex/querylex/internal/format"
 	"github.com/querylex/querylex/internal/index"
 	"github.com/querylex/querylex/internal/memory"
@@ -316,7 +317,10 @@ func checkCredentialStatus(dbDir string) string {
 	}
 
 	// Check if a credential store is available
-	credStore, _ := selectCredentialStore()
+	credStore, err := credentials.SelectCredentialStore()
+	if err != nil {
+		credStore = nil
+	}
 	if credStore != nil {
 		return "available"
 	}

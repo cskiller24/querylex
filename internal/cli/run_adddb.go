@@ -55,14 +55,26 @@ func RunAddDB() *format.Response[AddDBData] {
 
 	dbID := generateDBID(answers.Name)
 
-	credStore, _ := selectCredentialStore()
-	if credStore == nil {
+	credStore, err := credentials.SelectCredentialStore()
+	if err != nil {
 		return format.NewErrorResponse[AddDBData](
 			format.ErrCodeCredentialUnavailable,
 			"No credential store available. Set up OS keychain or configure QUERYLEX_DB_PASSWORD environment variable.",
 			false,
 			traceID,
 		)
+	}
+
+	// If the encrypted file store was selected, prompt for passphrase
+	if encStore, ok := credStore.(*credentials.EncryptedFileStore); ok {
+		if ppErr := promptEncryptedFilePassphrase(encStore, "database"); ppErr != nil {
+			return format.NewErrorResponse[AddDBData](
+				format.ErrCodeCredentialUnavailable,
+				ppErr.Error(),
+				false,
+				traceID,
+			)
+		}
 	}
 
 	credRef, err := credStore.Store(dbID, answers.Password)
@@ -253,25 +265,27 @@ func RunAddDB() *format.Response[AddDBData] {
 	return resp
 }
 
-func selectCredentialStore() (credentials.CredentialStore, string) {
+// Deprecated: use credentials.SelectCredentialStore() from factory.go instead.
+// This local implementation has incorrect priority order (EnvVar before EncryptedFile).
+func selectCredentialStore() credentials.CredentialStore {
 	keychain := credentials.NewKeychainStore()
 	if keychain.Available() {
-		return keychain, "os-keychain"
+		return keychain
 	}
 
 	envStore := credentials.NewEnvStore()
 	if envStore.Available() {
-		return envStore, "env-var"
+		return envStore
 	}
 
 	home, err := os.UserHomeDir()
 	if err == nil {
 		encFile := filepath.Join(home, ".querylex", "credentials.json.enc")
 		encStore := credentials.NewEncryptedFileStore(encFile)
-		return encStore, "encrypted-file"
+		return encStore
 	}
 
-	return nil, ""
+	return nil
 }
 
 func generateDBID(name string) string {

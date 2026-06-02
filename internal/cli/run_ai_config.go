@@ -121,9 +121,16 @@ func RunAIConfig() error {
 		return fmt.Errorf("cannot determine home directory: %w", err)
 	}
 
-	credStore, _ := selectCredentialStore()
-	if credStore == nil {
+	credStore, err := credentials.SelectCredentialStore()
+	if err != nil {
 		return fmt.Errorf("No credential store available. Set QUERYLEX_AI_API_KEY environment variable instead.")
+	}
+
+	// If the encrypted file store was selected, prompt for passphrase
+	if encStore, ok := credStore.(*credentials.EncryptedFileStore); ok {
+		if err := promptEncryptedFilePassphrase(encStore, "ai"); err != nil {
+			return fmt.Errorf("cannot unlock credential store: %w", err)
+		}
 	}
 
 	providerName := strings.ToLower(strings.ReplaceAll(answers.Provider, " ", "-"))
