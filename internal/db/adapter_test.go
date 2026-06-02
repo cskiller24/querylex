@@ -8,6 +8,8 @@ import (
 	_ "github.com/querylex/querylex/internal/db/mysql"
 	_ "github.com/querylex/querylex/internal/db/postgresql"
 	_ "github.com/querylex/querylex/internal/db/sqlite"
+	_ "github.com/querylex/querylex/internal/db/mariadb"
+	_ "github.com/querylex/querylex/internal/db/mssql"
 )
 
 func TestAdapterStubs_ConcreteTypes(t *testing.T) {
@@ -110,6 +112,26 @@ func TestDatabaseType(t *testing.T) {
 			t.Fatalf("expected postgresql, got %s", adapter.DatabaseType())
 		}
 	})
+
+	t.Run("mariadb adapter returns mariadb", func(t *testing.T) {
+		adapter, err := db.Open("mariadb", "")
+		if err != nil {
+			t.Fatalf("Open(mariadb) failed: %v", err)
+		}
+		if adapter.DatabaseType() != "mariadb" {
+			t.Fatalf("expected mariadb, got %s", adapter.DatabaseType())
+		}
+	})
+
+	t.Run("mssql adapter returns mssql", func(t *testing.T) {
+		adapter, err := db.Open("mssql", "")
+		if err != nil {
+			t.Fatalf("Open(mssql) failed: %v", err)
+		}
+		if adapter.DatabaseType() != "mssql" {
+			t.Fatalf("expected mssql, got %s", adapter.DatabaseType())
+		}
+	})
 }
 
 func TestFactoryRegistration(t *testing.T) {
@@ -150,6 +172,32 @@ func TestFactoryRegistration(t *testing.T) {
 		}
 		if adapter == nil {
 			t.Fatal("expected non-nil adapter for sqlite")
+		}
+	})
+
+	t.Run("mariadb registered", func(t *testing.T) {
+		adapter, err := db.Open("mariadb", "")
+		if err != nil {
+			t.Fatalf("Open(mariadb) failed: %v", err)
+		}
+		if adapter == nil {
+			t.Fatal("expected non-nil adapter for mariadb")
+		}
+		if dt := adapter.DatabaseType(); dt != "mariadb" {
+			t.Fatalf("expected DatabaseType()=mariadb, got %s", dt)
+		}
+	})
+
+	t.Run("mssql registered", func(t *testing.T) {
+		adapter, err := db.Open("mssql", "")
+		if err != nil {
+			t.Fatalf("Open(mssql) failed: %v", err)
+		}
+		if adapter == nil {
+			t.Fatal("expected non-nil adapter for mssql")
+		}
+		if dt := adapter.DatabaseType(); dt != "mssql" {
+			t.Fatalf("expected DatabaseType()=mssql, got %s", dt)
 		}
 	})
 

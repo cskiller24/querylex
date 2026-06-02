@@ -13,6 +13,8 @@ import (
 	_ "github.com/querylex/querylex/internal/db/mysql"
 	_ "github.com/querylex/querylex/internal/db/postgresql"
 	_ "github.com/querylex/querylex/internal/db/sqlite"
+	_ "github.com/querylex/querylex/internal/db/mariadb"
+	_ "github.com/querylex/querylex/internal/db/mssql"
 )
 
 // mergeTableArgs combines --table and --tables-json flags into a single slice.
