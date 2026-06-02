@@ -7,6 +7,7 @@ import (
 	"github.com/querylex/querylex/internal/db"
 	_ "github.com/querylex/querylex/internal/db/mysql"
 	_ "github.com/querylex/querylex/internal/db/postgresql"
+	_ "github.com/querylex/querylex/internal/db/sqlite"
 )
 
 func TestAdapterStubs_ConcreteTypes(t *testing.T) {
@@ -139,6 +140,16 @@ func TestFactoryRegistration(t *testing.T) {
 		}
 		if adapter == nil {
 			t.Fatal("expected non-nil adapter for postgresql")
+		}
+	})
+
+	t.Run("sqlite registered", func(t *testing.T) {
+		adapter, err := db.Open("sqlite", "")
+		if err != nil {
+			t.Fatalf("Open(sqlite) failed: %v", err)
+		}
+		if adapter == nil {
+			t.Fatal("expected non-nil adapter for sqlite")
 		}
 	})
 
