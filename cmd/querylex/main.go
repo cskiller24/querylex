@@ -255,6 +255,19 @@ var deleteCmd = &cobra.Command{
 	},
 }
 
+var aiConfigCmd = &cobra.Command{
+	Use:   "ai-config",
+	Short: "Configure AI provider settings",
+	Long:  "Interactively set up AI provider credentials (stored in OS keychain) and model preferences via guided prompts.",
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := cli.RunAIConfig(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("AI configuration saved successfully.")
+	},
+}
+
 var resolveCmd = &cobra.Command{
 	Use:   "resolve <question>",
 	Short: "Resolve natural language to table/column candidates",
@@ -286,6 +299,7 @@ func init() {
 	rootCmd.AddCommand(historyCmd)
 	rootCmd.AddCommand(deleteCmd)
 	rootCmd.AddCommand(resolveCmd)
+	rootCmd.AddCommand(aiConfigCmd)
 
 	schemaCmd.Flags().StringArray("table", nil, "Table names (repeatable)")
 	schemaCmd.Flags().String("tables-json", "", "Tables as JSON array")
