@@ -43,6 +43,15 @@ const (
 	ErrCodeSchemaParseError ErrorCode = "SCHEMA_PARSE_ERROR"
 	// ErrCodeTerminologyParse indicates the terminologies.md YAML block could not be parsed.
 	ErrCodeTerminologyParse ErrorCode = "TERMINOLOGY_PARSE_ERROR"
+
+	// ErrCodeMemoryIndexStale indicates the memory index is out of sync with memory.sqlite.
+	ErrCodeMemoryIndexStale ErrorCode = "MEMORY_INDEX_STALE"
+	// ErrCodeMemoryStoreUnavailable indicates the memory subsystem is unavailable.
+	ErrCodeMemoryStoreUnavailable ErrorCode = "MEMORY_STORE_UNAVAILABLE"
+	// ErrCodeMemoryWriteFailed indicates a memory write operation failed.
+	ErrCodeMemoryWriteFailed ErrorCode = "MEMORY_WRITE_FAILED"
+	// ErrCodeExplainCacheStale indicates an explain cache entry is stale.
+	ErrCodeExplainCacheStale ErrorCode = "EXPLAIN_CACHE_STALE"
 )
 
 // ErrorCodeDescriptions maps each ErrorCode to a human-readable description.
@@ -67,4 +76,9 @@ var ErrorCodeDescriptions = map[ErrorCode]string{
 	ErrCodeIndexAnalysisFailed:    "Index metadata extraction failed.",
 	ErrCodeSchemaParseError:       "Schema data could not be parsed or is in an unexpected format.",
 	ErrCodeTerminologyParse:       "The terminologies.md file contains a malformed or missing querylex-terms YAML block.",
+
+	ErrCodeMemoryIndexStale:        "Memory index metadata is stale relative to memory.sqlite.",
+	ErrCodeMemoryStoreUnavailable:  "Memory subsystem is unavailable.",
+	ErrCodeMemoryWriteFailed:       "Unable to write memory entry.",
+	ErrCodeExplainCacheStale:       "Explain cache entry is stale — fingerprint mismatch or TTL expired.",
 }

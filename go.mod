@@ -16,6 +16,8 @@ require (
 	modernc.org/sqlite v1.51.0
 )
 
+require github.com/oklog/ulid/v2 v2.1.1 // indirect
+
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect

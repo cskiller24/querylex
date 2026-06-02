@@ -26,6 +26,13 @@ type PreflightResult struct {
 	CredStore    credentials.CredentialStore
 }
 
+// MemoryPreflight holds the result of the lightweight memory command preflight.
+type MemoryPreflight struct {
+	Workspace  *state.Workspace
+	ActiveDBID string
+	DBDir      string // $HOME/.querylex/<db-id>/
+}
+
 // DBConnectionConfig represents the connection metadata for a database.
 type DBConnectionConfig struct {
 	ID       string `json:"id"`
@@ -211,6 +218,77 @@ func PreflightForCommand() (*PreflightResult, *format.Response[any]) {
 		DBConfig:   dbConfig,
 		Adapter:    adapter,
 		CredStore:  credStore,
+	}, nil
+}
+
+// PreflightForMemoryCommand performs a lightweight preflight for memory commands.
+// It validates workspace state and active database without connecting to the database.
+// Returns a MemoryPreflight on success, or an error response on failure.
+func PreflightForMemoryCommand() (*MemoryPreflight, *format.Response[any]) {
+	traceID := format.GenerateTraceID()
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, format.NewErrorResponse[any](
+			format.ErrCodeInternalError,
+			fmt.Sprintf("Cannot determine home directory: %v", err),
+			false,
+			traceID,
+		)
+	}
+
+	workspaceFile := filepath.Join(home, ".querylex", "querylex.json")
+	wsStore := state.NewFileWorkspaceStore(workspaceFile)
+
+	ws, err := wsStore.Load()
+	if err != nil {
+		return nil, format.NewErrorResponse[any](
+			format.ErrCodeWorkspaceStateInvalid,
+			fmt.Sprintf("Failed to load workspace state: %v", err),
+			false,
+			traceID,
+		)
+	}
+
+	// Validate active database ID is set
+	if ws.ActiveDatabaseID == nil {
+		return nil, format.NewErrorResponse[any](
+			format.ErrCodeInvalidArgument,
+			"No active database. Set one with 'querylex-add-db'.",
+			false,
+			traceID,
+		)
+	}
+	activeDBID := *ws.ActiveDatabaseID
+
+	// Validate active database exists in ConnectedDatabases
+	dbEntry := findDatabaseEntry(ws.ConnectedDatabases, activeDBID)
+	if dbEntry == nil {
+		return nil, format.NewErrorResponse[any](
+			format.ErrCodeWorkspaceStateInvalid,
+			fmt.Sprintf("Active database '%s' not found in workspace.", activeDBID),
+			false,
+			traceID,
+		)
+	}
+
+	// Status gate: reject not_indexed and index_failed
+	switch dbEntry.Status {
+	case state.StatusNotIndexed, state.StatusIndexFailed:
+		return nil, format.NewErrorResponse[any](
+			format.ErrCodeWorkspaceStateInvalid,
+			fmt.Sprintf("Database '%s' is not indexed (status: %s). Run indexing first.", dbEntry.Name, dbEntry.Status),
+			false,
+			traceID,
+		)
+	}
+
+	dbDir := filepath.Join(home, ".querylex", activeDBID)
+
+	return &MemoryPreflight{
+		Workspace:  ws,
+		ActiveDBID: activeDBID,
+		DBDir:      dbDir,
 	}, nil
 }
 
