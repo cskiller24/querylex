@@ -10,7 +10,29 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/querylex/querylex/internal/cli"
+	_ "github.com/querylex/querylex/internal/db/mysql"
+	_ "github.com/querylex/querylex/internal/db/postgresql"
 )
+
+// mergeTableArgs combines --table and --tables-json flags into a single slice.
+func mergeTableArgs(tables []string, tablesJSON string) []string {
+	if tablesJSON != "" {
+		var jsonTables []string
+		if err := json.Unmarshal([]byte(tablesJSON), &jsonTables); err == nil {
+			seen := make(map[string]bool)
+			for _, t := range tables {
+				seen[t] = true
+			}
+			for _, t := range jsonTables {
+				if !seen[t] {
+					tables = append(tables, t)
+				}
+				seen[t] = true
+			}
+		}
+	}
+	return tables
+}
 
 var rootCmd = &cobra.Command{
 	Use:   "querylex",
@@ -59,9 +81,31 @@ var statsCmd = &cobra.Command{
 	},
 }
 
+var schemaCmd = &cobra.Command{
+	Use:   "schema",
+	Short: "Show schema information for tables",
+	Long:  "Displays complete column definitions for the specified tables or all tables if none specified.",
+	Run: func(cmd *cobra.Command, args []string) {
+		start := time.Now()
+		tables, _ := cmd.Flags().GetStringArray("table")
+		tablesJSON, _ := cmd.Flags().GetString("tables-json")
+		allTables := mergeTableArgs(tables, tablesJSON)
+		resp := cli.RunSchema(allTables)
+		resp.Complete(start)
+		outputResponse(resp)
+		if !resp.Success {
+			os.Exit(1)
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(addDbCmd)
 	rootCmd.AddCommand(statsCmd)
+	rootCmd.AddCommand(schemaCmd)
+
+	schemaCmd.Flags().StringArray("table", nil, "Table names (repeatable)")
+	schemaCmd.Flags().String("tables-json", "", "Tables as JSON array")
 }
 
 func main() {
