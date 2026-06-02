@@ -44,6 +44,12 @@ var (
 
 	// ErrPassphraseRequired is returned when no passphrase has been set.
 	ErrPassphraseRequired = errors.New("passphrase required for encrypted credential store")
+
+	// ErrWrongPassphrase is returned when an incorrect passphrase is provided
+	// to Unlock(), or when the encrypted file has been tampered with (GCM
+	// authentication tag validation fails). The error message suggests using
+	// QUERYLEX_DB_PASSWORD as an alternative.
+	ErrWrongPassphrase = errors.New("wrong passphrase for encrypted credential store")
 )
 
 // EncryptedFileStore implements CredentialStore using an AES-256-GCM encrypted
@@ -57,6 +63,13 @@ var (
 // The key is derived from the user-provided passphrase using scrypt(N=32768,
 // r=8, p=1). The derived key is cached in memory for the lifetime of the
 // process to avoid repeated scrypt calls.
+//
+// Passphrase flow:
+//   - Use Unlock(passphrase) to set and validate the passphrase. Unlock handles
+//     first-use detection (no file exists), normal unlock (correct passphrase),
+//     and wrong-passphrase/tampered-file errors.
+//   - SetPassphrase() is deprecated — use Unlock() instead.
+//   - The passphrase is held in memory for the process lifetime.
 type EncryptedFileStore struct {
 	mu         sync.RWMutex
 	filePath   string
@@ -76,9 +89,52 @@ func NewEncryptedFileStore(filePath string) *EncryptedFileStore {
 	}
 }
 
+// Unlock attempts to unlock the encrypted store with the given passphrase.
+// It handles three states:
+//
+//  1. First use (credentials.json.enc does not exist):
+//     Sets the passphrase and returns nil. The store is then ready for Store()
+//     calls, which will create the encrypted file on first write.
+//
+//  2. Normal unlock (file exists, decrypt succeeds):
+//     Sets the passphrase, derives the key, and attempts to decrypt the
+//     existing file. Returns nil on success.
+//
+//  3. Wrong passphrase or tampered file (file exists, decrypt fails):
+//     Clears the passphrase from memory and returns ErrWrongPassphrase.
+//
+// The passphrase is held in memory for the process lifetime (not persisted
+// to disk). Derived key caching avoids repeated scrypt calls.
+func (e *EncryptedFileStore) Unlock(passphrase string) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	e.passphrase = passphrase
+	e.derivedKey = nil
+
+	// readCredentials() handles three states:
+	// - File doesn't exist → returns empty map, nil (first use)
+	// - File exists, decrypt succeeds → returns credentials, nil
+	// - File exists, decrypt fails (wrong passphrase/tampered) → ErrTamperedFile
+	_, err := e.readCredentials()
+	if err == nil {
+		return nil
+	}
+	if errors.Is(err, ErrTamperedFile) {
+		e.passphrase = ""
+		return ErrWrongPassphrase
+	}
+	// Other errors (read failed, etc.)
+	e.passphrase = ""
+	return fmt.Errorf("encrypted store: %w", err)
+}
+
 // SetPassphrase sets the passphrase used for key derivation. Call this before
 // any Store/Retrieve/Delete operations. The derived key is cached to avoid
 // repeated scrypt calls within the same process lifetime.
+//
+// Deprecated: use Unlock() instead, which validates the passphrase against
+// the existing encrypted file and handles first-use detection.
 func (e *EncryptedFileStore) SetPassphrase(passphrase string) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
