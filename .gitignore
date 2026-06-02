@@ -10,5 +10,8 @@ bin/
 .vscode/
 .idea/
 
+# Planning artifacts
+.planning/
+
 # OS files
 .DS_Store
