@@ -74,27 +74,27 @@ func (a *MySQLAdapter) Close(ctx context.Context) error {
 	return nil
 }
 
-func (a *MySQLAdapter) Schema(ctx context.Context, tables []string) (any, error) {
+func (a *MySQLAdapter) Schema(ctx context.Context, tables []string) (*db.SchemaResult, error) {
 	return nil, db.ErrNotImplemented
 }
 
-func (a *MySQLAdapter) Explain(ctx context.Context, query string, analyze bool) (any, error) {
+func (a *MySQLAdapter) Explain(ctx context.Context, query string, analyze bool) (*db.ExplainPlan, error) {
 	return nil, db.ErrNotImplemented
 }
 
-func (a *MySQLAdapter) Validate(ctx context.Context, query string) (any, error) {
+func (a *MySQLAdapter) Validate(ctx context.Context, query string) (*db.ValidateResult, error) {
 	return nil, db.ErrNotImplemented
 }
 
-func (a *MySQLAdapter) Stats(ctx context.Context, tables []string) (any, error) {
+func (a *MySQLAdapter) Stats(ctx context.Context, tables []string) (*db.StatsResult, error) {
 	return nil, db.ErrNotImplemented
 }
 
-func (a *MySQLAdapter) Indexes(ctx context.Context, tables []string) (any, error) {
+func (a *MySQLAdapter) Indexes(ctx context.Context, tables []string) (*db.IndexesResult, error) {
 	return nil, db.ErrNotImplemented
 }
 
-func (a *MySQLAdapter) Joins(ctx context.Context, tables []string) (any, error) {
+func (a *MySQLAdapter) Joins(ctx context.Context, tables []string) (*db.JoinsResult, error) {
 	return nil, db.ErrNotImplemented
 }
 

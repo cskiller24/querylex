@@ -77,27 +77,27 @@ func (a *PostgreSQLAdapter) Close(ctx context.Context) error {
 	return nil
 }
 
-func (a *PostgreSQLAdapter) Schema(ctx context.Context, tables []string) (any, error) {
+func (a *PostgreSQLAdapter) Schema(ctx context.Context, tables []string) (*db.SchemaResult, error) {
 	return nil, db.ErrNotImplemented
 }
 
-func (a *PostgreSQLAdapter) Explain(ctx context.Context, query string, analyze bool) (any, error) {
+func (a *PostgreSQLAdapter) Explain(ctx context.Context, query string, analyze bool) (*db.ExplainPlan, error) {
 	return nil, db.ErrNotImplemented
 }
 
-func (a *PostgreSQLAdapter) Validate(ctx context.Context, query string) (any, error) {
+func (a *PostgreSQLAdapter) Validate(ctx context.Context, query string) (*db.ValidateResult, error) {
 	return nil, db.ErrNotImplemented
 }
 
-func (a *PostgreSQLAdapter) Stats(ctx context.Context, tables []string) (any, error) {
+func (a *PostgreSQLAdapter) Stats(ctx context.Context, tables []string) (*db.StatsResult, error) {
 	return nil, db.ErrNotImplemented
 }
 
-func (a *PostgreSQLAdapter) Indexes(ctx context.Context, tables []string) (any, error) {
+func (a *PostgreSQLAdapter) Indexes(ctx context.Context, tables []string) (*db.IndexesResult, error) {
 	return nil, db.ErrNotImplemented
 }
 
-func (a *PostgreSQLAdapter) Joins(ctx context.Context, tables []string) (any, error) {
+func (a *PostgreSQLAdapter) Joins(ctx context.Context, tables []string) (*db.JoinsResult, error) {
 	return nil, db.ErrNotImplemented
 }
 

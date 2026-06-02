@@ -20,6 +20,27 @@ const (
 	ErrCodePermissionDenied ErrorCode = "PERMISSION_DENIED"
 	// ErrCodeInternalError indicates an unexpected failure.
 	ErrCodeInternalError ErrorCode = "INTERNAL_ERROR"
+
+	// ErrCodeInvalidSQL indicates the provided SQL could not be validated.
+	ErrCodeInvalidSQL ErrorCode = "INVALID_SQL"
+	// ErrCodeUnsafeSQL indicates DML/DCL statements were rejected.
+	ErrCodeUnsafeSQL ErrorCode = "UNSAFE_SQL"
+	// ErrCodeTableNotFound indicates a referenced table does not exist.
+	ErrCodeTableNotFound ErrorCode = "TABLE_NOT_FOUND"
+	// ErrCodeColumnNotFound indicates a referenced column does not exist.
+	ErrCodeColumnNotFound ErrorCode = "COLUMN_NOT_FOUND"
+	// ErrCodeNoMatchingTables indicates resolve found no matches.
+	ErrCodeNoMatchingTables ErrorCode = "NO_MATCHING_TABLES"
+	// ErrCodeExplainFailed indicates explain plan extraction failed.
+	ErrCodeExplainFailed ErrorCode = "EXPLAIN_FAILED"
+	// ErrCodeJoinPathNotFound indicates no join path exists between tables.
+	ErrCodeJoinPathNotFound ErrorCode = "JOIN_PATH_NOT_FOUND"
+	// ErrCodeStatsUnavailable indicates table statistics are unavailable.
+	ErrCodeStatsUnavailable ErrorCode = "STATS_UNAVAILABLE"
+	// ErrCodeIndexAnalysisFailed indicates index extraction failed.
+	ErrCodeIndexAnalysisFailed ErrorCode = "INDEX_ANALYSIS_FAILED"
+	// ErrCodeSchemaParseError indicates schema data could not be parsed.
+	ErrCodeSchemaParseError ErrorCode = "SCHEMA_PARSE_ERROR"
 )
 
 // ErrorCodeDescriptions maps each ErrorCode to a human-readable description.
@@ -32,4 +53,15 @@ var ErrorCodeDescriptions = map[ErrorCode]string{
 	ErrCodeUnsupportedDatabase:    "Database type is not supported.",
 	ErrCodePermissionDenied:       "Active credentials lack required permissions.",
 	ErrCodeInternalError:          "An unexpected internal error occurred.",
+
+	ErrCodeInvalidSQL:             "Provided SQL could not be validated against the database schema.",
+	ErrCodeUnsafeSQL:              "DML/DCL statements (INSERT, UPDATE, DELETE, DROP, ALTER, etc.) are not permitted.",
+	ErrCodeTableNotFound:          "Referenced table does not exist in the database schema.",
+	ErrCodeColumnNotFound:         "Referenced column does not exist in the table.",
+	ErrCodeNoMatchingTables:       "No matching tables found for the given input.",
+	ErrCodeExplainFailed:          "Execution plan extraction failed.",
+	ErrCodeJoinPathNotFound:       "No join path exists between the specified tables.",
+	ErrCodeStatsUnavailable:       "Table statistics are unavailable for the specified tables.",
+	ErrCodeIndexAnalysisFailed:    "Index metadata extraction failed.",
+	ErrCodeSchemaParseError:       "Schema data could not be parsed or is in an unexpected format.",
 }
