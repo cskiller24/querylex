@@ -52,6 +52,15 @@ const (
 	ErrCodeMemoryWriteFailed ErrorCode = "MEMORY_WRITE_FAILED"
 	// ErrCodeExplainCacheStale indicates an explain cache entry is stale.
 	ErrCodeExplainCacheStale ErrorCode = "EXPLAIN_CACHE_STALE"
+
+	// ErrCodeAIServiceUnavailable indicates the AI service is unreachable.
+	ErrCodeAIServiceUnavailable ErrorCode = "AI_SERVICE_UNAVAILABLE"
+	// ErrCodeAIConfigMissing indicates AI provider is not configured.
+	ErrCodeAIConfigMissing ErrorCode = "AI_CONFIG_MISSING"
+	// ErrCodeAIGenerationFailed indicates AI failed to generate a valid response.
+	ErrCodeAIGenerationFailed ErrorCode = "AI_GENERATION_FAILED"
+	// ErrCodeAIContextOverflow indicates the context exceeds the model token limit.
+	ErrCodeAIContextOverflow ErrorCode = "AI_CONTEXT_OVERFLOW"
 )
 
 // ErrorCodeDescriptions maps each ErrorCode to a human-readable description.
@@ -81,4 +90,9 @@ var ErrorCodeDescriptions = map[ErrorCode]string{
 	ErrCodeMemoryStoreUnavailable:  "Memory subsystem is unavailable.",
 	ErrCodeMemoryWriteFailed:       "Unable to write memory entry.",
 	ErrCodeExplainCacheStale:       "Explain cache entry is stale — fingerprint mismatch or TTL expired.",
+
+	ErrCodeAIServiceUnavailable:    "AI service is unreachable or not configured.",
+	ErrCodeAIConfigMissing:         "AI provider not configured. Run 'querylex ai-config' to set up.",
+	ErrCodeAIGenerationFailed:      "AI failed to generate a valid response.",
+	ErrCodeAIContextOverflow:       "Context exceeds model token limit. Try narrowing the query scope.",
 }
