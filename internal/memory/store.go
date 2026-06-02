@@ -93,7 +93,7 @@ func createTables(db *sql.DB) error {
 // updated an existing entry, and any error. On success, the _meta.index_revision
 // is incremented atomically within the same transaction.
 func SaveEntry(ctx context.Context, db *sql.DB, input, sql, dbID string) (*MemoryEntry, bool, error) {
-	normalizedInput := normalizeInput(input)
+	normalizedInput := NormalizeInput(input)
 	normalizedSQL := strings.TrimSpace(sql)
 	normalizedSQL = whitespaceRe.ReplaceAllString(normalizedSQL, " ")
 	hash := sqlHash(normalizedSQL)
@@ -315,8 +315,8 @@ func generateMemoryID() string {
 // whitespaceRe matches one or more whitespace characters.
 var whitespaceRe = regexp.MustCompile(`\s+`)
 
-// normalizeInput normalizes a string for consistency: lowercase, trim, collapse spaces.
-func normalizeInput(input string) string {
+// NormalizeInput normalizes a string for consistency: lowercase, trim, collapse spaces.
+func NormalizeInput(input string) string {
 	s := strings.ToLower(strings.TrimSpace(input))
 	return whitespaceRe.ReplaceAllString(s, " ")
 }

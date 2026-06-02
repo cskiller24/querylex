@@ -26,7 +26,7 @@ type ScoredEntry struct {
 //  5. Compute similarity for each candidate
 //  6. Sort by score descending, return top maxResults
 func Search(dbDir string, input string, maxResults int) ([]ScoredEntry, *format.Warning, error) {
-	normalizedInput := normalizeInput(input)
+	normalizedInput := NormalizeInput(input)
 
 	// Open store
 	db, err := OpenStore(dbDir)

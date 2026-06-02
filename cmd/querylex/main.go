@@ -223,6 +223,38 @@ var memoryCmd = &cobra.Command{
 	},
 }
 
+var historyCmd = &cobra.Command{
+	Use:   "history <topic>",
+	Short: "Browse query history by topic",
+	Long:  "Searches saved memory entries related to the given topic and returns them ranked by similarity and recency.",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		start := time.Now()
+		resp := cli.RunHistory(args[0])
+		resp.Complete(start)
+		outputResponse(resp)
+		if !resp.Success {
+			os.Exit(1)
+		}
+	},
+}
+
+var deleteCmd = &cobra.Command{
+	Use:   "delete <input>",
+	Short: "Delete a memory entry",
+	Long:  "Removes a saved memory entry by its normalized input text. Deleting a non-existent entry succeeds silently with deleted: false.",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		start := time.Now()
+		resp := cli.RunDelete(args[0])
+		resp.Complete(start)
+		outputResponse(resp)
+		if !resp.Success {
+			os.Exit(1)
+		}
+	},
+}
+
 var resolveCmd = &cobra.Command{
 	Use:   "resolve <question>",
 	Short: "Resolve natural language to table/column candidates",
@@ -251,6 +283,8 @@ func init() {
 	rootCmd.AddCommand(joinsCmd)
 	rootCmd.AddCommand(saveCmd)
 	rootCmd.AddCommand(memoryCmd)
+	rootCmd.AddCommand(historyCmd)
+	rootCmd.AddCommand(deleteCmd)
 	rootCmd.AddCommand(resolveCmd)
 
 	schemaCmd.Flags().StringArray("table", nil, "Table names (repeatable)")
