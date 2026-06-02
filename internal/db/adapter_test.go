@@ -9,7 +9,91 @@ import (
 	_ "github.com/querylex/querylex/internal/db/postgresql"
 )
 
-func TestAdapterStubs(t *testing.T) {
+func TestAdapterStubs_ConcreteTypes(t *testing.T) {
+	// This test verifies that the adapter interface methods return concrete types
+	// (*db.SchemaResult, *db.ExplainPlan, etc.) instead of `any`.
+	adapter, err := db.Open("mysql", "")
+	if err != nil {
+		t.Fatalf("Open(mysql) failed: %v", err)
+	}
+
+	ctx := context.Background()
+
+	t.Run("Schema returns *SchemaResult", func(t *testing.T) {
+		result, err := adapter.Schema(ctx, nil)
+		if err != db.ErrNotImplemented {
+			t.Fatalf("expected ErrNotImplemented, got %v", err)
+		}
+		if result != nil {
+			t.Fatalf("expected nil result, got %v", result)
+		}
+		// Verify concrete type at compile time
+		var _ *db.SchemaResult = result
+		_ = result
+	})
+
+	t.Run("Explain returns *ExplainPlan", func(t *testing.T) {
+		result, err := adapter.Explain(ctx, "", false)
+		if err != db.ErrNotImplemented {
+			t.Fatalf("expected ErrNotImplemented, got %v", err)
+		}
+		if result != nil {
+			t.Fatalf("expected nil result, got %v", result)
+		}
+		var _ *db.ExplainPlan = result
+		_ = result
+	})
+
+	t.Run("Validate returns *ValidateResult", func(t *testing.T) {
+		result, err := adapter.Validate(ctx, "")
+		if err != db.ErrNotImplemented {
+			t.Fatalf("expected ErrNotImplemented, got %v", err)
+		}
+		if result != nil {
+			t.Fatalf("expected nil result, got %v", result)
+		}
+		var _ *db.ValidateResult = result
+		_ = result
+	})
+
+	t.Run("Stats returns *StatsResult", func(t *testing.T) {
+		result, err := adapter.Stats(ctx, nil)
+		if err != db.ErrNotImplemented {
+			t.Fatalf("expected ErrNotImplemented, got %v", err)
+		}
+		if result != nil {
+			t.Fatalf("expected nil result, got %v", result)
+		}
+		var _ *db.StatsResult = result
+		_ = result
+	})
+
+	t.Run("Indexes returns *IndexesResult", func(t *testing.T) {
+		result, err := adapter.Indexes(ctx, nil)
+		if err != db.ErrNotImplemented {
+			t.Fatalf("expected ErrNotImplemented, got %v", err)
+		}
+		if result != nil {
+			t.Fatalf("expected nil result, got %v", result)
+		}
+		var _ *db.IndexesResult = result
+		_ = result
+	})
+
+	t.Run("Joins returns *JoinsResult", func(t *testing.T) {
+		result, err := adapter.Joins(ctx, nil)
+		if err != db.ErrNotImplemented {
+			t.Fatalf("expected ErrNotImplemented, got %v", err)
+		}
+		if result != nil {
+			t.Fatalf("expected nil result, got %v", result)
+		}
+		var _ *db.JoinsResult = result
+		_ = result
+	})
+}
+
+func TestAdapterStubs_ErrNotImplemented(t *testing.T) {
 	adapter, err := db.Open("mysql", "")
 	if err != nil {
 		t.Fatalf("Open(mysql) failed: %v", err)
@@ -37,6 +121,29 @@ func TestAdapterStubs(t *testing.T) {
 			t.Errorf("%s: expected ErrNotImplemented, got %v", m.name, err)
 		}
 	}
+}
+
+func TestDatabaseType(t *testing.T) {
+	t.Run("mysql adapter returns mysql", func(t *testing.T) {
+		adapter, err := db.Open("mysql", "")
+		if err != nil {
+			t.Fatalf("Open(mysql) failed: %v", err)
+		}
+		if adapter.DatabaseType() != "mysql" {
+			t.Fatalf("expected mysql, got %s", adapter.DatabaseType())
+		}
+	})
+
+	t.Run("postgres adapter returns postgresql", func(t *testing.T) {
+		adapter, err := db.Open("postgres", "")
+		if err != nil {
+			t.Fatalf("Open(postgres) failed: %v", err)
+		}
+		// PostgreSQL adapter's DatabaseType() returns "postgresql"
+		if adapter.DatabaseType() != "postgresql" {
+			t.Fatalf("expected postgresql, got %s", adapter.DatabaseType())
+		}
+	})
 }
 
 func TestFactoryRegistration(t *testing.T) {
