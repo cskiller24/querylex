@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -32,7 +33,11 @@ type MemoryEntry struct {
 
 // OpenStore opens (or creates) the memory.sqlite database at the given dbDir.
 // The database is opened with WAL journal mode for concurrent reads.
+// Creates the directory if it does not exist.
 func OpenStore(dbDir string) (*sql.DB, error) {
+	if err := os.MkdirAll(dbDir, 0755); err != nil {
+		return nil, fmt.Errorf("create memory dir: %w", err)
+	}
 	dbPath := filepath.Join(dbDir, "memory.sqlite")
 	dsn := "file:" + dbPath + "?_pragma=journal_mode(WAL)"
 	db, err := sql.Open("sqlite", dsn)
@@ -153,6 +158,33 @@ func SaveEntry(ctx context.Context, db *sql.DB, input, sql, dbID string) (*Memor
 	}
 
 	return entry, updatedExisting, nil
+}
+
+// GetEntryByID retrieves an entry by its ID. Returns nil, nil if not found.
+func GetEntryByID(ctx context.Context, db *sql.DB, id string) (*MemoryEntry, error) {
+	entry := &MemoryEntry{}
+	err := db.QueryRowContext(ctx, `
+		SELECT id, input, sql, sql_hash, match_type, COALESCE(optimization_summary, ''),
+		       created_at, updated_at, COALESCE(last_used_at, ''), database_id
+		FROM entries WHERE id = ?
+	`, id).Scan(
+		&entry.ID, &entry.Input, &entry.SQL, &entry.SQLHash,
+		&entry.MatchType, &entry.OptimizationSummary,
+		&entry.CreatedAt, &entry.UpdatedAt, &entry.LastUsedAt,
+		&entry.DatabaseID,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get entry by id: %w", err)
+	}
+
+	// Update last_used_at best-effort
+	now := time.Now().UTC().Format(time.RFC3339)
+	_, _ = db.ExecContext(ctx, `UPDATE entries SET last_used_at = ? WHERE id = ?`, now, id)
+
+	return entry, nil
 }
 
 // GetEntry retrieves an entry by normalized input. It updates the last_used_at

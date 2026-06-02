@@ -102,9 +102,9 @@ func Search(dbDir string, input string, maxResults int) ([]ScoredEntry, *format.
 		}
 
 		if len(candidateIDs) > 0 {
-			// Load candidates from SQLite
+			// Load candidates from SQLite by ID
 			for id := range candidateIDs {
-				entry, getErr := GetEntry(ctx, db, id)
+				entry, getErr := GetEntryByID(ctx, db, id)
 				if getErr == nil && entry != nil {
 					entries = append(entries, *entry)
 				}
