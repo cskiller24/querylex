@@ -16,8 +16,9 @@ const (
 	PhaseSchemaExtraction = "schema_extraction"
 	PhaseJoinGraph        = "join_graph"
 	PhaseSchemaMap        = "schema_map"
-	PhaseDomainClustering = "domain_clustering"
-	PhaseOutputAssembly   = "output_assembly"
+	PhaseDomainClustering     = "domain_clustering"
+	PhaseTerminologyGeneration = "terminology_generation"
+	PhaseOutputAssembly       = "output_assembly"
 )
 
 // Pipeline orchestrates the indexing phases for a database.
@@ -88,13 +89,29 @@ func RunPipeline(ctx context.Context, p *Pipeline) error {
 		p.failWithError(status, err)
 		return err
 	}
-	status.CurrentPhase = PhaseOutputAssembly
+
+	// Phase 4.5: Terminology Generation (progress 75→85)
+	status.CurrentPhase = PhaseTerminologyGeneration
 	status.ProgressPercent = 75
+	status.HeartbeatAt = time.Now().UTC().Format(time.RFC3339)
 	if err := WriteIndexStatus(p.dbDir, status); err != nil {
-		return fmt.Errorf("write status after domain clustering: %w", err)
+		return fmt.Errorf("write status before terminology generation: %w", err)
+	}
+	// Non-fatal: terminology generation failure should not abort the pipeline
+	if err := GenerateTerminologyTemplate(p.dbDir, result.Tables); err != nil {
+		_ = err // best-effort — user can manually create the file
+	}
+	status.ProgressPercent = 85
+	if err := WriteIndexStatus(p.dbDir, status); err != nil {
+		return fmt.Errorf("write status after terminology generation: %w", err)
 	}
 
-	// Phase 5: Output Assembly (progress 75→100)
+	// Phase 5: Output Assembly (progress 85→100)
+	status.CurrentPhase = PhaseOutputAssembly
+	status.ProgressPercent = 85
+	if err := WriteIndexStatus(p.dbDir, status); err != nil {
+		return fmt.Errorf("write status before output assembly: %w", err)
+	}
 	if err := p.buildManifest(ctx, result); err != nil {
 		p.failWithError(status, err)
 		return err
