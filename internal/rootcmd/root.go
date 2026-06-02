@@ -21,6 +21,7 @@ import (
 	_ "github.com/querylex/querylex/internal/db/mysql"
 	_ "github.com/querylex/querylex/internal/db/postgresql"
 	_ "github.com/querylex/querylex/internal/db/sqlite"
+	"github.com/querylex/querylex/internal/state"
 	"github.com/querylex/querylex/internal/version"
 )
 
@@ -414,14 +415,9 @@ func initWorkspace() error {
 		return fmt.Errorf("cannot create .querylex directory: %w", err)
 	}
 
-	entries, err := os.ReadDir(querylexDir)
-	if err == nil {
-		for _, entry := range entries {
-			if !entry.IsDir() && filepath.Ext(entry.Name()) == ".tmp" {
-				os.Remove(filepath.Join(querylexDir, entry.Name()))
-			}
-		}
-	}
+	// Best-effort cleanup of orphaned temp and lock files from crashes.
+	state.CleanupTempFiles(querylexDir)
+	state.CleanupLockFiles(querylexDir)
 
 	return nil
 }
