@@ -90,6 +90,13 @@ func LevenshteinDistance(s1, s2 string) int {
 	return prev[len(s1)]
 }
 
+// ValidateSQLSafety performs Layer 1 DML/DCL keyword scanning.
+// Returns nil for safe (read-only) queries, error with ErrUnsafeSQL for DML/DCL.
+// STUB: Always returns nil (all queries pass). Replaced in GREEN phase.
+func ValidateSQLSafety(query string) error {
+	return nil
+}
+
 // ResolveTokens performs multi-pass deterministic resolution of natural language
 // tokens against a slim schema. Returns ranked table/column candidates with
 // confidence scores.
