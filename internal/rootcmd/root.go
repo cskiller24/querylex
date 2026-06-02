@@ -56,7 +56,16 @@ var RootCmd = &cobra.Command{
 It helps users generate SQL from natural language using live database context
 and optimize existing SQL using explain plans, schema data, statistics, indexes,
 and dialect-aware rewrite heuristics. It supports MySQL, MariaDB, PostgreSQL,
-SQLite, and Microsoft SQL Server.`,
+SQLite, and Microsoft SQL Server.
+
+Getting Started:
+  1. Add a database:     querylex-add-db
+  2. Check status:       querylex-stats --human
+  3. Generate SQL:       querylex sql "your question in plain English"
+  4. Optimize a query:   querylex optimize "SELECT ..."
+
+Shell Completions:
+  querylex completion bash > /path/to/completions`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		return initWorkspace()
 	},
@@ -68,7 +77,7 @@ SQLite, and Microsoft SQL Server.`,
 var addDbCmd = &cobra.Command{
 	Use:   "add-db",
 	Short: "Add a new database connection through guided setup",
-	Long:  "Interactively add and configure a new database connection for Querylex via guided prompts.",
+	Long: `Interactively add a new database connection for Querylex via guided prompts. You will be asked for database type (MySQL or PostgreSQL), connection details (host, port, database name, username), and password. The password is stored in your OS keychain, never in plaintext. After setup, Querylex automatically indexes the database schema.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
 		resp := cli.RunAddDB()
@@ -83,7 +92,7 @@ var addDbCmd = &cobra.Command{
 var statsCmd = &cobra.Command{
 	Use:   "workspace-stats",
 	Short: "Show workspace status across connected databases",
-	Long:  "Display Querylex workspace status including connected databases and their indexing status.",
+	Long: `Display Querylex workspace status including all connected databases, their indexing status and progress, active database indicator, and workspace health information. Use --human flag for a readable summary instead of JSON output.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		human, _ := cmd.Flags().GetBool("human")
 		if human {
@@ -122,7 +131,7 @@ var schemaCmd = &cobra.Command{
 var tableStatsCmd = &cobra.Command{
 	Use:   "stats",
 	Short: "Show table statistics",
-	Long:  "Displays row counts, cardinality, data size, index size, and freshness for the specified tables.",
+	Long: `Displays row counts, cardinality estimates, data size, index size, and freshness metadata for the specified tables. Requires an indexed active database. Use --table flag (repeatable) to target specific tables or omit for all tables.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
 		tables, _ := cmd.Flags().GetStringArray("table")
@@ -140,7 +149,7 @@ var tableStatsCmd = &cobra.Command{
 var indexesCmd = &cobra.Command{
 	Use:   "indexes",
 	Short: "Show index information for tables",
-	Long:  "Displays index metadata from schema_map.json by default. Use --live to query the database directly.",
+	Long: `Displays index metadata including index type (BTREE, HASH, GIN, etc.), uniqueness, columns with their order, cardinality, and visibility. By default reads from schema_map.json for speed. Use --live to query the database directly for real-time index information.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
 		tables, _ := cmd.Flags().GetStringArray("table")
@@ -159,7 +168,8 @@ var indexesCmd = &cobra.Command{
 var explainCmd = &cobra.Command{
 	Use:   "explain <sql>",
 	Short: "Show execution plan for a SQL query",
-	Long:  "Returns a dialect-normalized execution plan with heuristic analysis. Use --analyze to execute for actual runtime timing.",
+	Long: `Returns a dialect-normalized execution plan with heuristic analysis. The plan format adapts to each database engine — JSON for MySQL/PostgreSQL, structured text for SQLite, and XML-to-structured for MSSQL. Use --analyze to execute the query for actual runtime timing and row counts (with confirmation prompt).`,
+	Example: `  querylex explain --analyze "SELECT o.id, c.name FROM orders o JOIN customers c ON o.customer_id = c.id"`,
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
@@ -176,7 +186,7 @@ var explainCmd = &cobra.Command{
 var validateCmd = &cobra.Command{
 	Use:   "validate <sql>",
 	Short: "Validate SQL against active database schema",
-	Long:  "Validates SQL without executing it. Layer 1 rejects DML/DCL statements. Layer 2 checks against the database schema.",
+	Long: `Validates SQL without executing it. Layer 1 checks: rejects DML (INSERT/UPDATE/DELETE) and DCL (GRANT/REVOKE) statements. Layer 2 checks: resolves table and column references against the active database schema. Returns normalized SQL or specific validation errors.`,
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
@@ -192,7 +202,7 @@ var validateCmd = &cobra.Command{
 var joinsCmd = &cobra.Command{
 	Use:   "joins",
 	Short: "Show join relationships for tables",
-	Long:  "Returns declared and inferred join relationships. Use --table once for all joins, twice for specific path.",
+	Long: `Returns declared foreign key relationships (confidence=1.0) and inferred column-name pattern matches (confidence<1.0) for the specified tables. Use --table once to see all joins from that table. Use --table twice with two different tables to see the join path between them.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
 		tables, _ := cmd.Flags().GetStringArray("table")
@@ -288,6 +298,7 @@ var sqlCmd = &cobra.Command{
 	Use:   "sql <question>",
 	Short: "Generate SQL from natural language (AI-powered)",
 	Long:  "Uses AI to generate dialect-correct SQL from a natural language question, leveraging live database context including schema, terminology, joins, statistics, and indexes.",
+	Example: `  querylex sql "show me all orders from last month with customer names"`,
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		question := strings.Join(args, " ")
@@ -302,6 +313,7 @@ var optimizeCmd = &cobra.Command{
 	Use:   "optimize <sql>",
 	Short: "Optimize a SQL query (AI-powered)",
 	Long:  "Uses AI-driven three-strategy rewrite with explain plan comparison to optimize SQL. Supports --analyze for runtime plan analysis and --no-index to suppress index recommendations.",
+	Example: `  querylex optimize "SELECT * FROM orders WHERE created_at > '2024-01-01'"`,
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		analyze, _ := cmd.Flags().GetBool("analyze")
@@ -317,6 +329,7 @@ var resolveCmd = &cobra.Command{
 	Use:   "resolve <question>",
 	Short: "Resolve natural language to table/column candidates",
 	Long:  "Uses multi-pass deterministic matching against schema metadata to find relevant tables and columns. No database connection needed.",
+	Example: `  querylex resolve "find customer orders"`,
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
@@ -383,23 +396,30 @@ func init() {
 
 	schemaCmd.Flags().StringArray("table", nil, "Table names (repeatable)")
 	schemaCmd.Flags().String("tables-json", "", "Tables as JSON array")
+	_ = schemaCmd.RegisterFlagCompletionFunc("tables-json", cobra.NoFileCompletions)
 
 	tableStatsCmd.Flags().StringArray("table", nil, "Table names (repeatable)")
 	tableStatsCmd.Flags().String("tables-json", "", "Tables as JSON array")
+	_ = tableStatsCmd.RegisterFlagCompletionFunc("tables-json", cobra.NoFileCompletions)
 
 	indexesCmd.Flags().StringArray("table", nil, "Table names (repeatable)")
 	indexesCmd.Flags().String("tables-json", "", "Tables as JSON array")
 	indexesCmd.Flags().Bool("live", false, "Query database live instead of reading from schema_map.json")
+	_ = indexesCmd.RegisterFlagCompletionFunc("tables-json", cobra.NoFileCompletions)
 
 	explainCmd.Flags().Bool("analyze", false, "Execute query for actual runtime plan (with warning)")
 	explainCmd.Flags().String("tables-json", "", "Tables as JSON array")
+	_ = explainCmd.RegisterFlagCompletionFunc("tables-json", cobra.NoFileCompletions)
 
 	validateCmd.Flags().String("tables-json", "", "Tables as JSON array")
+	_ = validateCmd.RegisterFlagCompletionFunc("tables-json", cobra.NoFileCompletions)
 
 	joinsCmd.Flags().StringArray("table", nil, "Table names (repeatable)")
 	joinsCmd.Flags().String("tables-json", "", "Tables as JSON array")
+	_ = joinsCmd.RegisterFlagCompletionFunc("tables-json", cobra.NoFileCompletions)
 
 	resolveCmd.Flags().String("tables-json", "", "Tables as JSON array")
+	_ = resolveCmd.RegisterFlagCompletionFunc("tables-json", cobra.NoFileCompletions)
 }
 
 func initWorkspace() error {
