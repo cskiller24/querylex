@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -172,6 +173,41 @@ var validateCmd = &cobra.Command{
 	},
 }
 
+var joinsCmd = &cobra.Command{
+	Use:   "joins",
+	Short: "Show join relationships for tables",
+	Long:  "Returns declared and inferred join relationships. Use --table once for all joins, twice for specific path.",
+	Run: func(cmd *cobra.Command, args []string) {
+		start := time.Now()
+		tables, _ := cmd.Flags().GetStringArray("table")
+		tablesJSON, _ := cmd.Flags().GetString("tables-json")
+		allTables := mergeTableArgs(tables, tablesJSON)
+		resp := cli.RunJoins(allTables)
+		resp.Complete(start)
+		outputResponse(resp)
+		if !resp.Success {
+			os.Exit(1)
+		}
+	},
+}
+
+var resolveCmd = &cobra.Command{
+	Use:   "resolve <question>",
+	Short: "Resolve natural language to table/column candidates",
+	Long:  "Uses multi-pass deterministic matching against schema metadata to find relevant tables and columns. No database connection needed.",
+	Args:  cobra.MinimumNArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		start := time.Now()
+		question := strings.Join(args, " ")
+		resp := cli.RunResolve(question)
+		resp.Complete(start)
+		outputResponse(resp)
+		if !resp.Success {
+			os.Exit(1)
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(addDbCmd)
 	rootCmd.AddCommand(statsCmd)
@@ -180,6 +216,8 @@ func init() {
 	rootCmd.AddCommand(indexesCmd)
 	rootCmd.AddCommand(explainCmd)
 	rootCmd.AddCommand(validateCmd)
+	rootCmd.AddCommand(joinsCmd)
+	rootCmd.AddCommand(resolveCmd)
 
 	schemaCmd.Flags().StringArray("table", nil, "Table names (repeatable)")
 	schemaCmd.Flags().String("tables-json", "", "Tables as JSON array")
@@ -195,6 +233,11 @@ func init() {
 	explainCmd.Flags().String("tables-json", "", "Tables as JSON array")
 
 	validateCmd.Flags().String("tables-json", "", "Tables as JSON array")
+
+	joinsCmd.Flags().StringArray("table", nil, "Table names (repeatable)")
+	joinsCmd.Flags().String("tables-json", "", "Tables as JSON array")
+
+	resolveCmd.Flags().String("tables-json", "", "Tables as JSON array")
 }
 
 func main() {
