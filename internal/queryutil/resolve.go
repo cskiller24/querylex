@@ -90,10 +90,36 @@ func LevenshteinDistance(s1, s2 string) int {
 	return prev[len(s1)]
 }
 
+// dmlDCLKeywords is the list of DML/DCL statement keywords blocked by Layer 1.
+var dmlDCLKeywords = []string{
+	"INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "TRUNCATE",
+	"MERGE", "GRANT", "REVOKE", "CREATE", "REPLACE",
+}
+
 // ValidateSQLSafety performs Layer 1 DML/DCL keyword scanning.
-// Returns nil for safe (read-only) queries, error with ErrUnsafeSQL for DML/DCL.
-// STUB: Always returns nil (all queries pass). Replaced in GREEN phase.
+// Returns nil for safe (read-only) queries, error for DML/DCL.
+// The check is case-insensitive and matches the first SQL keyword.
 func ValidateSQLSafety(query string) error {
+	trimmed := strings.TrimSpace(query)
+	if trimmed == "" {
+		return nil
+	}
+
+	// Extract first word (SQL keyword)
+	upper := strings.ToUpper(trimmed)
+	fields := strings.Fields(upper)
+	if len(fields) == 0 {
+		return nil
+	}
+	firstWord := fields[0]
+
+	// Check against DML/DCL blocklist
+	for _, keyword := range dmlDCLKeywords {
+		if firstWord == keyword {
+			return fmt.Errorf("unsafe SQL: %s statements are not permitted", firstWord)
+		}
+	}
+
 	return nil
 }
 

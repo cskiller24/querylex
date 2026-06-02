@@ -139,12 +139,47 @@ var indexesCmd = &cobra.Command{
 	},
 }
 
+var explainCmd = &cobra.Command{
+	Use:   "explain <sql>",
+	Short: "Show execution plan for a SQL query",
+	Long:  "Returns a dialect-normalized execution plan with heuristic analysis. Use --analyze to execute for actual runtime timing.",
+	Args:  cobra.MinimumNArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		start := time.Now()
+		analyze, _ := cmd.Flags().GetBool("analyze")
+		resp := cli.RunExplain(args[0], analyze)
+		resp.Complete(start)
+		outputResponse(resp)
+		if !resp.Success {
+			os.Exit(1)
+		}
+	},
+}
+
+var validateCmd = &cobra.Command{
+	Use:   "validate <sql>",
+	Short: "Validate SQL against active database schema",
+	Long:  "Validates SQL without executing it. Layer 1 rejects DML/DCL statements. Layer 2 checks against the database schema.",
+	Args:  cobra.MinimumNArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		start := time.Now()
+		resp := cli.RunValidate(args[0])
+		resp.Complete(start)
+		outputResponse(resp)
+		if !resp.Success {
+			os.Exit(1)
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(addDbCmd)
 	rootCmd.AddCommand(statsCmd)
 	rootCmd.AddCommand(schemaCmd)
 	rootCmd.AddCommand(tableStatsCmd)
 	rootCmd.AddCommand(indexesCmd)
+	rootCmd.AddCommand(explainCmd)
+	rootCmd.AddCommand(validateCmd)
 
 	schemaCmd.Flags().StringArray("table", nil, "Table names (repeatable)")
 	schemaCmd.Flags().String("tables-json", "", "Tables as JSON array")
@@ -155,6 +190,11 @@ func init() {
 	indexesCmd.Flags().StringArray("table", nil, "Table names (repeatable)")
 	indexesCmd.Flags().String("tables-json", "", "Tables as JSON array")
 	indexesCmd.Flags().Bool("live", false, "Query database live instead of reading from schema_map.json")
+
+	explainCmd.Flags().Bool("analyze", false, "Execute query for actual runtime plan (with warning)")
+	explainCmd.Flags().String("tables-json", "", "Tables as JSON array")
+
+	validateCmd.Flags().String("tables-json", "", "Tables as JSON array")
 }
 
 func main() {
