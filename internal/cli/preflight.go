@@ -13,6 +13,7 @@ import (
 	"github.com/querylex/querylex/internal/db/mysql"
 	"github.com/querylex/querylex/internal/db/postgresql"
 	"github.com/querylex/querylex/internal/format"
+	"github.com/querylex/querylex/internal/index"
 	"github.com/querylex/querylex/internal/state"
 )
 
@@ -109,6 +110,37 @@ func PreflightForCommand() (*PreflightResult, *format.Response[any]) {
 		// Proceed
 	default:
 		// Unknown status — proceed with warning
+	}
+
+	// 3.5. Stale detection: if indexed, verify manifest checksums against current artifacts (D-05)
+	if dbEntry.Status == state.StatusIndexed {
+		dbDir := filepath.Join(home, ".querylex", activeDBID)
+		manifest, _ := index.ReadIndexManifest(dbDir)
+		if manifest != nil {
+			if valid, _ := index.VerifyManifest(dbDir, manifest); !valid {
+				// Checksum mismatch or artifact missing — mark as stale
+				if ws, loadErr := wsStore.Load(); loadErr == nil {
+					for i := range ws.ConnectedDatabases {
+						if ws.ConnectedDatabases[i].ID == activeDBID {
+							ws.ConnectedDatabases[i].Status = state.StatusStale
+							break
+						}
+					}
+					_ = wsStore.Save(ws)
+				}
+			}
+		} else {
+			// No manifest for indexed DB — unexpected, mark as stale
+			if ws, loadErr := wsStore.Load(); loadErr == nil {
+				for i := range ws.ConnectedDatabases {
+					if ws.ConnectedDatabases[i].ID == activeDBID {
+						ws.ConnectedDatabases[i].Status = state.StatusStale
+						break
+					}
+				}
+				_ = wsStore.Save(ws)
+			}
+		}
 	}
 
 	// 4. Load database.json
