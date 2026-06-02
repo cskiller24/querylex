@@ -19,8 +19,8 @@ func TestAdapterStubs_ConcreteTypes(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Schema is now implemented (Task 2) — test specific behavior in run_schema_test.go
-	// Remaining 5 methods should still return ErrNotImplemented as stubs.
+	// Schema, Stats, Indexes are now implemented — tested in their respective test files.
+	// Remaining 3 methods should still return ErrNotImplemented as stubs.
 
 	t.Run("Explain returns *ExplainPlan", func(t *testing.T) {
 		result, err := adapter.Explain(ctx, "", false)
@@ -46,30 +46,6 @@ func TestAdapterStubs_ConcreteTypes(t *testing.T) {
 		_ = result
 	})
 
-	t.Run("Stats returns *StatsResult", func(t *testing.T) {
-		result, err := adapter.Stats(ctx, nil)
-		if err != db.ErrNotImplemented {
-			t.Fatalf("expected ErrNotImplemented, got %v", err)
-		}
-		if result != nil {
-			t.Fatalf("expected nil result, got %v", result)
-		}
-		var _ *db.StatsResult = result
-		_ = result
-	})
-
-	t.Run("Indexes returns *IndexesResult", func(t *testing.T) {
-		result, err := adapter.Indexes(ctx, nil)
-		if err != db.ErrNotImplemented {
-			t.Fatalf("expected ErrNotImplemented, got %v", err)
-		}
-		if result != nil {
-			t.Fatalf("expected nil result, got %v", result)
-		}
-		var _ *db.IndexesResult = result
-		_ = result
-	})
-
 	t.Run("Joins returns *JoinsResult", func(t *testing.T) {
 		result, err := adapter.Joins(ctx, nil)
 		if err != db.ErrNotImplemented {
@@ -89,16 +65,14 @@ func TestAdapterStubs_ErrNotImplemented(t *testing.T) {
 		t.Fatalf("Open(mysql) failed: %v", err)
 	}
 
-	// Schema is now implemented (Task 2) — not checked here.
-	// Remaining 5 methods should still return ErrNotImplemented as stubs.
+	// Schema, Stats, Indexes are now implemented — not checked here.
+	// Remaining 3 methods should still return ErrNotImplemented as stubs.
 	stubMethods := []struct {
 		name string
 		fn   func() (any, error)
 	}{
 		{"Explain", func() (any, error) { return adapter.Explain(context.Background(), "", false) }},
 		{"Validate", func() (any, error) { return adapter.Validate(context.Background(), "") }},
-		{"Stats", func() (any, error) { return adapter.Stats(context.Background(), nil) }},
-		{"Indexes", func() (any, error) { return adapter.Indexes(context.Background(), nil) }},
 		{"Joins", func() (any, error) { return adapter.Joins(context.Background(), nil) }},
 	}
 

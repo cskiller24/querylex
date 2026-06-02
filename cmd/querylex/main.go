@@ -99,13 +99,59 @@ var schemaCmd = &cobra.Command{
 	},
 }
 
+var tableStatsCmd = &cobra.Command{
+	Use:   "stats",
+	Short: "Show table statistics",
+	Long:  "Displays row counts, cardinality, data size, index size, and freshness for the specified tables.",
+	Run: func(cmd *cobra.Command, args []string) {
+		start := time.Now()
+		tables, _ := cmd.Flags().GetStringArray("table")
+		tablesJSON, _ := cmd.Flags().GetString("tables-json")
+		allTables := mergeTableArgs(tables, tablesJSON)
+		resp := cli.RunStatsTables(allTables)
+		resp.Complete(start)
+		outputResponse(resp)
+		if !resp.Success {
+			os.Exit(1)
+		}
+	},
+}
+
+var indexesCmd = &cobra.Command{
+	Use:   "indexes",
+	Short: "Show index information for tables",
+	Long:  "Displays index metadata from schema_map.json by default. Use --live to query the database directly.",
+	Run: func(cmd *cobra.Command, args []string) {
+		start := time.Now()
+		tables, _ := cmd.Flags().GetStringArray("table")
+		tablesJSON, _ := cmd.Flags().GetString("tables-json")
+		live, _ := cmd.Flags().GetBool("live")
+		allTables := mergeTableArgs(tables, tablesJSON)
+		resp := cli.RunIndexes(allTables, live)
+		resp.Complete(start)
+		outputResponse(resp)
+		if !resp.Success {
+			os.Exit(1)
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(addDbCmd)
 	rootCmd.AddCommand(statsCmd)
 	rootCmd.AddCommand(schemaCmd)
+	rootCmd.AddCommand(tableStatsCmd)
+	rootCmd.AddCommand(indexesCmd)
 
 	schemaCmd.Flags().StringArray("table", nil, "Table names (repeatable)")
 	schemaCmd.Flags().String("tables-json", "", "Tables as JSON array")
+
+	tableStatsCmd.Flags().StringArray("table", nil, "Table names (repeatable)")
+	tableStatsCmd.Flags().String("tables-json", "", "Tables as JSON array")
+
+	indexesCmd.Flags().StringArray("table", nil, "Table names (repeatable)")
+	indexesCmd.Flags().String("tables-json", "", "Tables as JSON array")
+	indexesCmd.Flags().Bool("live", false, "Query database live instead of reading from schema_map.json")
 }
 
 func main() {

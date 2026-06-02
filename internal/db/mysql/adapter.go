@@ -341,11 +341,217 @@ func (a *MySQLAdapter) Validate(ctx context.Context, query string) (*db.Validate
 }
 
 func (a *MySQLAdapter) Stats(ctx context.Context, tables []string) (*db.StatsResult, error) {
-	return nil, db.ErrNotImplemented
+	if a.conn == nil {
+		return nil, fmt.Errorf("%w: mysql adapter not connected", db.ErrConnectionFailed)
+	}
+
+	queryCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	query := `
+		SELECT TABLE_NAME, TABLE_ROWS, DATA_LENGTH, INDEX_LENGTH,
+		       COALESCE(UPDATE_TIME, '') as UPDATE_TIME
+		FROM information_schema.TABLES
+		WHERE TABLE_SCHEMA = DATABASE()
+	`
+	if len(tables) > 0 {
+		placeholders := strings.Repeat("?,", len(tables))
+		placeholders = placeholders[:len(placeholders)-1]
+		query += " AND TABLE_NAME IN (" + placeholders + ")"
+	}
+
+	args := make([]any, len(tables))
+	for i, t := range tables {
+		args[i] = t
+	}
+
+	rows, err := a.conn.QueryContext(queryCtx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("mysql stats: %w", err)
+	}
+	defer rows.Close()
+
+	type cardinalityRow struct {
+		ColumnName  string
+		Cardinality int64
+	}
+
+	result := &db.StatsResult{}
+
+	for rows.Next() {
+		var tableName, updateTime string
+		var tableRows, dataLength, indexLength int64
+
+		if err := rows.Scan(&tableName, &tableRows, &dataLength, &indexLength, &updateTime); err != nil {
+			return nil, fmt.Errorf("mysql stats scan: %w", err)
+		}
+
+		// Get per-column cardinality for this table
+		cardinalities, err := a.getColumnCardinality(queryCtx, tableName)
+		if err != nil {
+			// Non-fatal - proceed without cardinality
+			cardinalities = nil
+		}
+
+		stats := db.TableStats{
+			Name:               tableName,
+			RowCount:           tableRows,
+			CardinalityEstimate: tableRows,
+			DataSizeBytes:      dataLength,
+			IndexSizeBytes:     indexLength,
+		}
+
+		if updateTime != "" {
+			stats.UpdatedAt = updateTime
+			stats.Freshness = "fresh"
+		}
+
+		// Use max cardinality from column-level stats if available
+		for _, c := range cardinalities {
+			if c.Cardinality > stats.CardinalityEstimate {
+				stats.CardinalityEstimate = c.Cardinality
+			}
+		}
+
+		result.Tables = append(result.Tables, stats)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("mysql stats rows: %w", err)
+	}
+
+	return result, nil
+}
+
+// getColumnCardinality queries column-level cardinality from information_schema.STATISTICS.
+func (a *MySQLAdapter) getColumnCardinality(ctx context.Context, tableName string) ([]struct{ ColumnName string; Cardinality int64 }, error) {
+	cardQuery := `
+		SELECT COLUMN_NAME, MAX(CARDINALITY) as CARDINALITY
+		FROM information_schema.STATISTICS
+		WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?
+		GROUP BY COLUMN_NAME
+	`
+	cardRows, err := a.conn.QueryContext(ctx, cardQuery, tableName)
+	if err != nil {
+		return nil, err
+	}
+	defer cardRows.Close()
+
+	var results []struct{ ColumnName string; Cardinality int64 }
+	for cardRows.Next() {
+		var cName string
+		var card int64
+		if err := cardRows.Scan(&cName, &card); err != nil {
+			continue
+		}
+		results = append(results, struct{ ColumnName string; Cardinality int64 }{cName, card})
+	}
+	return results, nil
 }
 
 func (a *MySQLAdapter) Indexes(ctx context.Context, tables []string) (*db.IndexesResult, error) {
-	return nil, db.ErrNotImplemented
+	if a.conn == nil {
+		return nil, fmt.Errorf("%w: mysql adapter not connected", db.ErrConnectionFailed)
+	}
+
+	queryCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	query := `
+		SELECT TABLE_NAME, INDEX_NAME, NON_UNIQUE, SEQ_IN_INDEX, COLUMN_NAME,
+		       COALESCE(CARDINALITY, 0) as CARDINALITY,
+		       COALESCE(INDEX_TYPE, '') as INDEX_TYPE,
+		       COALESCE(INDEX_COMMENT, '') as INDEX_COMMENT,
+		       COALESCE(IS_VISIBLE, 'YES') as IS_VISIBLE
+		FROM information_schema.STATISTICS
+		WHERE TABLE_SCHEMA = DATABASE()
+	`
+	if len(tables) > 0 {
+		placeholders := strings.Repeat("?,", len(tables))
+		placeholders = placeholders[:len(placeholders)-1]
+		query += " AND TABLE_NAME IN (" + placeholders + ")"
+	}
+	query += " ORDER BY TABLE_NAME, INDEX_NAME, SEQ_IN_INDEX"
+
+	args := make([]any, len(tables))
+	for i, t := range tables {
+		args[i] = t
+	}
+
+	rows, err := a.conn.QueryContext(queryCtx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("mysql indexes: %w", err)
+	}
+	defer rows.Close()
+
+	type tableIndexAccum struct {
+		tableName string
+		indexes   map[string]*db.IndexInfo
+	}
+
+	tableMap := make(map[string]*tableIndexAccum)
+	var tableOrder []string
+
+	for rows.Next() {
+		var tableName, indexName, columnName, indexType, indexComment, isVisible string
+		var nonUnique, seqInIndex int
+		var cardinality int64
+
+		if err := rows.Scan(&tableName, &indexName, &nonUnique, &seqInIndex, &columnName,
+			&cardinality, &indexType, &indexComment, &isVisible); err != nil {
+			return nil, fmt.Errorf("mysql indexes scan: %w", err)
+		}
+
+		ta, ok := tableMap[tableName]
+		if !ok {
+			ta = &tableIndexAccum{
+				tableName: tableName,
+				indexes:   make(map[string]*db.IndexInfo),
+			}
+			tableMap[tableName] = ta
+			tableOrder = append(tableOrder, tableName)
+		}
+
+		idx, exists := ta.indexes[indexName]
+		if !exists {
+			isUnique := nonUnique == 0
+			idx = &db.IndexInfo{
+				Name:    indexName,
+				Type:    indexType,
+				IsUnique: isUnique,
+				Primary: indexName == "PRIMARY",
+				Visible: isVisible == "YES",
+				Comment: indexComment,
+			}
+			ta.indexes[indexName] = idx
+		}
+
+		// Add column to index
+		idx.Columns = append(idx.Columns, db.IndexColumn{
+			Name:        columnName,
+			Order:       "ASC",
+			Sequence:    seqInIndex,
+			Cardinality: cardinality,
+		})
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("mysql indexes rows: %w", err)
+	}
+
+	result := &db.IndexesResult{}
+	for _, name := range tableOrder {
+		ta := tableMap[name]
+		tableIdx := db.TableIndexInfo{
+			Table: name,
+		}
+		for _, idx := range ta.indexes {
+			tableIdx.Indexes = append(tableIdx.Indexes, *idx)
+		}
+		result.Tables = append(result.Tables, tableIdx)
+	}
+
+	return result, nil
 }
 
 func (a *MySQLAdapter) Joins(ctx context.Context, tables []string) (*db.JoinsResult, error) {
