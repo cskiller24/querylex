@@ -1,14 +1,17 @@
 package cli
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/querylex/querylex/internal/format"
 	"github.com/querylex/querylex/internal/index"
+	"github.com/querylex/querylex/internal/memory"
 	"github.com/querylex/querylex/internal/state"
 )
 
@@ -149,8 +152,8 @@ func buildHealthReport(ws *state.Workspace, home string) *HealthReport {
 			ProgressPercent:     entry.IndexingProgress,
 			Artifacts:           scanArtifacts(dbDir, entry.Status),
 			CredentialStatus:    checkCredentialStatus(dbDir),
-			MemoryIndexState:    "not_implemented",
-			ExplainCacheSummary: "not_implemented",
+			MemoryIndexState:    checkMemoryHealth(dbDir),
+			ExplainCacheSummary: checkExplainCacheSummary(dbDir),
 		}
 
 		health.Databases = append(health.Databases, dbHealth)
@@ -197,6 +200,62 @@ func scanArtifacts(dbDir string, status state.DatabaseStatus) map[string]string 
 	}
 
 	return artifacts
+}
+
+// checkMemoryHealth determines the health state of the memory subsystem for a database.
+// Returns "healthy" when memory.sqlite exists and revision matches index,
+// "stale" when revision mismatch, "missing" when files absent.
+func checkMemoryHealth(dbDir string) string {
+	dbPath := filepath.Join(dbDir, "memory.sqlite")
+	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+		return "missing"
+	}
+
+	// Open memory store
+	db, err := memory.OpenStore(dbDir)
+	if err != nil {
+		return "missing"
+	}
+	defer db.Close()
+
+	// Get SQLite revision
+	ctx := context.Background()
+	sqliteRevision, err := memory.GetRevision(ctx, db)
+	if err != nil {
+		return "missing"
+	}
+
+	// Read index
+	idx, err := memory.ReadIndex(dbDir)
+	if err != nil || idx == nil {
+		return "missing"
+	}
+
+	// Compare revisions
+	if idx.Revision == sqliteRevision {
+		return "healthy"
+	}
+	return "stale"
+}
+
+// checkExplainCacheSummary returns a summary of the explain cache for a database.
+// Returns "{N} entries" with the count of cached JSON files, or "unavailable"
+// if the cache directory does not exist.
+func checkExplainCacheSummary(dbDir string) string {
+	cacheDir := filepath.Join(dbDir, "explain_cache")
+	entries, err := os.ReadDir(cacheDir)
+	if err != nil {
+		return "unavailable"
+	}
+
+	count := 0
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".json") {
+			count++
+		}
+	}
+
+	return fmt.Sprintf("%d entries", count)
 }
 
 // checkCredentialStatus determines credential availability for a database.
