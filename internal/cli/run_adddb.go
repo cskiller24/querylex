@@ -15,6 +15,7 @@ import (
 	"github.com/querylex/querylex/internal/db/mysql"
 	"github.com/querylex/querylex/internal/db/postgresql"
 	"github.com/querylex/querylex/internal/format"
+	"github.com/querylex/querylex/internal/index"
 	"github.com/querylex/querylex/internal/state"
 )
 
@@ -111,7 +112,6 @@ func RunAddDB() *format.Response[AddDBData] {
 			traceID,
 		)
 	}
-	defer adapter.Close(context.Background())
 
 	querylexDir := filepath.Join(home, ".querylex")
 	if err := os.MkdirAll(querylexDir, 0700); err != nil {
@@ -206,6 +206,38 @@ func RunAddDB() *format.Response[AddDBData] {
 		)
 	}
 
+	// Run indexing pipeline synchronously
+	indexingStatus := string(state.StatusIndexed)
+	indexingProgress := 100
+	pipeline := index.NewPipeline(adapter, dbDir, answers.Name, answers.DBType)
+	pipeCtx, pipeCancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	if pipeErr := index.RunPipeline(pipeCtx, pipeline); pipeErr != nil {
+		// Non-fatal — log and report failure
+		indexingStatus = string(state.StatusIndexFailed)
+		indexingProgress = 0
+
+		// Try to read partial progress from status file
+		if st, readErr := index.ReadIndexStatus(dbDir); readErr == nil && st != nil {
+			indexingProgress = st.ProgressPercent
+		}
+	}
+	pipeCancel()
+
+	// Update workspace entry status
+	if ws, loadErr := wsStore.Load(); loadErr == nil {
+		for i := range ws.ConnectedDatabases {
+			if ws.ConnectedDatabases[i].ID == dbID {
+				ws.ConnectedDatabases[i].Status = state.DatabaseStatus(indexingStatus)
+				ws.ConnectedDatabases[i].IndexingProgress = indexingProgress
+				_ = wsStore.Save(ws)
+				break
+			}
+		}
+	}
+
+	// Close adapter after indexing completes
+	adapter.Close(context.Background())
+
 	data := AddDBData{
 		DatabaseID:       dbID,
 		Name:             answers.Name,
@@ -213,8 +245,8 @@ func RunAddDB() *format.Response[AddDBData] {
 		CredentialRef:    credRef,
 		DatabaseFile:     databaseFile,
 		WorkspaceFile:    workspaceFile,
-		IndexingStatus:   string(state.StatusNotIndexed),
-		IndexingProgress: 0,
+		IndexingStatus:   indexingStatus,
+		IndexingProgress: indexingProgress,
 	}
 
 	resp := format.NewSuccessResponse(data, traceID, &dbID)
