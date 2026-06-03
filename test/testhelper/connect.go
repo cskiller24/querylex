@@ -4,10 +4,13 @@ import (
 	"database/sql"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	_ "modernc.org/sqlite"
 )
 
 // ConnectMySQL resolves TEST_MYSQL_DSN, waits for the port, opens a MySQL
@@ -218,4 +221,34 @@ func pingWithBackoff(t *testing.T, db *sql.DB) {
 		time.Sleep(time.Duration(500*(1<<i)) * time.Millisecond)
 	}
 	t.Fatalf("failed to ping database after 10 retries")
+}
+
+// ConnectSQLite resolves TEST_SQLITE_PATH (or auto-generates temp file), opens
+// a SQLite connection via modernc.org/sqlite, and returns *sql.DB.
+// No Docker required — SQLite runs in-process via the pure-Go driver.
+//
+// SQLite databases are stored as files. The function creates a temp .db file
+// via t.TempDir() to ensure per-test isolation. The DSN uses absolute file
+// paths to avoid working directory issues with the querylex subprocess.
+func ConnectSQLite(t *testing.T) *sql.DB {
+	t.Helper()
+	dsn := os.Getenv("TEST_SQLITE_PATH")
+	if dsn == "" {
+		// Auto-generate temp file with absolute path
+		dbPath := filepath.Join(t.TempDir(), "e2e_test.db")
+		dsn = "file:" + dbPath + "?_pragma=foreign_keys(1)"
+	}
+
+	// SQLite does not need port waiting (in-process)
+	db, err := sql.Open("sqlite", dsn)
+	if err != nil {
+		t.Fatalf("failed to open SQLite connection: %v", err)
+	}
+	t.Cleanup(func() { db.Close() })
+	db.SetMaxOpenConns(1)
+
+	// Ping to verify file was created
+	pingWithBackoff(t, db)
+
+	return db
 }
