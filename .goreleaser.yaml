@@ -16,6 +16,7 @@ before:
 
 builds:
   - id: querylex
+    binary: querylex
     main: ./cmd/querylex/
     env:
       - CGO_ENABLED=0
@@ -29,6 +30,7 @@ builds:
       - amd64
       - "386"
   - id: querylex-add-db
+    binary: querylex-add-db
     main: ./cmd/querylex-add-db/
     env:
       - CGO_ENABLED=0
@@ -42,6 +44,7 @@ builds:
       - amd64
       - "386"
   - id: querylex-stats
+    binary: querylex-stats
     main: ./cmd/querylex-stats/
     env:
       - CGO_ENABLED=0
