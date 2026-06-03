@@ -1,0 +1,79 @@
+name: E2E
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    name: E2E (${{ matrix.db }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        db: [mysql, postgresql, mariadb, mssql, sqlite]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.3"
+
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Build querylex + e2e test binary
+        run: |
+          go build -o bin/querylex ./cmd/querylex/
+          go test -tags e2e -c -o bin/e2e.test ./test/...
+
+      - name: Start database
+        if: matrix.db != 'sqlite'
+        run: docker compose --profile ${{ matrix.db }} up -d --wait
+
+      - name: Resolve DSN
+        if: matrix.db != 'sqlite'
+        run: |
+          case "${{ matrix.db }}" in
+            mysql)      echo "TEST_MYSQL_DSN=$(./test/scripts/resolve-port.sh mysql 3306)"      >> $GITHUB_ENV ;;
+            postgresql) echo "TEST_PG_DSN=$(./test/scripts/resolve-port.sh postgresql 5432)"    >> $GITHUB_ENV ;;
+            mariadb)    echo "TEST_MARIADB_DSN=$(./test/scripts/resolve-port.sh mariadb 3306)"  >> $GITHUB_ENV ;;
+            mssql)      echo "TEST_MSSQL_DSN=$(./test/scripts/resolve-port.sh mssql 1433)"      >> $GITHUB_ENV ;;
+          esac
+
+      - name: Run E2E tests
+        run: |
+          go install gotest.tools/gotestsum@latest
+          gotestsum --junitfile ${{ matrix.db }}-tests.xml -- \
+            ./bin/e2e.test -test.run "Test$(echo ${{ matrix.db }} | sed 's/.*/\u&/')" -test.v
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose --profile ${{ matrix.db }} logs
+
+      - name: Cleanup
+        if: always() && matrix.db != 'sqlite'
+        run: docker compose --profile ${{ matrix.db }} down --volumes 2>/dev/null; true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: junit-${{ matrix.db }}
+          path: ${{ matrix.db }}-tests.xml

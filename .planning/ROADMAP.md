@@ -62,11 +62,12 @@ Plans:
   3. Cross-engine SQL validation matrix confirms the same SQL works correctly across all 5 supported engines with engine-specific quoting and syntax
   4. EXPLAIN plan comparison suite validates plan output structure per engine (MySQL FORMAT=JSON, PostgreSQL text, MSSQL XML SHOWPLAN_XML)
   5. AI mock server enables deterministic E2E tests for AI-powered features without real API calls; pre-built MSSQL Docker image with AdventureWorksLT works in CI
-**Plans**: 5 plans in 3 waves
+**Plans**: 6 plans in 3 waves
 
 Plans:
 - [ ] 03-01-PLAN.md — GitHub Actions e2e.yml with 5-engine CI matrix, fail-fast: false, always cleanup, Makefile test-e2e-all target
-- [ ] 03-02-PLAN.md — Cross-engine E2E test packages for PostgreSQL, MariaDB, MSSQL, SQLite (33 new files, each with 7-test coverage)
+- [ ] 03-02a-PLAN.md — Cross-engine E2E test packages for PostgreSQL and MariaDB (17 files) + ConnectSQLite helper
+- [ ] 03-02b-PLAN.md — Cross-engine E2E test packages for MSSQL and SQLite (16 files) with 7-test coverage per engine
 - [ ] 03-03-PLAN.md — Cross-engine SQL validation matrix (12+ patterns) and EXPLAIN plan golden files for all 5 engines
 - [ ] 03-04-PLAN.md — AI mock HTTP server (3 modes), AI E2E tests, Dockerfile.mssql with AdventureWorksLT pre-loaded
 - [ ] 03-05-PLAN.md — Docker layer caching for MSSQL image, JUnit XML output via gotestsum, E2E dev workflow documentation
@@ -77,4 +78,4 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Monorepo Cleanup + Docker Infrastructure | 5/5 | Complete   | 2026-06-03 |
 | 2. MySQL E2E Test Suite | 4/4 | Complete   | 2026-06-03 |
-| 3. CI Automation + Cross-Engine Expansion | 0/5 | Not started | - |
+| 3. CI Automation + Cross-Engine Expansion | 0/6 | Not started | - |
