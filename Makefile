@@ -10,8 +10,6 @@ LDFLAGS := -s -w \
 
 build:
 	go build -ldflags="$(LDFLAGS)" -o bin/querylex ./cmd/querylex/
-	go build -ldflags="$(LDFLAGS)" -o bin/querylex-add-db ./cmd/querylex-add-db/
-	go build -ldflags="$(LDFLAGS)" -o bin/querylex-stats ./cmd/querylex-stats/
 
 test:
 	go test ./... -short -count=1
@@ -21,8 +19,6 @@ clean:
 
 install:
 	go install -ldflags="$(LDFLAGS)" ./cmd/querylex/
-	go install -ldflags="$(LDFLAGS)" ./cmd/querylex-add-db/
-	go install -ldflags="$(LDFLAGS)" ./cmd/querylex-stats/
 
 lint:
 	go vet ./...

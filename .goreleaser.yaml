@@ -29,34 +29,7 @@ builds:
       - arm64
       - amd64
       - "386"
-  - id: querylex-add-db
-    binary: querylex-add-db
-    main: ./cmd/querylex-add-db/
-    env:
-      - CGO_ENABLED=0
-      - GOMEMLIMIT=1400MiB
-    goos:
-      - linux
-      - windows
-      - darwin
-    goarch:
-      - arm64
-      - amd64
-      - "386"
-  - id: querylex-stats
-    binary: querylex-stats
-    main: ./cmd/querylex-stats/
-    env:
-      - CGO_ENABLED=0
-      - GOMEMLIMIT=1400MiB
-    goos:
-      - linux
-      - windows
-      - darwin
-    goarch:
-      - arm64
-      - amd64
-      - "386"
+
 
 archives:
   - formats: [tar.gz]
