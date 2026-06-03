@@ -1,4 +1,4 @@
-.PHONY: build test clean install lint release completions compose-up-mysql compose-up-postgresql compose-up-mariadb compose-up-mssql compose-down build-test test-e2e-mysql test-e2e-postgresql test-e2e-mariadb test-e2e-mssql test-e2e-sqlite test-e2e-cross-engine test-e2e-all
+.PHONY: build test clean install lint ci-setup completions compose-up-mysql compose-up-postgresql compose-up-mariadb compose-up-mssql compose-down build-test test-e2e-mysql test-e2e-postgresql test-e2e-mariadb test-e2e-mssql test-e2e-sqlite test-e2e-cross-engine test-e2e-all
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -19,6 +19,10 @@ clean:
 
 install:
 	go install -ldflags="$(LDFLAGS)" ./cmd/querylex/
+
+# Install CI/E2E test tooling (gotestsum for JUnit XML output, etc.)
+ci-setup:
+	go install gotest.tools/gotestsum@latest
 
 lint:
 	go vet ./...
