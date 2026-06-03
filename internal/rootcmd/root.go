@@ -59,8 +59,8 @@ and dialect-aware rewrite heuristics. It supports MySQL, MariaDB, PostgreSQL,
 SQLite, and Microsoft SQL Server.
 
 Getting Started:
-  1. Add a database:     querylex-add-db
-  2. Check status:       querylex-stats --human
+  1. Add a database:     querylex add-db
+  2. Check status:       querylex workspace-stats --human
   3. Generate SQL:       querylex sql "your question in plain English"
   4. Optimize a query:   querylex optimize "SELECT ..."
 
@@ -70,7 +70,7 @@ Shell Completions:
 		return initWorkspace()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Querylex: use 'querylex-add-db' to add a database, or 'querylex --help' for commands")
+		fmt.Println("Querylex: use 'querylex add-db' to add a database, or 'querylex --help' for commands")
 	},
 }
 
