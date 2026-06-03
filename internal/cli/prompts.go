@@ -33,7 +33,7 @@ func DefaultPort(dbType string) int {
 
 func PromptDatabaseSetup() (*DBSetupAnswers, error) {
 	if !term.IsTerminal(int(os.Stdin.Fd())) {
-		return nil, fmt.Errorf("querylex-add-db requires an interactive terminal")
+		return nil, fmt.Errorf("querylex add-db requires an interactive terminal")
 	}
 
 	answers := &DBSetupAnswers{}

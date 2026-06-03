@@ -89,7 +89,7 @@ func RunStats() *format.Response[StatsData] {
 	if len(ws.ConnectedDatabases) == 0 {
 		warning := format.Warning{
 			Code:    "NO_DATABASES_CONNECTED",
-			Message: "No databases connected. Use 'querylex-add-db' to add a database.",
+			Message: "No databases connected. Use 'querylex add-db' to add a database.",
 		}
 		data := StatsData{
 			ActiveDatabaseID:   nil,
@@ -269,7 +269,7 @@ func RenderStatsHuman(w io.Writer, data StatsData) {
 	}
 
 	if len(data.ConnectedDatabases) == 0 {
-		fmt.Fprintln(w, "No databases connected. Run 'querylex-add-db' to add one.")
+		fmt.Fprintln(w, "No databases connected. Run 'querylex add-db' to add one.")
 		return
 	}
 

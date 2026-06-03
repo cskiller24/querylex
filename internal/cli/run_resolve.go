@@ -49,7 +49,7 @@ func RunResolve(question string) *format.Response[ResolveData] {
 	if ws.ActiveDatabaseID == nil {
 		return format.NewErrorResponse[ResolveData](
 			format.ErrCodeInvalidArgument,
-			"No active database. Set one with 'querylex-add-db'.",
+			"No active database. Set one with 'querylex add-db'.",
 			false,
 			traceID,
 		)

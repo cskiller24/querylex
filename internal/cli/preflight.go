@@ -94,7 +94,7 @@ func PreflightForCommand() (*PreflightResult, *format.Response[any]) {
 	if ws.ActiveDatabaseID == nil {
 		return nil, format.NewErrorResponse[any](
 			format.ErrCodeInvalidArgument,
-			"No active database. Set one with 'querylex-add-db'.",
+			"No active database. Set one with 'querylex add-db'.",
 			false,
 			traceID,
 		)
@@ -266,7 +266,7 @@ func PreflightForMemoryCommand() (*MemoryPreflight, *format.Response[any]) {
 	if ws.ActiveDatabaseID == nil {
 		return nil, format.NewErrorResponse[any](
 			format.ErrCodeInvalidArgument,
-			"No active database. Set one with 'querylex-add-db'.",
+			"No active database. Set one with 'querylex add-db'.",
 			false,
 			traceID,
 		)
@@ -335,7 +335,7 @@ func PreflightForAICommand() (*AIPreflight, *format.Response[any]) {
 	if ws.ActiveDatabaseID == nil {
 		return nil, format.NewErrorResponse[any](
 			format.ErrCodeInvalidArgument,
-			"No active database. Set one with 'querylex-add-db'.",
+			"No active database. Set one with 'querylex add-db'.",
 			false,
 			traceID,
 		)
