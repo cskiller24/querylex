@@ -48,7 +48,7 @@ services:
     mem_limit: 512m
 
   mssql:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    image: ${MSSQL_IMAGE:-mcr.microsoft.com/mssql/server:2022-latest}
     profiles: [mssql]
     ports: ["0:1433"]
     tmpfs: /var/opt/mssql/data

@@ -16,8 +16,46 @@ on:
   workflow_dispatch:
 
 jobs:
+  build-mssql-image:
+    name: Build MSSQL Image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download AdventureWorksLT backup
+        run: |
+          mkdir -p test/testdata/cache
+          curl -fSL --retry 3 --retry-delay 5 \
+            -o test/testdata/cache/AdventureWorksLT2022.bak \
+            https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorksLT2022.bak
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}/mssql-adventureworks
+          tags: latest
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.mssql
+          build-args: |
+            SA_PASSWORD=TestPass123!
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   e2e:
     name: E2E (${{ matrix.db }})
+    needs: build-mssql-image
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -44,6 +82,13 @@ jobs:
           go build -o bin/querylex ./cmd/querylex/
           go test -tags e2e -c -o bin/e2e.test ./test/...
 
+      - name: Pull pre-built MSSQL image
+        if: matrix.db == 'mssql'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker pull ghcr.io/${{ github.repository }}/mssql-adventureworks:latest
+          echo "MSSQL_IMAGE=ghcr.io/${{ github.repository }}/mssql-adventureworks:latest" >> $GITHUB_ENV
+
       - name: Start database
         if: matrix.db != 'sqlite'
         run: docker compose --profile ${{ matrix.db }} up -d --wait
@@ -61,7 +106,8 @@ jobs:
       - name: Run E2E tests
         run: |
           go install gotest.tools/gotestsum@latest
-          gotestsum --junitfile ${{ matrix.db }}-tests.xml -- \
+          gotestsum --junitfile ${{ matrix.db }}-tests.xml \
+            --junitfile-hide-empty-pkg --junitfile-hide-skipped-tests -- \
             ./bin/e2e.test -test.run "Test$(echo ${{ matrix.db }} | sed 's/.*/\u&/')" -test.v
 
       - name: Dump logs on failure
