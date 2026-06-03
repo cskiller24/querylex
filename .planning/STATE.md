@@ -23,4 +23,4 @@ progress:
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260603-3rg | Replace all github.com/querylex/querylex references with github.com/cskiller24/querylex | 2026-06-02 | e2bd072 | [260603-3rg-replace-all-github-com-querylex-querylex](./quick/260603-3rg-replace-all-github-com-querylex-querylex/) |
-| 260603-264 | Fix goreleaser OOM on 2GB system (parallelism + explicit main paths + GOMEMLIMIT) | 2026-06-03 | TBD | [260603-264-goreleaser-oom-fix](./quick/260603-264-goreleaser-oom-fix/) |
+| 260603-264 | Fix goreleaser OOM on 2GB system (parallelism + explicit main paths + GOMEMLIMIT) | 2026-06-03 | 5f1ed4f | [260603-264-goreleaser-oom-fix](./quick/260603-264-goreleaser-oom-fix/) |
