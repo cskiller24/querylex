@@ -32,12 +32,12 @@ func TestMySQLFlags(t *testing.T) {
 	writeSchemaSlim(t, home)
 
 	tests := []struct {
-		name        string
-		args        []string
-		wantOK      bool   // expect exit 0 + success JSON
-		wantStderr  string // expected stderr substring (cobra flag errors)
-		wantErrCode string // expected error.code in JSON (AI error codes)
-		setupAIKey  bool   // set QUERYLEX_AI_API_KEY=fake before RunQuerylex
+		name         string
+		args         []string
+		wantOK       bool     // expect exit 0 + success JSON
+		wantStderr   string   // expected stderr substring (cobra flag errors)
+		wantErrCodes []string // expected error.code(s) in JSON (any match passes)
+		setupAIKey   bool     // set QUERYLEX_AI_API_KEY=fake before RunQuerylex
 	}{
 		// ── Schema (flags: --table [stringArray], --tables-json [string]) ──
 		{
@@ -163,6 +163,40 @@ func TestMySQLFlags(t *testing.T) {
 			args:   []string{"resolve", "--tables-json", `["employees","salaries"]`, "employee salaries"},
 			wantOK: true,
 		},
+
+		// ── Optimize (flags: --analyze [bool], --no-index [bool]) ──
+		{
+			name:         "optimize_analyze_fake_ai",
+			args:         []string{"optimize", "--analyze", "SELECT * FROM employees WHERE emp_no = 10001"},
+			wantOK:       false,
+			wantErrCodes: []string{"AI_CONFIG_MISSING", "AI_SERVICE_UNAVAILABLE", "AI_GENERATION_FAILED", "CREDENTIAL_UNAVAILABLE"},
+			setupAIKey:   true,
+		},
+		{
+			name:   "optimize_noindex_fake_ai",
+			args:   []string{"optimize", "--no-index", "SELECT * FROM employees"},
+			wantOK: false,
+		},
+		{
+			name:       "optimize_invalid_flag",
+			args:       []string{"optimize", "--nonexistent-flag"},
+			wantOK:     false,
+			wantStderr: "unknown flag",
+		},
+
+		// ── Sql (no flags — positional args only) ──
+		{
+			name:         "sql_fake_ai",
+			args:         []string{"sql", "show me all employees"},
+			wantOK:       false,
+			wantErrCodes: []string{"AI_CONFIG_MISSING", "AI_SERVICE_UNAVAILABLE", "AI_GENERATION_FAILED", "CREDENTIAL_UNAVAILABLE"},
+			setupAIKey:   true,
+		},
+		{
+			name:   "sql_no_args",
+			args:   []string{"sql"},
+			wantOK: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -201,15 +235,22 @@ func TestMySQLFlags(t *testing.T) {
 					}
 				}
 
-				// Check JSON error code for AI errors
-				if tt.wantErrCode != "" {
+				// Check JSON error code for AI errors (any of the listed codes matches)
+				if len(tt.wantErrCodes) > 0 {
 					var resp map[string]any
 					if err := json.Unmarshal([]byte(stdout), &resp); err == nil {
 						if errObj, ok := resp["error"].(map[string]any); ok {
 							if code, ok := errObj["code"].(string); ok {
-								if code != tt.wantErrCode {
-									t.Errorf("expected error.code=%q, got %q\nstdout: %s",
-										tt.wantErrCode, code, stdout)
+								matched := false
+								for _, wantCode := range tt.wantErrCodes {
+									if code == wantCode {
+										matched = true
+										break
+									}
+								}
+								if !matched {
+									t.Errorf("error.code=%q does not match any expected code %v\nstdout: %s",
+										code, tt.wantErrCodes, stdout)
 								}
 							} else {
 								t.Errorf("error.code missing from error object: %v", errObj)
