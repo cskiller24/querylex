@@ -57,7 +57,7 @@ compose-down:
 
 # Build the E2E test binary with the e2e build tag.
 # Output: bin/e2e.test — a compiled test binary that can be run directly.
-build-test:
+build-test: build
 	go test -tags e2e -c -o bin/e2e.test ./test/...
 
 # E2E test targets — full cycle: start DB, run tests, stop DB.
