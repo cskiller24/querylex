@@ -30,5 +30,9 @@ lint:
 completions:
 	go run ./cmd/generate_completions/
 
+# GOMAXPROCS limits Go compiler parallelism; --parallelism limits goreleaser task
+# concurrency. Both default to #CPUs which can OOM on low-memory systems (2GB).
+# Override via: make release PARALLELISM=4
+PARALLELISM ?= 2
 release:
-	goreleaser release --clean
+	goreleaser release --clean --parallelism=$(PARALLELISM)
