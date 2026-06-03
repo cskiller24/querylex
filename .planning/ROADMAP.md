@@ -7,7 +7,7 @@ QueryLex is a brownfield Go CLI tool that helps AI agents introspect database sc
 ## Phases
 
 - [x] **Phase 1: Monorepo Cleanup + Docker Infrastructure** - Unify the build (single `querylex` binary), create compose.yaml with all 5 database services, build test helper package, and provision sample datasets (completed 2026-06-03)
-- [ ] **Phase 2: MySQL E2E Test Suite** - Comprehensive E2E tests for MySQL using real datasets with golden files, exit code verification, per-test isolation, and CLI flag combinatorics
+- [x] **Phase 2: MySQL E2E Test Suite** - Comprehensive E2E tests for MySQL using real datasets with golden files, exit code verification, per-test isolation, and CLI flag combinatorics (completed 2026-06-03)
 - [ ] **Phase 3: CI Automation + Cross-Engine Expansion** - GitHub Actions matrix workflow, E2E tests for remaining 4 database engines, EXPLAIN comparison suite, and AI mock server
 
 ## Phase Details
@@ -46,10 +46,10 @@ Plans:
 **Plans**: 4 plans in 2 waves
 
 Plans:
-- [ ] 02-01-PLAN.md — Infrastructure foundation: credential auto-unlock, workspace setup helper, schema extraction + isolation tests (MYS-01, MYS-07)
-- [ ] 02-02-PLAN.md — Golden file JSON output verification with normalization + exit code matrix (MYS-02, MYS-03, MYS-05)
-- [ ] 02-03-PLAN.md — Schema-aware SQL validation + full schema snapshot golden file (MYS-06, MYS-08)
-- [ ] 02-04-PLAN.md — CLI flag combinatorics for 7 deterministic subcommands + AI subcommand flag tests (MYS-04)
+- [x] 02-01-PLAN.md — Infrastructure foundation: credential auto-unlock, workspace setup helper, schema extraction + isolation tests (MYS-01, MYS-07)
+- [x] 02-02-PLAN.md — Golden file JSON output verification with normalization + exit code matrix (MYS-02, MYS-03, MYS-05)
+- [x] 02-03-PLAN.md — Schema-aware SQL validation + full schema snapshot golden file (MYS-06, MYS-08)
+- [x] 02-04-PLAN.md — CLI flag combinatorics for 7 deterministic subcommands + AI subcommand flag tests (MYS-04)
 
 ### Phase 3: CI Automation + Cross-Engine Expansion
 **Goal**: Automated CI pipeline running E2E tests for all 5 database engines, with cross-engine validation, EXPLAIN comparison, and AI mock server
@@ -62,19 +62,19 @@ Plans:
   3. Cross-engine SQL validation matrix confirms the same SQL works correctly across all 5 supported engines with engine-specific quoting and syntax
   4. EXPLAIN plan comparison suite validates plan output structure per engine (MySQL FORMAT=JSON, PostgreSQL text, MSSQL XML SHOWPLAN_XML)
   5. AI mock server enables deterministic E2E tests for AI-powered features without real API calls; pre-built MSSQL Docker image with AdventureWorksLT works in CI
-**Plans**: TBD
+**Plans**: 5 plans in 3 waves
 
 Plans:
-- [ ] 03-01: Create GitHub Actions e2e.yml with matrix per DB and update ci.yml
-- [ ] 03-02: Implement PostgreSQL, MariaDB, MSSQL, and SQLite E2E test packages
-- [ ] 03-03: Build cross-engine SQL validation matrix and EXPLAIN plan comparison suite
-- [ ] 03-04: Implement AI mock server, pre-built MSSQL image, and advanced feature tests
-- [ ] 03-05: Add Docker layer caching, JUnit output, and E2E dev workflow documentation
+- [ ] 03-01-PLAN.md — GitHub Actions e2e.yml with 5-engine CI matrix, fail-fast: false, always cleanup, Makefile test-e2e-all target
+- [ ] 03-02-PLAN.md — Cross-engine E2E test packages for PostgreSQL, MariaDB, MSSQL, SQLite (33 new files, each with 7-test coverage)
+- [ ] 03-03-PLAN.md — Cross-engine SQL validation matrix (12+ patterns) and EXPLAIN plan golden files for all 5 engines
+- [ ] 03-04-PLAN.md — AI mock HTTP server (3 modes), AI E2E tests, Dockerfile.mssql with AdventureWorksLT pre-loaded
+- [ ] 03-05-PLAN.md — Docker layer caching for MSSQL image, JUnit XML output via gotestsum, E2E dev workflow documentation
 
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Monorepo Cleanup + Docker Infrastructure | 5/5 | Complete   | 2026-06-03 |
-| 2. MySQL E2E Test Suite | 0/4 | Not started | - |
+| 2. MySQL E2E Test Suite | 4/4 | Complete   | 2026-06-03 |
 | 3. CI Automation + Cross-Engine Expansion | 0/5 | Not started | - |
