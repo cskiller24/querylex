@@ -42,6 +42,9 @@ func normalizeGoldenJSON(t *testing.T, raw string) string {
 		meta["active_database_id"] = nil
 	}
 
+	// Normalize MySQL-specific volatile fields (query_cost, etc.)
+	normalizeEngineFields(resp)
+
 	pretty, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
 		// Should never happen for valid Go types, but handle gracefully
@@ -56,6 +59,90 @@ func normalizeGoldenJSON(t *testing.T, raw string) string {
 //
 // Run with: go test -tags e2e -run TestMySQLGolden -v
 // To update golden files: go test -tags e2e -run TestMySQLGolden -update
+// normalizeEngineFields normalizes MySQL-specific volatile fields in the
+// response data to enable stable golden file comparison.
+//
+// MySQL volatile fields:
+//   - query_cost: varies per execution stats in EXPLAIN FORMAT=JSON output
+func normalizeEngineFields(data map[string]any) {
+	for k, v := range data {
+		switch val := v.(type) {
+		case string:
+			if k == "query_cost" {
+				data[k] = "0.00"
+			}
+		case float64:
+			if k == "query_cost" {
+				data[k] = float64(0)
+			}
+		case map[string]any:
+			normalizeEngineFields(val)
+		case []any:
+			for _, item := range val {
+				if m, ok := item.(map[string]any); ok {
+					normalizeEngineFields(m)
+				}
+			}
+		}
+	}
+}
+
+// TestMySQLExplain verifies the JSON output of querylex explain against a
+// committed golden file. It normalizes non-deterministic fields before
+// comparison and supports the -update flag for golden file regeneration.
+//
+// Run with: go test -tags e2e -run TestMySQLExplain -v
+// To update golden files: go test -tags e2e -run TestMySQLExplain -update
+func TestMySQLExplain(t *testing.T) {
+	db := testhelper.ConnectMySQL(t)
+
+	// Load Employees DB schema into the per-test database
+	loadEmployeesSchema(t, db)
+
+	// Extract connection info from the live MySQL connection
+	host, port, dbName := extractConnectionInfo(t, db)
+
+	// Set up workspace pointing to the per-test database
+	setupE2EWorkspace(t, host, port, dbName)
+
+	// Run querylex explain with engine-specific SQL
+	stdout, stderr, exitCode := testhelper.RunQuerylex(t, "explain", "SELECT * FROM employees WHERE emp_no = 10001")
+
+	// Assert exit code 0
+	if exitCode != 0 {
+		t.Fatalf("expected exit code 0, got %d\nstdout: %s\nstderr: %s",
+			exitCode, stdout, stderr)
+	}
+
+	// Normalize non-deterministic fields
+	normalized := normalizeGoldenJSON(t, stdout)
+
+	goldenPath := filepath.Join("test", "testdata", "golden", "mysql", "TestExplainOutput.json")
+
+	// If -update flag is set, write normalized output to golden file and return
+	if *update {
+		if err := os.MkdirAll(filepath.Dir(goldenPath), 0755); err != nil {
+			t.Fatalf("mkdir golden dir: %v", err)
+		}
+		if err := os.WriteFile(goldenPath, []byte(normalized), 0644); err != nil {
+			t.Fatalf("write golden file: %v", err)
+		}
+		return
+	}
+
+	// Read golden file
+	expected, err := os.ReadFile(goldenPath)
+	if err != nil {
+		t.Fatalf("read golden file %s: %v (run with -update to generate)", goldenPath, err)
+	}
+
+	// Compare normalized output against golden file
+	if normalized != string(expected) {
+		t.Errorf("output mismatch (-want +got):\n--- expected (golden):\n%s--- got (normalized):\n%s",
+			string(expected), normalized)
+	}
+}
+
 func TestMySQLGolden(t *testing.T) {
 	db := testhelper.ConnectMySQL(t)
 

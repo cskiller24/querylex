@@ -42,6 +42,9 @@ func normalizeGoldenJSON(t *testing.T, raw string) string {
 		meta["active_database_id"] = nil
 	}
 
+	// Normalize MSSQL-specific volatile fields (plan_handle, query_hash, etc.)
+	normalizeEngineFields(resp)
+
 	pretty, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
 		// Should never happen for valid Go types, but handle gracefully
@@ -56,6 +59,93 @@ func normalizeGoldenJSON(t *testing.T, raw string) string {
 //
 // Run with: go test -tags e2e -run TestMSSQLGolden -v
 // To update golden files: go test -tags e2e -run TestMSSQLGolden -update
+// normalizeEngineFields normalizes MSSQL-specific volatile fields in the
+// response data to enable stable golden file comparison.
+//
+// MSSQL volatile fields:
+//   - plan_handle: hex string that changes per execution
+//   - query_hash: hex string that varies between runs
+//   - query_plan_hash: hex string that varies between runs
+func normalizeEngineFields(data map[string]any) {
+	for k, v := range data {
+		switch val := v.(type) {
+		case string:
+			switch k {
+			case "plan_handle":
+				data[k] = "0000000000000000000000000000000000000000000000000000000000000000"
+			case "query_hash":
+				data[k] = "0x00000000000000000000000000000000"
+			case "query_plan_hash":
+				data[k] = "0x00000000000000000000000000000000"
+			}
+		case map[string]any:
+			normalizeEngineFields(val)
+		case []any:
+			for _, item := range val {
+				if m, ok := item.(map[string]any); ok {
+					normalizeEngineFields(m)
+				}
+			}
+		}
+	}
+}
+
+// TestMSSQLExplain verifies the JSON output of querylex explain against a
+// committed golden file. It normalizes non-deterministic fields before
+// comparison and supports the -update flag for golden file regeneration.
+//
+// Run with: go test -tags e2e -run TestMSSQLExplain -v
+// To update golden files: go test -tags e2e -run TestMSSQLExplain -update
+func TestMSSQLExplain(t *testing.T) {
+	db := testhelper.ConnectMSSQL(t)
+
+	// Load Northwind schema into the per-test database
+	loadNorthwindSchema(t, db)
+
+	// Extract connection info from the live MSSQL connection
+	host, port, dbName := extractConnectionInfo(t, db)
+
+	// Set up workspace pointing to the per-test database
+	setupE2EWorkspace(t, host, port, dbName)
+
+	// Run querylex explain with engine-specific SQL
+	stdout, stderr, exitCode := testhelper.RunQuerylex(t, "explain", "SELECT * FROM Customers WHERE CustomerID = 'ALFKI'")
+
+	// Assert exit code 0
+	if exitCode != 0 {
+		t.Fatalf("expected exit code 0, got %d\nstdout: %s\nstderr: %s",
+			exitCode, stdout, stderr)
+	}
+
+	// Normalize non-deterministic fields
+	normalized := normalizeGoldenJSON(t, stdout)
+
+	goldenPath := filepath.Join("test", "testdata", "golden", "mssql", "TestExplainOutput.json")
+
+	// If -update flag is set, write normalized output to golden file and return
+	if *update {
+		if err := os.MkdirAll(filepath.Dir(goldenPath), 0755); err != nil {
+			t.Fatalf("mkdir golden dir: %v", err)
+		}
+		if err := os.WriteFile(goldenPath, []byte(normalized), 0644); err != nil {
+			t.Fatalf("write golden file: %v", err)
+		}
+		return
+	}
+
+	// Read golden file
+	expected, err := os.ReadFile(goldenPath)
+	if err != nil {
+		t.Fatalf("read golden file %s: %v (run with -update to generate)", goldenPath, err)
+	}
+
+	// Compare normalized output against golden file
+	if normalized != string(expected) {
+		t.Errorf("output mismatch (-want +got):\n--- expected (golden):\n%s--- got (normalized):\n%s",
+			string(expected), normalized)
+	}
+}
+
 func TestMSSQLGolden(t *testing.T) {
 	db := testhelper.ConnectMSSQL(t)
 

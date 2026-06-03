@@ -56,6 +56,63 @@ func normalizeGoldenJSON(t *testing.T, raw string) string {
 //
 // Run with: go test -tags e2e -run TestSQLiteGolden -v
 // To update golden files: go test -tags e2e -run TestSQLiteGolden -update
+// TestSQLiteExplain verifies the JSON output of querylex explain against a
+// committed golden file. SQLite EXPLAIN QUERY PLAN returns text output;
+// normalizeGoldenJSON handles non-JSON input by returning raw text unchanged.
+// This test supports the -update flag for golden file regeneration.
+//
+// Run with: go test -tags e2e -run TestSQLiteExplain -v
+// To update golden files: go test -tags e2e -run TestSQLiteExplain -update
+func TestSQLiteExplain(t *testing.T) {
+	db := testhelper.ConnectSQLite(t)
+
+	// Load Chinook schema into the SQLite database
+	loadChinookSchema(t, db)
+
+	// Get the database file path for workspace config
+	dbPath := getDatabasePath(t, db)
+
+	// Set up workspace pointing to the SQLite file
+	setupE2EWorkspaceSQLite(t, dbPath)
+
+	// Run querylex explain with engine-specific SQL
+	stdout, stderr, exitCode := testhelper.RunQuerylex(t, "explain", "SELECT * FROM Album WHERE AlbumId = 1")
+
+	// Assert exit code 0
+	if exitCode != 0 {
+		t.Fatalf("expected exit code 0, got %d\nstdout: %s\nstderr: %s",
+			exitCode, stdout, stderr)
+	}
+
+	// Normalize non-deterministic fields
+	normalized := normalizeGoldenJSON(t, stdout)
+
+	goldenPath := filepath.Join("test", "testdata", "golden", "sqlite", "TestExplainOutput.json")
+
+	// If -update flag is set, write normalized output to golden file and return
+	if *update {
+		if err := os.MkdirAll(filepath.Dir(goldenPath), 0755); err != nil {
+			t.Fatalf("mkdir golden dir: %v", err)
+		}
+		if err := os.WriteFile(goldenPath, []byte(normalized), 0644); err != nil {
+			t.Fatalf("write golden file: %v", err)
+		}
+		return
+	}
+
+	// Read golden file
+	expected, err := os.ReadFile(goldenPath)
+	if err != nil {
+		t.Fatalf("read golden file %s: %v (run with -update to generate)", goldenPath, err)
+	}
+
+	// Compare normalized output against golden file
+	if normalized != string(expected) {
+		t.Errorf("output mismatch (-want +got):\n--- expected (golden):\n%s--- got (normalized):\n%s",
+			string(expected), normalized)
+	}
+}
+
 func TestSQLiteGolden(t *testing.T) {
 	db := testhelper.ConnectSQLite(t)
 
