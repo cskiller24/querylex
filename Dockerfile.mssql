@@ -1,0 +1,43 @@
+# Pre-built MSSQL image with AdventureWorksLT database for CI.
+# Built in a separate CI job before the test matrix and pushed to ghcr.io.
+# The image has AdventureWorksLT pre-loaded so CI jobs avoid 30-60s data loading.
+#
+# Build: docker build --build-arg SA_PASSWORD=TestPass123! -t mssql-adventureworks -f Dockerfile.mssql .
+# CI: docker/build-push-action pushes to ghcr.io/OWNER/REPO/mssql-adventureworks:latest
+FROM mcr.microsoft.com/mssql/server:2022-latest
+
+# Build-time arguments (never hardcoded per RESEARCH §Security Domain)
+ARG SA_PASSWORD
+ENV ACCEPT_EULA=Y
+ENV MSSQL_PID=Express
+ENV MSSQL_SA_PASSWORD=${SA_PASSWORD}
+
+# Copy AdventureWorksLT backup file
+# The .bak file should be downloaded to test/testdata/cache/ before building
+# Download URL: https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorksLT2022.bak
+# The file is .gitignored (test/testdata/cache/ is in .gitignore per Phase 1 D-20)
+COPY test/testdata/cache/AdventureWorksLT2022.bak /tmp/AdventureWorksLT.bak
+
+# Copy entrypoint restore script
+COPY scripts/mssql-restore-adventureworks.sh /usr/local/bin/restore-adventureworks.sh
+RUN chmod +x /usr/local/bin/restore-adventureworks.sh
+
+# Run MSSQL, restore database, and stop MSSQL
+# The restore script:
+#   1. Starts MSSQL in the background
+#   2. Waits for healthcheck (sqlcmd SELECT 1 loop with timeout)
+#   3. Restores AdventureWorksLT from .bak
+#   4. Shuts down MSSQL gracefully (sqlcmd SHUTDOWN WITH NOWAIT)
+# After this RUN, /var/opt/mssql/data/ contains AdventureWorksLT data files.
+RUN /usr/local/bin/restore-adventureworks.sh ${SA_PASSWORD}
+
+# Reset SA_PASSWORD to an env var (will be overridden by compose.yaml at runtime)
+# The baked image has AdventureWorksLT data but compose.yaml can set SA_PASSWORD
+# independently via environment override
+ENV MSSQL_SA_PASSWORD=
+
+# Expose the default MSSQL port (compose.yaml maps to random host port)
+EXPOSE 1433
+
+# Use the default MSSQL entrypoint (no custom entrypoint needed after restore)
+# The base image's entrypoint starts MSSQL normally.
