@@ -133,6 +133,62 @@ func setupE2EWorkspace(t *testing.T, host string, port int, dbName string) strin
 	return home
 }
 
+// loadEmployeesDB loads the employees schema and small data tables (departments,
+// dept_manager) from cached dump files. It reuses loadEmployeesSchema for DDL
+// creation, then loads dump files for small data tables that validation tests
+// depend on. Larger tables (employees, dept_emp, titles, salaries) are not
+// loaded to keep test runtime reasonable.
+//
+// If dump files are missing (cache not populated), the function loads schema
+// only and issues a warning — tests degrade gracefully to schema-only mode.
+func loadEmployeesDB(t *testing.T, db *sql.DB) {
+	t.Helper()
+
+	// First load schema (6 tables + 2 views) — reuses existing DDL logic
+	loadEmployeesSchema(t, db)
+
+	// Then load small data tables from dump files
+	cacheDir := filepath.Join("test", "testdata", "cache", "test_db-extracted", "test_db-master")
+
+	// Load departments (9 rows)
+	loadDumpFile(t, db, filepath.Join(cacheDir, "load_departments.dump"), "departments")
+
+	// Load dept_manager (24 rows)
+	loadDumpFile(t, db, filepath.Join(cacheDir, "load_dept_manager.dump"), "dept_manager")
+}
+
+// loadDumpFile reads a dump file containing batch INSERT statements, splits on
+// semicolon+newline, and executes each non-empty statement against the DB.
+// If the file does not exist, it logs a warning and returns without error —
+// the test continues with schema-only data.
+func loadDumpFile(t *testing.T, db *sql.DB, path, tableName string) {
+	t.Helper()
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Logf("warning: dump file %s not found — %s data skipped (schema-only mode)", path, tableName)
+		return
+	}
+
+	t.Logf("loading %s data from %s (%d bytes)", tableName, path, len(content))
+
+	// The dump files use batch INSERT syntax with semicolon-terminated statements.
+	// Splitting on ";\n" yields complete statements; trailing empty element after
+	// final newline is filtered out in the loop.
+	statements := strings.Split(string(content), ";\n")
+	for _, stmt := range statements {
+		stmt = strings.TrimSpace(stmt)
+		if stmt == "" {
+			continue
+		}
+		if _, err := db.Exec(stmt); err != nil {
+			t.Fatalf("load %s data: %v\nSQL: %.1000s", tableName, err, stmt)
+		}
+	}
+
+	t.Logf("loaded %s data successfully", tableName)
+}
+
 // loadEmployeesSchema reads the Employees DB SQL from the cached download at
 // test/testdata/cache/test_db-extracted/test_db-master/employees.sql, extracts
 // DDL statements (CREATE TABLE, CREATE VIEW), and executes them against the
