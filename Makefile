@@ -1,4 +1,4 @@
-.PHONY: build test clean install lint release completions compose-up-mysql compose-up-postgresql compose-up-mariadb compose-up-mssql compose-down build-test test-e2e-mysql test-e2e-postgresql test-e2e-mariadb test-e2e-mssql
+.PHONY: build test clean install lint release completions compose-up-mysql compose-up-postgresql compose-up-mariadb compose-up-mssql compose-down build-test test-e2e-mysql test-e2e-postgresql test-e2e-mariadb test-e2e-mssql test-e2e-sqlite test-e2e-cross-engine test-e2e-all
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -58,7 +58,7 @@ compose-down:
 # Build the E2E test binary with the e2e build tag.
 # Output: bin/e2e.test — a compiled test binary that can be run directly.
 build-test: build
-	go test -tags e2e -c -o bin/e2e.test ./test/mysql/
+	go test -tags e2e -c -o bin/e2e.test ./test/...
 
 # E2E test targets — full cycle: start DB, run tests, stop DB.
 # Each target starts the specific database profile, waits for health,
@@ -92,3 +92,15 @@ test-e2e-mssql: build-test compose-up-mssql
 	EXIT_CODE=$$?; \
 	$(MAKE) compose-down; \
 	exit $$EXIT_CODE
+
+# SQLite E2E (no Docker — runs in-process via modernc.org/sqlite)
+test-e2e-sqlite: build-test
+	TEST_SQLITE_PATH="$$(mktemp -u -t e2e_test.XXXXXXXX.db)" \
+	./bin/e2e.test -test.run "TestSQLite" -test.v
+
+# Cross-engine validation matrix (requires all 5 DBs running)
+test-e2e-cross-engine: build-test
+	./bin/e2e.test -test.run "TestCrossEngine" -test.v
+
+# Run all engine E2E tests sequentially to avoid Docker resource exhaustion
+test-e2e-all: test-e2e-mysql test-e2e-postgresql test-e2e-mariadb test-e2e-mssql test-e2e-sqlite test-e2e-cross-engine
