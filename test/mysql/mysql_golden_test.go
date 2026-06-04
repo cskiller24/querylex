@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"testing"
 
 	"github.com/cskiller24/querylex/test/testhelper"
@@ -73,6 +74,7 @@ func normalizeGoldenJSON(t *testing.T, raw string) string {
 //
 // MySQL volatile fields:
 //   - query_cost: varies per execution stats in EXPLAIN FORMAT=JSON output
+//   - indexes: ordering varies per MySQL connection session — sorted by name
 func normalizeEngineFields(data map[string]any) {
 	for k, v := range data {
 		switch val := v.(type) {
@@ -87,6 +89,20 @@ func normalizeEngineFields(data map[string]any) {
 		case map[string]any:
 			normalizeEngineFields(val)
 		case []any:
+			if k == "indexes" || k == "constraints" {
+				// Sort by name to handle non-deterministic MySQL
+				// ordering across connections.
+				sort.SliceStable(val, func(i, j int) bool {
+					ni, _ := val[i].(map[string]any)
+					nj, _ := val[j].(map[string]any)
+					if ni == nil || nj == nil {
+						return false
+					}
+					niName, _ := ni["name"].(string)
+					njName, _ := nj["name"].(string)
+					return niName < njName
+				})
+			}
 			for _, item := range val {
 				if m, ok := item.(map[string]any); ok {
 					normalizeEngineFields(m)

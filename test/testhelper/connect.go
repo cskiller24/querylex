@@ -21,7 +21,7 @@ func ConnectMySQL(t *testing.T) *sql.DB {
 	if dsn == "" {
 		dsn = "root:testpass@tcp(localhost:3306)/testdb?parseTime=true"
 	}
-	host, port := extractHostPort(dsn)
+	host, port := ExtractHostPort(dsn)
 	WaitForPort(t, host, port, 30*time.Second)
 
 	db, err := sql.Open("mysql", dsn)
@@ -60,7 +60,7 @@ func ConnectPostgreSQL(t *testing.T) *sql.DB {
 	if dsn == "" {
 		dsn = "postgres:testpass@localhost:5432/testdb?sslmode=disable"
 	}
-	host, port := extractHostPort(dsn)
+	host, port := ExtractHostPort(dsn)
 	WaitForPort(t, host, port, 30*time.Second)
 
 	db, err := sql.Open("postgres", dsn)
@@ -97,7 +97,7 @@ func ConnectMariaDB(t *testing.T) *sql.DB {
 	if dsn == "" {
 		dsn = "root:testpass@tcp(localhost:3306)/testdb?parseTime=true"
 	}
-	host, port := extractHostPort(dsn)
+	host, port := ExtractHostPort(dsn)
 	WaitForPort(t, host, port, 30*time.Second)
 
 	db, err := sql.Open("mysql", dsn)
@@ -134,7 +134,7 @@ func ConnectMSSQL(t *testing.T) *sql.DB {
 	if dsn == "" {
 		dsn = "sqlserver://sa:TestPass123!@localhost:1433?database=testdb&encrypt=false"
 	}
-	host, port := extractHostPort(dsn)
+	host, port := ExtractHostPort(dsn)
 	WaitForPort(t, host, port, 30*time.Second)
 
 	db, err := sql.Open("sqlserver", dsn)
@@ -163,11 +163,11 @@ func ConnectMSSQL(t *testing.T) *sql.DB {
 	return db
 }
 
-// extractHostPort parses host and port from a DSN string. Supports three formats:
+// ExtractHostPort parses host and port from a DSN string. Supports three formats:
 //   - MySQL/MariaDB: user:pass@tcp(host:port)/db
 //   - PostgreSQL:    user:pass@host:port/db
 //   - MSSQL:         scheme://user:pass@host:port?params
-func extractHostPort(dsn string) (string, int) {
+func ExtractHostPort(dsn string) (string, int) {
 	hp := ""
 
 	// Try MySQL/MariaDB format: @tcp(host:port)

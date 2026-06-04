@@ -5,10 +5,10 @@ package mysql
 import (
 	"database/sql"
 	"encoding/json"
+	"os"
 	"strings"
 	"testing"
 
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/cskiller24/querylex/test/testhelper"
 )
 
@@ -94,7 +94,11 @@ func TestMySQLSchema(t *testing.T) {
 		if !ok {
 			continue
 		}
-		if name, ok := tblMap["name"].(string); ok && name == "employees" {
+		name, _ := tblMap["name"].(string)
+		if name == "" {
+			name, _ = tblMap["table"].(string)
+		}
+		if name == "employees" {
 			employeesTable = tblMap
 			break
 		}
@@ -133,21 +137,21 @@ func TestMySQLSchema(t *testing.T) {
 	}
 }
 
-// extractConnectionInfo queries the MySQL connection for hostname, port,
-// and current database name.
+// extractConnectionInfo returns the connection parameters the querylex binary
+// should use to reach this MySQL instance. Host and port are sourced from the
+// TEST_MYSQL_DSN env var when set (E2E tests against Docker — container-internal
+// @@hostname/@@port are not resolvable from the host).
 func extractConnectionInfo(t *testing.T, db *sql.DB) (string, int, string) {
 	t.Helper()
 
-	// Get hostname
-	var hostname string
-	if err := db.QueryRow("SELECT @@hostname").Scan(&hostname); err != nil {
-		t.Fatalf("failed to query hostname: %v", err)
-	}
+	host := "127.0.0.1"
+	port := 3306
 
-	// Get port
-	var port int
-	if err := db.QueryRow("SELECT @@port").Scan(&port); err != nil {
-		t.Fatalf("failed to query port: %v", err)
+	if dsn := os.Getenv("TEST_MYSQL_DSN"); dsn != "" {
+		_, p := testhelper.ExtractHostPort(dsn)
+		if p > 0 {
+			port = p
+		}
 	}
 
 	// Get current database name
@@ -156,5 +160,5 @@ func extractConnectionInfo(t *testing.T, db *sql.DB) (string, int, string) {
 		t.Fatalf("failed to query database name: %v", err)
 	}
 
-	return hostname, port, dbName
+	return host, port, dbName
 }
