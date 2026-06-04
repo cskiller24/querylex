@@ -8,7 +8,7 @@ QueryLex is a brownfield Go CLI tool that helps AI agents introspect database sc
 
 - [x] **Phase 1: Monorepo Cleanup + Docker Infrastructure** - Unify the build (single `querylex` binary), create compose.yaml with all 5 database services, build test helper package, and provision sample datasets (completed 2026-06-03)
 - [x] **Phase 2: MySQL E2E Test Suite** - Comprehensive E2E tests for MySQL using real datasets with golden files, exit code verification, per-test isolation, and CLI flag combinatorics (completed 2026-06-03)
-- [ ] **Phase 3: CI Automation + Cross-Engine Expansion** - GitHub Actions matrix workflow, E2E tests for remaining 4 database engines, EXPLAIN comparison suite, and AI mock server
+- [x] **Phase 3: CI Automation + Cross-Engine Expansion** - GitHub Actions matrix workflow, E2E tests for remaining 4 database engines, EXPLAIN comparison suite, and AI mock server (completed 2026-06-03)
 
 ## Phase Details
 
@@ -38,7 +38,7 @@ Plans:
 
 ### Phase 2: MySQL E2E Test Suite
 
-**Goal**: Comprehensive, isolated E2E test suite for MySQL using real datasets, golden files, and per-test database isolation
+**Goal**: As a developer, I want to run E2E test against MySQL, so that I can see at a glance what needs attention.
 **Mode**: mvp
 **Depends on**: Phase 1
 **Requirements**: MYS-01, MYS-02, MYS-03, MYS-04, MYS-05, MYS-06, MYS-07, MYS-08
@@ -50,14 +50,14 @@ Plans:
   4. Each test creates its own UUID-named database and drops it via `t.Cleanup()` — zero data leakage between test runs
   5. CLI flag combinatorics tests for `sql` and `optimize` subcommands pass across valid/invalid flag combinations and output formats
 
-**Plans**: 4 plans in 2 waves
+**Plans**: 1 plan in 1 wave (MVP vertical-slice)
 
 Plans:
 
-- [x] 02-01-PLAN.md — Infrastructure foundation: credential auto-unlock, workspace setup helper, schema extraction + isolation tests (MYS-01, MYS-07)
-- [x] 02-02-PLAN.md — Golden file JSON output verification with normalization + exit code matrix (MYS-02, MYS-03, MYS-05)
-- [x] 02-03-PLAN.md — Schema-aware SQL validation + full schema snapshot golden file (MYS-06, MYS-08)
-- [x] 02-04-PLAN.md — CLI flag combinatorics for 7 deterministic subcommands + AI subcommand flag tests (MYS-04)
+- [ ] 02-01-PLAN.md — MVP-mode plan: Task 1 (RED failing test), Task 2 (GREEN infrastructure), Task 3 (complete coverage) — covers all 8 requirements
+  - Task 1: Write TestMySQLSchema — failing end-to-end test that defines expected behavior (MYS-01)
+  - Task 2: Credential auto-unlock, Makefile fix, workspace setup helper, schema loader — makes test pass
+  - Task 3: Remaining coverage — isolation (MYS-07), golden file (MYS-02), exit codes (MYS-03, MYS-05), validation (MYS-06), snapshot (MYS-08), flag combinatorics (MYS-04)
 
 ### Phase 3: CI Automation + Cross-Engine Expansion
 
@@ -84,12 +84,12 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 03-02b-PLAN.md — Cross-engine E2E test packages for MSSQL and SQLite (16 files) with 7-test coverage per engine
-- [ ] 03-05-PLAN.md — Docker layer caching for MSSQL image, JUnit XML output via gotestsum, E2E dev workflow documentation
+- [x] 03-02b-PLAN.md — Cross-engine E2E test packages for MSSQL and SQLite (16 files) with 7-test coverage per engine
+- [x] 03-05-PLAN.md — Docker layer caching for MSSQL image, JUnit XML output via gotestsum, E2E dev workflow documentation
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 03-03-PLAN.md — Cross-engine SQL validation matrix (12+ patterns) and EXPLAIN plan golden files for all 5 engines
+- [x] 03-03-PLAN.md — Cross-engine SQL validation matrix (12+ patterns) and EXPLAIN plan golden files for all 5 engines
 
 **Cross-cutting constraints:**
 
@@ -101,4 +101,4 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Monorepo Cleanup + Docker Infrastructure | 5/5 | Complete   | 2026-06-03 |
 | 2. MySQL E2E Test Suite | 4/4 | Complete   | 2026-06-03 |
-| 3. CI Automation + Cross-Engine Expansion | 3/6 | In Progress|  |
+| 3. CI Automation + Cross-Engine Expansion | 6/6 | Complete   | 2026-06-03 |

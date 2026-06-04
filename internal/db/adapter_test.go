@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/cskiller24/querylex/internal/db"
@@ -12,7 +13,7 @@ import (
 	_ "github.com/cskiller24/querylex/internal/db/mssql"
 )
 
-func TestAdapterStubs_ConcreteTypes(t *testing.T) {
+func TestAdapterMethods_ConcreteTypes(t *testing.T) {
 	// This test verifies that the adapter interface methods return concrete types
 	// (*db.SchemaResult, *db.ExplainPlan, etc.) instead of `any`.
 	adapter, err := db.Open("mysql", "")
@@ -23,7 +24,8 @@ func TestAdapterStubs_ConcreteTypes(t *testing.T) {
 	ctx := context.Background()
 
 	// Schema, Stats, Indexes are now implemented — tested in their respective test files.
-	// Remaining 3 methods should still return ErrNotImplemented as stubs.
+	// Validate is now implemented (returns result without connection for non-DML queries).
+	// Explain and Joins are still stubs and return ErrNotImplemented without a connection.
 
 	t.Run("Explain returns *ExplainPlan", func(t *testing.T) {
 		result, err := adapter.Explain(ctx, "", false)
@@ -34,19 +36,23 @@ func TestAdapterStubs_ConcreteTypes(t *testing.T) {
 			t.Fatalf("expected nil result, got %v", result)
 		}
 		var _ *db.ExplainPlan = result
-		_ = result
 	})
 
-	t.Run("Validate returns *ValidateResult", func(t *testing.T) {
+	t.Run("Validate returns *ValidateResult when not connected", func(t *testing.T) {
 		result, err := adapter.Validate(ctx, "")
-		if err != db.ErrNotImplemented {
-			t.Fatalf("expected ErrNotImplemented, got %v", err)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
 		}
-		if result != nil {
-			t.Fatalf("expected nil result, got %v", result)
+		if result == nil {
+			t.Fatal("expected non-nil ValidateResult")
+		}
+		if !result.Valid {
+			t.Fatalf("expected Valid=true with empty query, got Valid=%v", result.Valid)
+		}
+		if !result.ReadOnly {
+			t.Fatalf("expected ReadOnly=true, got ReadOnly=%v", result.ReadOnly)
 		}
 		var _ *db.ValidateResult = result
-		_ = result
 	})
 
 	t.Run("Joins returns *JoinsResult", func(t *testing.T) {
@@ -58,35 +64,49 @@ func TestAdapterStubs_ConcreteTypes(t *testing.T) {
 			t.Fatalf("expected nil result, got %v", result)
 		}
 		var _ *db.JoinsResult = result
-		_ = result
 	})
 }
 
-func TestAdapterStubs_ErrNotImplemented(t *testing.T) {
+func TestAdapterMethods_Implemented(t *testing.T) {
 	adapter, err := db.Open("mysql", "")
 	if err != nil {
 		t.Fatalf("Open(mysql) failed: %v", err)
 	}
 
-	// Schema, Stats, Indexes are now implemented — not checked here.
-	// Remaining 3 methods should still return ErrNotImplemented as stubs.
-	stubMethods := []struct {
-		name string
-		fn   func() (any, error)
+	// Schema, Stats, Indexes are implemented.
+	// Validate is now implemented (works without connection).
+	// Explain and Joins are still stubs — return ErrNotImplemented.
+	methods := []struct {
+		name    string
+		fn      func() (any, error)
+		wantErr string // substring expected in error, ""=no error, "ErrNotImplemented" for stubs
 	}{
-		{"Explain", func() (any, error) { return adapter.Explain(context.Background(), "", false) }},
-		{"Validate", func() (any, error) { return adapter.Validate(context.Background(), "") }},
-		{"Joins", func() (any, error) { return adapter.Joins(context.Background(), nil) }},
+		{"Explain", func() (any, error) { return adapter.Explain(context.Background(), "", false) }, "ErrNotImplemented"},
+		{"Validate", func() (any, error) { return adapter.Validate(context.Background(), "") }, ""},
+		{"Joins", func() (any, error) { return adapter.Joins(context.Background(), nil) }, "ErrNotImplemented"},
 	}
 
-	for _, m := range stubMethods {
+	for _, m := range methods {
 		result, err := m.fn()
-		if err == nil {
-			t.Errorf("%s: expected ErrNotImplemented, got nil result=%v", m.name, result)
-			continue
-		}
-		if err != db.ErrNotImplemented {
-			t.Errorf("%s: expected ErrNotImplemented, got %v", m.name, err)
+		if m.wantErr == "ErrNotImplemented" {
+			if err != db.ErrNotImplemented {
+				t.Errorf("%s: expected ErrNotImplemented, got %v", m.name, err)
+			}
+		} else if m.wantErr != "" {
+			if err == nil {
+				t.Errorf("%s: expected error containing %q, got nil result=%v", m.name, m.wantErr, result)
+				continue
+			}
+			if !strings.Contains(err.Error(), m.wantErr) {
+				t.Errorf("%s: expected error containing %q, got %v", m.name, m.wantErr, err)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("%s: expected no error, got %v", m.name, err)
+			}
+			if result == nil {
+				t.Errorf("%s: expected non-nil result", m.name)
+			}
 		}
 	}
 }

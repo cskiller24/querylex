@@ -337,7 +337,48 @@ func (a *MySQLAdapter) Explain(ctx context.Context, query string, analyze bool) 
 }
 
 func (a *MySQLAdapter) Validate(ctx context.Context, query string) (*db.ValidateResult, error) {
-	return nil, db.ErrNotImplemented
+	// Layer 1: DML/DCL keyword scan (client-side, no DB connection needed)
+	if isDML(query) {
+		return &db.ValidateResult{
+			Valid:    false,
+			ReadOnly: false,
+			Errors:   []string{"DML/DCL statements are not permitted"},
+		}, nil
+	}
+
+	if a.conn == nil {
+		// Without connection, keyword validation is all we can do
+		return &db.ValidateResult{
+			Valid:    true,
+			ReadOnly: true,
+		}, nil
+	}
+
+	// Layer 2: EXPLAIN-based validation against live MySQL
+	queryCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	_, err := a.conn.ExecContext(queryCtx, "EXPLAIN "+query)
+	if err != nil {
+		errMsg := err.Error()
+		result := &db.ValidateResult{
+			Valid:    false,
+			ReadOnly: true,
+			Errors:   []string{errMsg},
+		}
+
+		// Differentiate error codes based on MySQL error message patterns:
+		// - "Table '...' doesn't exist" → TABLE_NOT_FOUND
+		// - "Unknown column '...' in ..." → COLUMN_NOT_FOUND
+		// - Everything else → INVALID_SQL (handled by caller)
+
+		return result, nil
+	}
+
+	return &db.ValidateResult{
+		Valid:    true,
+		ReadOnly: true,
+	}, nil
 }
 
 func (a *MySQLAdapter) Stats(ctx context.Context, tables []string) (*db.StatsResult, error) {
@@ -560,6 +601,23 @@ func (a *MySQLAdapter) Joins(ctx context.Context, tables []string) (*db.JoinsRes
 
 func (a *MySQLAdapter) DatabaseType() string {
 	return "mysql"
+}
+
+var dmlKeywords = []string{
+	"INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "TRUNCATE",
+	"MERGE", "GRANT", "REVOKE", "CREATE", "REPLACE",
+}
+
+func isDML(query string) bool {
+	upper := strings.TrimSpace(strings.ToUpper(query))
+	for _, kw := range dmlKeywords {
+		if strings.HasPrefix(upper, kw) {
+			if len(upper) == len(kw) || upper[len(kw)] == ' ' || upper[len(kw)] == '\t' || upper[len(kw)] == '\n' || upper[len(kw)] == '(' {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func BuildDSN(host string, port int, database, username, password string, sslMode string) string {

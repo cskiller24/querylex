@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/cskiller24/querylex/internal/db"
@@ -65,12 +66,23 @@ func runValidateWithAdapter(adapter db.Adapter, query string, traceID string, ac
 	}
 
 	if !result.Valid {
+		errCode := format.ErrCodeInvalidSQL
 		errMsg := "SQL validation failed"
 		if len(result.Errors) > 0 {
 			errMsg = result.Errors[0]
+			// Pattern-match adapter error strings to assign specific error codes.
+			// This enables the adapter to report schema-aware errors (table/column
+			// not found) without coupling the CLI layer to MySQL-specific error text.
+			if strings.Contains(errMsg, "doesn't exist") {
+				errCode = format.ErrCodeTableNotFound
+			} else if strings.Contains(errMsg, "Unknown column") {
+				errCode = format.ErrCodeColumnNotFound
+			} else if strings.Contains(errMsg, "DML/DCL") {
+				errCode = format.ErrCodeUnsafeSQL
+			}
 		}
 		resp := format.NewErrorResponse[ValidateData](
-			format.ErrCodeInvalidSQL,
+			errCode,
 			errMsg,
 			false,
 			traceID,
