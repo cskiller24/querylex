@@ -24,13 +24,14 @@ func TestAdapterMethods_ConcreteTypes(t *testing.T) {
 	ctx := context.Background()
 
 	// Schema, Stats, Indexes are now implemented — tested in their respective test files.
-	// Validate is now implemented (returns result without connection for non-DML queries).
-	// Explain and Joins are still stubs and return ErrNotImplemented without a connection.
+	// Validate, Explain, Joins are all implemented. Without a connection, methods that
+	// need a connection return an error wrapping ErrConnectionFailed; Validate works
+	// without a connection.
 
-	t.Run("Explain returns *ExplainPlan", func(t *testing.T) {
+	t.Run("Explain returns ErrConnectionFailed when not connected", func(t *testing.T) {
 		result, err := adapter.Explain(ctx, "", false)
-		if err != db.ErrNotImplemented {
-			t.Fatalf("expected ErrNotImplemented, got %v", err)
+		if err == nil || !strings.Contains(err.Error(), "not connected") {
+			t.Fatalf("expected connection error, got %v", err)
 		}
 		if result != nil {
 			t.Fatalf("expected nil result, got %v", result)
@@ -55,10 +56,10 @@ func TestAdapterMethods_ConcreteTypes(t *testing.T) {
 		var _ *db.ValidateResult = result
 	})
 
-	t.Run("Joins returns *JoinsResult", func(t *testing.T) {
+	t.Run("Joins returns ErrConnectionFailed when not connected", func(t *testing.T) {
 		result, err := adapter.Joins(ctx, nil)
-		if err != db.ErrNotImplemented {
-			t.Fatalf("expected ErrNotImplemented, got %v", err)
+		if err == nil || !strings.Contains(err.Error(), "not connected") {
+			t.Fatalf("expected connection error, got %v", err)
 		}
 		if result != nil {
 			t.Fatalf("expected nil result, got %v", result)
@@ -73,26 +74,22 @@ func TestAdapterMethods_Implemented(t *testing.T) {
 		t.Fatalf("Open(mysql) failed: %v", err)
 	}
 
-	// Schema, Stats, Indexes are implemented.
-	// Validate is now implemented (works without connection).
-	// Explain and Joins are still stubs — return ErrNotImplemented.
+	// Schema, Stats, Indexes, Explain, Validate, Joins are all implemented.
+	// Without a connection, methods that need a connection return an error
+	// wrapping ErrConnectionFailed; Validate works without a connection.
 	methods := []struct {
 		name    string
 		fn      func() (any, error)
-		wantErr string // substring expected in error, ""=no error, "ErrNotImplemented" for stubs
+		wantErr string // substring expected in error, ""=no error
 	}{
-		{"Explain", func() (any, error) { return adapter.Explain(context.Background(), "", false) }, "ErrNotImplemented"},
+		{"Explain", func() (any, error) { return adapter.Explain(context.Background(), "", false) }, "not connected"},
 		{"Validate", func() (any, error) { return adapter.Validate(context.Background(), "") }, ""},
-		{"Joins", func() (any, error) { return adapter.Joins(context.Background(), nil) }, "ErrNotImplemented"},
+		{"Joins", func() (any, error) { return adapter.Joins(context.Background(), nil) }, "not connected"},
 	}
 
 	for _, m := range methods {
 		result, err := m.fn()
-		if m.wantErr == "ErrNotImplemented" {
-			if err != db.ErrNotImplemented {
-				t.Errorf("%s: expected ErrNotImplemented, got %v", m.name, err)
-			}
-		} else if m.wantErr != "" {
+		if m.wantErr != "" {
 			if err == nil {
 				t.Errorf("%s: expected error containing %q, got nil result=%v", m.name, m.wantErr, result)
 				continue

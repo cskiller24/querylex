@@ -3,6 +3,7 @@ package mysql
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
@@ -333,7 +334,202 @@ func (a *MySQLAdapter) Schema(ctx context.Context, tables []string) (*db.SchemaR
 }
 
 func (a *MySQLAdapter) Explain(ctx context.Context, query string, analyze bool) (*db.ExplainPlan, error) {
-	return nil, db.ErrNotImplemented
+	if a.conn == nil {
+		return nil, fmt.Errorf("%w: mysql adapter not connected", db.ErrConnectionFailed)
+	}
+
+	queryCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	if analyze {
+		return a.explainAnalyze(queryCtx, query)
+	}
+	return a.explainBasic(queryCtx, query)
+}
+
+// explainBasic runs EXPLAIN FORMAT=JSON and parses the output into ExplainPlan.
+func (a *MySQLAdapter) explainBasic(ctx context.Context, query string) (*db.ExplainPlan, error) {
+	explainQuery := "EXPLAIN FORMAT=JSON " + query
+	return a.executeExplain(ctx, explainQuery, false)
+}
+
+// explainAnalyze runs EXPLAIN ANALYZE (MySQL 8.0.18+) which executes the query
+// and provides actual runtime metrics. Output is TREE format text stored in
+// DialectRaw since it's not structured JSON.
+func (a *MySQLAdapter) explainAnalyze(ctx context.Context, query string) (*db.ExplainPlan, error) {
+	explainQuery := "EXPLAIN ANALYZE " + query
+	plan, err := a.executeExplain(ctx, explainQuery, true)
+	if err != nil {
+		// Fallback: if EXPLAIN ANALYZE fails (older MySQL), attempt FORMAT=JSON
+		// with a warning.
+		fallback, fbErr := a.explainBasic(ctx, query)
+		if fbErr != nil {
+			return nil, fmt.Errorf("%w: explain analyze failed (%v), fallback also failed (%v)",
+				db.ErrExplainFailed, err, fbErr)
+		}
+		fallback.Warnings = append(fallback.Warnings,
+			"EXPLAIN ANALYZE not available, showing estimated plan")
+		return fallback, nil
+	}
+	return plan, nil
+}
+
+// executeExplain runs an EXPLAIN query, parses FORMAT=JSON output into ExplainPlan.
+// For ANALYZE mode (TREE format), stores raw text in DialectRaw.
+func (a *MySQLAdapter) executeExplain(ctx context.Context, explainQuery string, isAnalyze bool) (*db.ExplainPlan, error) {
+	var rawResult string
+	err := a.conn.QueryRowContext(ctx, explainQuery).Scan(&rawResult)
+	if err != nil {
+		return nil, fmt.Errorf("%w: mysql explain query: %w", db.ErrExplainFailed, err)
+	}
+
+	if isAnalyze {
+		// EXPLAIN ANALYZE returns TREE format text, not JSON.
+		// Store the raw output in DialectRaw and return a plan with
+		// minimal parsed fields.
+		plan := &db.ExplainPlan{
+			EstimatedTotalCost:    float64Ptr(0),
+			EstimatedRowsExamined: int64Ptr(0),
+			DialectRaw:            rawResult,
+			Warnings:              []string{"EXPLAIN ANALYZE TREE output stored in dialect_raw"},
+		}
+		return plan, nil
+	}
+
+	// Parse FORMAT=JSON output
+	plan, err := parseExplainJSON(rawResult)
+	if err != nil {
+		return nil, fmt.Errorf("%w: mysql explain parse: %w", db.ErrExplainFailed, err)
+	}
+	return plan, nil
+}
+
+// parseExplainJSON parses MySQL's EXPLAIN FORMAT=JSON output into ExplainPlan.
+func parseExplainJSON(rawJSON string) (*db.ExplainPlan, error) {
+	var root mysqlExplainRoot
+	if err := json.Unmarshal([]byte(rawJSON), &root); err != nil {
+		return nil, fmt.Errorf("unmarshal explain json: %w", err)
+	}
+
+	plan := &db.ExplainPlan{
+		EstimatedTotalCost:    float64Ptr(0),
+		EstimatedRowsExamined: int64Ptr(0),
+	}
+
+	if root.QueryBlock.CostInfo != nil {
+		cost := parseCost(root.QueryBlock.CostInfo.QueryCost)
+		plan.EstimatedTotalCost = &cost
+	}
+
+	// Walk the query block tree to extract table access patterns
+	walkExplainNode(&root.QueryBlock, plan, "")
+
+	return plan, nil
+}
+
+// mysqlExplainRoot is the top-level wrapper for MySQL EXPLAIN FORMAT=JSON.
+type mysqlExplainRoot struct {
+	QueryBlock mysqlQueryBlock `json:"query_block"`
+}
+
+// mysqlQueryBlock represents a query block in the EXPLAIN JSON.
+type mysqlQueryBlock struct {
+	SelectID   int                `json:"select_id"`
+	CostInfo   *mysqlCostInfo     `json:"cost_info,omitempty"`
+	Table      *mysqlExplainTable `json:"table,omitempty"`
+	NestedLoop []mysqlQueryBlock  `json:"nested_loop,omitempty"`
+	Union      []mysqlQueryBlock  `json:"union_result,omitempty"`
+	Message    string             `json:"message,omitempty"`
+}
+
+// mysqlCostInfo represents cost information in EXPLAIN JSON.
+type mysqlCostInfo struct {
+	QueryCost string `json:"query_cost"`
+}
+
+// mysqlExplainTable represents a table access node in EXPLAIN JSON.
+type mysqlExplainTable struct {
+	TableName            string               `json:"table_name"`
+	AccessType           string               `json:"access_type"`
+	PossibleKeys         []string             `json:"possible_keys,omitempty"`
+	Key                  string               `json:"key,omitempty"`
+	KeyLength            string               `json:"key_length,omitempty"`
+	UsedKeyParts         []string             `json:"used_key_parts,omitempty"`
+	RowsExaminedPerScan  int64                `json:"rows_examined_per_scan"`
+	RowsProducedPerJoin  int64                `json:"rows_produced_per_join"`
+	Filtered             string               `json:"filtered,omitempty"`
+	CostInfo             *mysqlCostInfo       `json:"cost_info,omitempty"`
+	UsedColumns          []string             `json:"used_columns,omitempty"`
+	AttachedCondition    string               `json:"attached_condition,omitempty"`
+	Materialized         *mysqlExplainTable   `json:"materialized_from_subquery,omitempty"`
+}
+
+// walkExplainNode recursively walks a MySQL EXPLAIN JSON tree to populate ExplainPlan.
+func walkExplainNode(node *mysqlQueryBlock, plan *db.ExplainPlan, parentAccess string) {
+	if node.Table != nil {
+		t := node.Table
+
+		// Detect full table scans
+		if t.AccessType == "ALL" {
+			plan.FullScanTables = append(plan.FullScanTables, t.TableName)
+		}
+
+		// Index usage
+		if t.Key != "" {
+			plan.IndexUsage = append(plan.IndexUsage, db.IndexUsageEntry{
+				Table:      t.TableName,
+				Index:      t.Key,
+				Covering:   t.AccessType == "index" && len(t.UsedColumns) > 0,
+				AccessType: t.AccessType,
+			})
+		}
+
+		// Update row estimate
+		if t.RowsExaminedPerScan > 0 {
+			total := t.RowsExaminedPerScan
+			if plan.EstimatedRowsExamined != nil {
+				total += *plan.EstimatedRowsExamined
+			}
+			plan.EstimatedRowsExamined = &total
+		}
+
+		// Update cost from per-table cost_info
+		if t.CostInfo != nil && t.CostInfo.QueryCost != "" {
+			tableCost := parseCost(t.CostInfo.QueryCost)
+			if plan.EstimatedTotalCost != nil {
+				*plan.EstimatedTotalCost += tableCost
+			}
+		}
+	}
+
+	// Detect sort operations from "Using filesort" in attached condition
+	if node.Message != "" {
+		if strings.Contains(node.Message, "filesort") {
+			plan.SortOperations++
+		}
+		if strings.Contains(node.Message, "temporary") {
+			plan.TempOperations++
+		}
+	}
+
+	// Recurse into nested loop children
+	for i := range node.NestedLoop {
+		walkExplainNode(&node.NestedLoop[i], plan, "nested_loop")
+	}
+
+	// Recurse into union children
+	for i := range node.Union {
+		walkExplainNode(&node.Union[i], plan, "union")
+	}
+}
+
+// parseCost parses a MySQL cost string like "1.00" into float64.
+func parseCost(costStr string) float64 {
+	var cost float64
+	if _, err := fmt.Sscanf(costStr, "%f", &cost); err != nil {
+		return 0
+	}
+	return cost
 }
 
 func (a *MySQLAdapter) Validate(ctx context.Context, query string) (*db.ValidateResult, error) {
@@ -596,11 +792,109 @@ func (a *MySQLAdapter) Indexes(ctx context.Context, tables []string) (*db.Indexe
 }
 
 func (a *MySQLAdapter) Joins(ctx context.Context, tables []string) (*db.JoinsResult, error) {
-	return nil, db.ErrNotImplemented
+	if a.conn == nil {
+		return nil, fmt.Errorf("%w: mysql adapter not connected", db.ErrConnectionFailed)
+	}
+
+	queryCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	// Query foreign key constraints from information_schema.
+	// This returns one row per FK column; composite FKs (multiple columns)
+	// are grouped by CONSTRAINT_NAME.
+	query := `
+		SELECT
+		    k.TABLE_NAME AS source_table,
+		    k.COLUMN_NAME AS source_column,
+		    k.REFERENCED_TABLE_NAME AS target_table,
+		    k.REFERENCED_COLUMN_NAME AS target_column,
+		    k.CONSTRAINT_NAME AS constraint_name
+		FROM information_schema.KEY_COLUMN_USAGE k
+		WHERE k.TABLE_SCHEMA = DATABASE()
+		  AND k.REFERENCED_TABLE_NAME IS NOT NULL
+	`
+	if len(tables) > 0 {
+		placeholders := strings.Repeat("?,", len(tables))
+		placeholders = placeholders[:len(placeholders)-1]
+		query += " AND (k.TABLE_NAME IN (" + placeholders + ") OR k.REFERENCED_TABLE_NAME IN (" + placeholders + "))"
+	}
+	query += " ORDER BY k.CONSTRAINT_NAME, k.ORDINAL_POSITION"
+
+	args := make([]any, 0)
+	if len(tables) > 0 {
+		for _, t := range tables {
+			args = append(args, t)
+		}
+		for _, t := range tables {
+			args = append(args, t)
+		}
+	}
+
+	rows, err := a.conn.QueryContext(queryCtx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("mysql joins: %w", err)
+	}
+	defer rows.Close()
+
+	// Group FK columns by constraint name to detect composite FKs
+	type fkEdgeAccum struct {
+		SourceTable string
+		TargetTable string
+		Columns     [][2]string
+		Constraint  string
+	}
+	edgeMap := make(map[string]*fkEdgeAccum)
+	var edgeOrder []string
+
+	for rows.Next() {
+		var sourceTable, sourceCol, targetTable, targetCol, constraintName string
+		if err := rows.Scan(&sourceTable, &sourceCol, &targetTable, &targetCol, &constraintName); err != nil {
+			return nil, fmt.Errorf("mysql joins scan: %w", err)
+		}
+
+		key := constraintName
+		if edge, ok := edgeMap[key]; ok {
+			edge.Columns = append(edge.Columns, [2]string{sourceCol, targetCol})
+		} else {
+			edgeMap[key] = &fkEdgeAccum{
+				SourceTable: sourceTable,
+				TargetTable: targetTable,
+				Columns:     [][2]string{{sourceCol, targetCol}},
+				Constraint:  constraintName,
+			}
+			edgeOrder = append(edgeOrder, key)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("mysql joins rows: %w", err)
+	}
+
+	result := &db.JoinsResult{}
+	for _, key := range edgeOrder {
+		edge := edgeMap[key]
+		result.Edges = append(result.Edges, db.JoinEdge{
+			Source:     edge.SourceTable,
+			Target:     edge.TargetTable,
+			Columns:    edge.Columns,
+			Confidence: 1.0,
+			SourceType: "declared_foreign_key",
+			Composite:  len(edge.Columns) > 1,
+		})
+	}
+
+	return result, nil
 }
 
 func (a *MySQLAdapter) DatabaseType() string {
 	return "mysql"
+}
+
+func float64Ptr(v float64) *float64 {
+	return &v
+}
+
+func int64Ptr(v int64) *int64 {
+	return &v
 }
 
 var dmlKeywords = []string{
