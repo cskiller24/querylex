@@ -50,14 +50,15 @@ Plans:
   4. Each test creates its own UUID-named database and drops it via `t.Cleanup()` — zero data leakage between test runs
   5. CLI flag combinatorics tests for `sql` and `optimize` subcommands pass across valid/invalid flag combinations and output formats
 
-**Plans**: 1 plan in 1 wave (MVP vertical-slice)
+**Plans**: 2 plans in 1 wave (MVP + gap closure)
 
 Plans:
 
-- [ ] 02-01-PLAN.md — MVP-mode plan: Task 1 (RED failing test), Task 2 (GREEN infrastructure), Task 3 (complete coverage) — covers all 8 requirements
+- [x] 02-01-PLAN.md — MVP-mode plan: Task 1 (RED failing test), Task 2 (GREEN infrastructure), Task 3 (complete coverage) — covers all 8 requirements
   - Task 1: Write TestMySQLSchema — failing end-to-end test that defines expected behavior (MYS-01)
   - Task 2: Credential auto-unlock, Makefile fix, workspace setup helper, schema loader — makes test pass
   - Task 3: Remaining coverage — isolation (MYS-07), golden file (MYS-02), exit codes (MYS-03, MYS-05), validation (MYS-06), snapshot (MYS-08), flag combinatorics (MYS-04)
+- [x] 02-02-PLAN.md — Gap closure: implement MySQLAdapter.Validate, Explain, Joins + fix golden normalization + populate workspace artifacts (MYS-02, MYS-03, MYS-04, MYS-05, MYS-06, MYS-08)
 
 ### Phase 3: CI Automation + Cross-Engine Expansion
 
@@ -100,5 +101,5 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Monorepo Cleanup + Docker Infrastructure | 5/5 | Complete   | 2026-06-03 |
-| 2. MySQL E2E Test Suite | 4/4 | Complete   | 2026-06-03 |
+| 2. MySQL E2E Test Suite | 1/1 | Complete   | 2026-06-04 |
 | 3. CI Automation + Cross-Engine Expansion | 6/6 | Complete   | 2026-06-03 |
