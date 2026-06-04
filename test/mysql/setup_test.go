@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/cskiller24/querylex/internal/credentials"
+	"github.com/cskiller24/querylex/internal/db"
 	"github.com/cskiller24/querylex/internal/index"
 	"github.com/cskiller24/querylex/internal/state"
 )
@@ -116,13 +117,74 @@ func setupE2EWorkspace(t *testing.T, host string, port int, dbName string) strin
 	manifest := &index.IndexManifest{
 		SchemaVersionHash: "e2e-test-hash",
 		DBVersion:         "mysql",
-		TableCount:        0,
+		TableCount:        6,
 		ArtifactChecksums: map[string]string{
-			"schema/schema.json": schemaChecksum,
+			"schema/schema.json":     schemaChecksum,
+			"schema/schema_map.json": "e2e-test-checksum",
+			"schema/join_graph.json": "e2e-test-checksum",
 		},
 	}
 	if err := index.WriteIndexManifest(dbDir, manifest); err != nil {
 		t.Fatalf("write index manifest: %v", err)
+	}
+
+	// 5b. Create schema_map.json for non-live indexes command and stats artifact scan.
+	// The schema_map is a per-table fast-lookup map consumed by runIndexesFromDisk.
+	// It must contain at minimum the employees table for index-related test coverage.
+	sm := index.SchemaMap{
+		"employees": &index.TableMapEntry{
+			Table:     "employees",
+			Schema:    dbName,
+			PKColumns: []string{"emp_no"},
+			IndexedColumns: []string{"emp_no"},
+		},
+		"departments": &index.TableMapEntry{
+			Table:     "departments",
+			Schema:    dbName,
+			PKColumns: []string{"dept_no"},
+		},
+		"dept_emp": &index.TableMapEntry{
+			Table:     "dept_emp",
+			Schema:    dbName,
+			PKColumns: []string{"emp_no", "dept_no"},
+		},
+		"dept_manager": &index.TableMapEntry{
+			Table:     "dept_manager",
+			Schema:    dbName,
+			PKColumns: []string{"emp_no", "dept_no"},
+		},
+		"titles": &index.TableMapEntry{
+			Table:     "titles",
+			Schema:    dbName,
+			PKColumns: []string{"emp_no", "title", "from_date"},
+		},
+		"salaries": &index.TableMapEntry{
+			Table:     "salaries",
+			Schema:    dbName,
+			PKColumns: []string{"emp_no", "from_date"},
+		},
+	}
+	if err := index.WriteSchemaMap(dbDir, sm); err != nil {
+		t.Fatalf("write schema_map.json: %v", err)
+	}
+
+	// 5c. Create join_graph.json for joins fast-path and stats artifact scan.
+	// The join graph encodes FK relationships extracted during indexing.
+	// An empty edge list is sufficient for test purposes — the joins command
+	// returns success with empty edges and a JOIN_PATH_NOT_FOUND warning.
+	jg := &index.JoinGraphResult{
+		Edges:             []db.JoinEdge{},
+		GeneratedAt:       "2024-01-01T00:00:00Z",
+		TableCount:        6,
+		DeclaredFKCount:   0,
+		InferredJoinCount: 0,
+	}
+	jgData, err := json.MarshalIndent(jg, "", "  ")
+	if err != nil {
+		t.Fatalf("marshal join_graph.json: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(schemaDir, "join_graph.json"), jgData, 0644); err != nil {
+		t.Fatalf("write join_graph.json: %v", err)
 	}
 
 	// 6. Set environment variables
@@ -150,11 +212,22 @@ func loadEmployeesDB(t *testing.T, db *sql.DB) {
 	// Then load small data tables from dump files
 	cacheDir := filepath.Join("test", "testdata", "cache", "test_db-extracted", "test_db-master")
 
+	// Disable FK checks during data loading — dump file order may not respect
+	// inter-table foreign key dependencies (e.g., dept_manager references employees
+	// but employee data is not loaded in the E2E test suite).
+	if _, err := db.Exec("SET FOREIGN_KEY_CHECKS=0"); err != nil {
+		t.Fatalf("disable FK checks: %v", err)
+	}
+
 	// Load departments (9 rows)
 	loadDumpFile(t, db, filepath.Join(cacheDir, "load_departments.dump"), "departments")
 
 	// Load dept_manager (24 rows)
 	loadDumpFile(t, db, filepath.Join(cacheDir, "load_dept_manager.dump"), "dept_manager")
+
+	if _, err := db.Exec("SET FOREIGN_KEY_CHECKS=1"); err != nil {
+		t.Fatalf("re-enable FK checks: %v", err)
+	}
 }
 
 // loadDumpFile reads a dump file containing batch INSERT statements, splits on
