@@ -67,7 +67,7 @@ func RunAddDB() *format.Response[AddDBData] {
 
 	// If the encrypted file store was selected, prompt for passphrase
 	if encStore, ok := credStore.(*credentials.EncryptedFileStore); ok {
-		if ppErr := promptEncryptedFilePassphrase(encStore, "database"); ppErr != nil {
+		if ppErr := promptEncryptedFilePassphrase(encStore); ppErr != nil {
 			return format.NewErrorResponse[AddDBData](
 				format.ErrCodeCredentialUnavailable,
 				ppErr.Error(),

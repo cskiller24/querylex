@@ -49,7 +49,7 @@ func TestSelectCredentialStore_PriorityOrder(t *testing.T) {
 }
 
 func TestSelectCredentialStore_ErrorWhenNoBackend(t *testing.T) {
-	cleanup := setEnvForTest("", "")
+	cleanup := setEnvForTest("")
 	defer cleanup()
 
 	store, err := SelectCredentialStore()
@@ -80,7 +80,7 @@ func TestSelectCredentialStore_ReturnsEnvStore(t *testing.T) {
 		}
 	}
 
-	cleanup := setEnvForTest("test-db-pass", "test-ai-key")
+	cleanup := setEnvForTest("test-db-pass")
 	defer cleanup()
 
 	store, err := SelectCredentialStore()
@@ -108,7 +108,7 @@ func TestSelectCredentialStore_ReturnsEncryptedFileStore(t *testing.T) {
 		t.Skip("Skipping: EncryptedFileStore is not available")
 	}
 
-	cleanup := setEnvForTest("", "")
+	cleanup := setEnvForTest("")
 	defer cleanup()
 
 	store, err := SelectCredentialStore()
@@ -121,21 +121,14 @@ func TestSelectCredentialStore_ReturnsEncryptedFileStore(t *testing.T) {
 	}
 }
 
-func setEnvForTest(dbPass, aiKey string) func() {
+func setEnvForTest(dbPass string) func() {
 	origDB := os.Getenv("QUERYLEX_DB_PASSWORD")
-	origAI := os.Getenv("QUERYLEX_AI_KEY")
 	os.Setenv("QUERYLEX_DB_PASSWORD", dbPass)
-	os.Setenv("QUERYLEX_AI_KEY", aiKey)
 	return func() {
 		if origDB != "" {
 			os.Setenv("QUERYLEX_DB_PASSWORD", origDB)
 		} else {
 			os.Unsetenv("QUERYLEX_DB_PASSWORD")
-		}
-		if origAI != "" {
-			os.Setenv("QUERYLEX_AI_KEY", origAI)
-		} else {
-			os.Unsetenv("QUERYLEX_AI_KEY")
 		}
 	}
 }

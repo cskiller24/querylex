@@ -5,7 +5,6 @@
 package rootcmd
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"

@@ -15,22 +15,15 @@ const (
 )
 
 // promptEncryptedFilePassphrase prompts the user for the encrypted credential
-// store passphrase, or reads it from the QUERYLEX_KEYCHAIN_PASSPHRASE environment
-// variable for CI/non-interactive use.
-//
-// kind is "database" or "ai" — determines which alternative environment variable
-// to mention in error messages (QUERYLEX_DB_PASSWORD or QUERYLEX_AI_API_KEY).
+// store passphrase, or reads it from QUERYLEX_KEYCHAIN_PASSPHRASE env var
+// for CI/non-interactive use.
 //
 // The flow is:
 //  1. If QUERYLEX_KEYCHAIN_PASSPHRASE is set → use it directly
 //  2. If running in a terminal → prompt interactively via survey.Password
 //  3. If not a terminal and no env var → return clear error with alternatives
-func promptEncryptedFilePassphrase(store *credentials.EncryptedFileStore, kind string) error {
-	// Determine the alternative env var name for error messages
+func promptEncryptedFilePassphrase(store *credentials.EncryptedFileStore) error {
 	altEnvVar := "QUERYLEX_DB_PASSWORD"
-	if kind == "ai" {
-		altEnvVar = "QUERYLEX_AI_API_KEY"
-	}
 
 	// 1. CI/non-interactive path: env var
 	if pass := os.Getenv(envKeychainPassphrase); pass != "" {

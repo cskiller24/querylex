@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/cskiller24/querylex/internal/ai"
 	"github.com/cskiller24/querylex/internal/credentials"
 	"github.com/cskiller24/querylex/internal/db"
 	"github.com/cskiller24/querylex/internal/db/mysql"
@@ -32,14 +31,6 @@ type MemoryPreflight struct {
 	Workspace  *state.Workspace
 	ActiveDBID string
 	DBDir      string // $HOME/.querylex/<db-id>/
-}
-
-// AIPreflight holds the result of the AI command preflight.
-type AIPreflight struct {
-	Workspace  *state.Workspace
-	ActiveDBID string
-	DBDir      string
-	AIConfig   *ai.AIConfig
 }
 
 // DBConnectionConfig represents the connection metadata for a database.
@@ -316,84 +307,6 @@ func PreflightForMemoryCommand() (*MemoryPreflight, *format.Response[any]) {
 		Workspace:  ws,
 		ActiveDBID: activeDBID,
 		DBDir:      dbDir,
-	}, nil
-}
-
-// PreflightForAICommand performs preflight for AI-powered slash skills.
-// It validates workspace state, active database, and AI configuration.
-func PreflightForAICommand() (*AIPreflight, *format.Response[any]) {
-	traceID := format.GenerateTraceID()
-
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil, format.NewErrorResponse[any](
-			format.ErrCodeInternalError,
-			fmt.Sprintf("Cannot determine home directory: %v", err),
-			false,
-			traceID,
-		)
-	}
-
-	workspaceFile := filepath.Join(home, ".querylex", "querylex.json")
-	wsStore := state.NewFileWorkspaceStore(workspaceFile)
-
-	ws, err := wsStore.Load()
-	if err != nil {
-		return nil, format.NewErrorResponse[any](
-			format.ErrCodeWorkspaceStateInvalid,
-			fmt.Sprintf("Failed to load workspace state: %v", err),
-			false,
-			traceID,
-		)
-	}
-
-	if ws.ActiveDatabaseID == nil {
-		return nil, format.NewErrorResponse[any](
-			format.ErrCodeInvalidArgument,
-			"No active database. Set one with 'querylex add-db'.",
-			false,
-			traceID,
-		)
-	}
-	activeDBID := *ws.ActiveDatabaseID
-
-	dbEntry := findDatabaseEntry(ws.ConnectedDatabases, activeDBID)
-	if dbEntry == nil {
-		return nil, format.NewErrorResponse[any](
-			format.ErrCodeWorkspaceStateInvalid,
-			fmt.Sprintf("Active database '%s' not found in workspace.", activeDBID),
-			false,
-			traceID,
-		)
-	}
-
-	switch dbEntry.Status {
-	case state.StatusNotIndexed, state.StatusIndexFailed:
-		return nil, format.NewErrorResponse[any](
-			format.ErrCodeWorkspaceStateInvalid,
-			fmt.Sprintf("Database '%s' is not indexed (status: %s). Run indexing first.", dbEntry.Name, dbEntry.Status),
-			false,
-			traceID,
-		)
-	}
-
-	aiConfig, err := ai.ResolveAIConfig(home)
-	if err != nil {
-		return nil, format.NewErrorResponse[any](
-			format.ErrCodeInvalidArgument,
-			fmt.Sprintf("AI provider not configured: %v. Run 'querylex ai-config' to set up.", err),
-			false,
-			traceID,
-		)
-	}
-
-	dbDir := filepath.Join(home, ".querylex", activeDBID)
-
-	return &AIPreflight{
-		Workspace:  ws,
-		ActiveDBID: activeDBID,
-		DBDir:      dbDir,
-		AIConfig:   aiConfig,
 	}, nil
 }
 
