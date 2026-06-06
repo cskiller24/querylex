@@ -1,53 +1,54 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: MVP
-status: completed
-stopped_at: Milestone v1.0 complete
-last_updated: "2026-06-06T15:40:00.000Z"
-last_activity: 2026-06-06 - Completed v1.0 milestone close
+milestone: v1.1
+milestone_name: Cleanup
+status: planning
+stopped_at: Phase 4 context gathered
+last_updated: "2026-06-06T18:01:56.939Z"
+last_activity: 2026-06-07 — Roadmap created for v1.1 Cleanup (Phases 4-7)
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 13
-  completed_plans: 13
-  percent: 100
+  total_phases: 2
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-06-06)
+See: .planning/PROJECT.md (updated 2026-06-07)
 
 **Core value:** AI agents can reliably introspect any supported database, generate correct SQL from natural language descriptions, and optimize queries — all through a single CLI tool with structured machine-readable output.
-**Current focus:** Planning next milestone
+
+**Current focus:** Phase 4 — Delete AI Package & CLI Handlers
 
 ## Current Position
 
-Milestone v1.0 — COMPLETE
-Phases: 3/3 complete
-Plans: 13/13 complete
-Status: Milestone shipped 2026-06-06
-Last activity: 2026-06-06 - Completed v1.0 milestone close
+Phase: 4 of 7 (Delete AI Package & CLI Handlers)
+Plan: Not yet planned
+Status: Ready to plan
+Last activity: 2026-06-07 — Roadmap created for v1.1 Cleanup (Phases 4-7)
 
-Progress: [██████████] 100%
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 13
-- Total phases: 3
-- Timeline: 5 days (2026-06-01 → 2026-06-06)
+- Total plans completed: 13 (v1.0)
+- Total phases: 7 (3 shipped + 4 planned)
+- Milestone: v1.1 Cleanup (0/4 phases)
 
-**By Phase:**
+**By Phase (v1.1):**
 
-| Phase | Plans | Total |
-|-------|-------|-------|
-| 1. Monorepo Cleanup + Docker Infrastructure | 5/5 | Complete |
-| 2. MySQL E2E Test Suite | 2/2 | Complete |
-| 3. CI Automation + Cross-Engine Expansion | 6/6 | Complete |
+| Phase | Plans | Status |
+|-------|-------|--------|
+| 4. Delete AI Package & CLI Handlers | 0/0 | Not started |
+| 5. Surgical Edits — AI Interleaved Code | 0/0 | Not started |
+| 6. E2E Infrastructure Removal | 0/0 | Not started |
+| 7. Memory Dead Code Cleanup | 0/0 | Not started |
 
 ## Accumulated Context
 
@@ -55,13 +56,21 @@ Progress: [██████████] 100%
 
 Key decisions are logged in PROJECT.md Key Decisions table.
 
+Recent decisions affecting current work:
+
+- Phase ordering constraint: AI package MUST be deleted before surgical edits (compiler catches lingering references). This means Phase 4 must complete before Phase 5 begins.
+- E2E removal is independent but follows AI work for clean scope separation.
+- MEMCLN-01 is deferred to Phase 7 (last phase) — it is a standalone cleanup in a retained package, no dependencies on other phases.
+- Final validation (go mod tidy, go vet, goreleaser) is part of Phase 7 success criteria, not a separate phase.
+
 ### Pending Todos
 
-None. Milestone v1.0 fully delivered.
+None.
 
 ### Blockers/Concerns
 
-None.
+- **Critical ordering constraint:** Phase 4 (AI package deletion) must complete and compile clean before Phase 5 (surgical edits) can begin. Never run `go mod tidy` until after `go build ./...` passes.
+- **go-keyring retention risk:** `github.com/zalando/go-keyring` must NOT be removed. It is used by credentials/keychain.go for database passwords, not AI. The build will catch this immediately if `go mod tidy` is run prematurely.
 
 ### Quick Tasks Completed
 
@@ -71,10 +80,10 @@ None.
 
 ## Deferred Items
 
-No items deferred at milestone close.
+No items deferred.
 
 ## Session Continuity
 
-Last session: 2026-06-06
-Stopped at: Milestone v1.0 complete
-Next: Run `/gsd-new-milestone` to start next milestone
+Last session: 2026-06-06T18:01:56.911Z
+Stopped at: Phase 4 context gathered
+Next: Run `/gsd-plan-phase 4` to plan Phase 4 execution
