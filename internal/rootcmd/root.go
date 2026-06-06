@@ -70,7 +70,7 @@ Shell Completions:
 		return initWorkspace()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Querylex: use 'querylex add-db' to add a database, or 'querylex --help' for commands")
+		cmd.Help()
 	},
 }
 
