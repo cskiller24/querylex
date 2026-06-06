@@ -9,24 +9,15 @@ import (
 	"github.com/cskiller24/querylex/internal/index"
 )
 
-// ComputeSimilarity computes a weighted similarity score between
-// the input and a stored memory entry. Returns a value in [0, 1].
+// ComputeSimilarity computes a 4-component lexical-only weighted similarity score
+// between the input and a stored memory entry. Returns a value in [0, 1].
 //
-// When embeddingsActive is true and entryEmbedding is non-nil, uses 5-component
-// scoring:
-//   - Embedding cosine similarity (0.45)
-//   - Schema-entity overlap (0.25)
-//   - Intent classification (0.15)
-//   - Filter/temporal overlap (0.10)
-//   - Recency decay (0.05)
-//
-// When embeddingsActive is false or entryEmbedding is nil:
-// uses 4-component lexical-only scoring (existing Phase 4 behavior):
+// Components:
 //   - Schema-entity overlap (0.45)
 //   - Intent classification (0.25)
 //   - Filter/temporal overlap (0.20)
 //   - Recency decay (0.10)
-func ComputeSimilarity(input string, entry MemoryEntry, schemaTokens map[string]struct{}, now time.Time, embeddingsActive bool, inputEmbedding, entryEmbedding []float32) float64 {
+func ComputeSimilarity(input string, entry MemoryEntry, schemaTokens map[string]struct{}, now time.Time) float64 {
 	inputTokens := tokenize(input)
 	if len(inputTokens) == 0 {
 		return 0
@@ -37,35 +28,7 @@ func ComputeSimilarity(input string, entry MemoryEntry, schemaTokens map[string]
 	filterScore := computeFilterOverlap(input, entry.SQL)
 	recencyScore := computeRecencyScore(entry, now)
 
-	if embeddingsActive && inputEmbedding != nil && entryEmbedding != nil {
-		embeddingScore := cosineSimilarity(inputEmbedding, entryEmbedding)
-		return 0.45*embeddingScore + 0.25*entityScore + 0.15*intentScore + 0.10*filterScore + 0.05*recencyScore
-	}
-
 	return 0.45*entityScore + 0.25*intentScore + 0.20*filterScore + 0.10*recencyScore
-}
-
-// cosineSimilarity computes the cosine similarity between two float32 vectors.
-// Returns 0 for mismatched lengths, zero vectors, or empty vectors.
-func cosineSimilarity(a, b []float32) float64 {
-	if len(a) != len(b) || len(a) == 0 {
-		return 0
-	}
-
-	var dotProduct, normA, normB float64
-	for i := range a {
-		fa := float64(a[i])
-		fb := float64(b[i])
-		dotProduct += fa * fb
-		normA += fa * fa
-		normB += fb * fb
-	}
-
-	if normA == 0 || normB == 0 {
-		return 0
-	}
-
-	return dotProduct / (math.Sqrt(normA) * math.Sqrt(normB))
 }
 
 // ExtractSchemaTokens reads the schema_map.json for the given dbDir and

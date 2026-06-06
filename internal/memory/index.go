@@ -10,22 +10,14 @@ import (
 	"github.com/cskiller24/querylex/internal/state"
 )
 
-// EmbeddingMetadata stores the embedding vector and model info for a memory entry.
-type EmbeddingMetadata struct {
-	Vector      []float32 `json:"vector"`
-	Model       string    `json:"model"`
-	GeneratedAt string    `json:"generated_at"`
-}
-
 // MemoryIndex represents the derived keyword index for memory search.
 // It is rebuildable from the SQLite store and tracks revision for staleness detection.
 type MemoryIndex struct {
-	Revision         int                          `json:"revision"`
-	EntryCount       int                          `json:"entry_count"`
-	KeywordIndex     map[string][]string          `json:"keyword_index"` // token → entry IDs
-	EmbeddingVectors map[string]EmbeddingMetadata `json:"embedding_vectors,omitempty"`
-	LastRebuiltAt    string                       `json:"last_rebuilt_at"`
-	SchemaVersion    int                          `json:"schema_version"`
+	Revision      int                 `json:"revision"`
+	EntryCount    int                 `json:"entry_count"`
+	KeywordIndex  map[string][]string `json:"keyword_index"` // token → entry IDs
+	LastRebuiltAt string              `json:"last_rebuilt_at"`
+	SchemaVersion int                 `json:"schema_version"`
 }
 
 // ReadIndex reads the memory_index.json file from the given dbDir.
