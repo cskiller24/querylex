@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/cskiller24/querylex/internal/credentials"
@@ -416,5 +417,56 @@ func TestRunStats_Health_MultipleDatabases(t *testing.T) {
 	}
 	if byID["db-b"].Status != string(state.StatusNotIndexed) {
 		t.Fatalf("expected db-b status='not_indexed', got '%s'", byID["db-b"].Status)
+	}
+}
+
+func TestRenderStatsHuman_NoDatabases(t *testing.T) {
+	var buf strings.Builder
+	data := StatsData{
+		ActiveDatabaseID:   nil,
+		ConnectedDatabases: []state.DatabaseEntry{},
+		Health:             nil,
+	}
+
+	RenderStatsHuman(&buf, data)
+	output := buf.String()
+	if !strings.Contains(output, "No databases connected") {
+		t.Errorf("expected 'No databases connected', got: %s", output)
+	}
+}
+
+func TestRenderStatsHuman_WithDatabase(t *testing.T) {
+	var buf strings.Builder
+	dbID := "db-1"
+	data := StatsData{
+		ActiveDatabaseID: &dbID,
+		ConnectedDatabases: []state.DatabaseEntry{
+			{ID: "db-1", Name: "TestDB", Type: "mysql", Status: "indexed"},
+		},
+		Health: &HealthReport{
+			Databases: []DatabaseHealth{
+				{
+					DatabaseID:          "db-1",
+					DatabaseName:        "TestDB",
+					Status:              "indexed",
+					ProgressPercent:     100,
+					CredentialStatus:    "available",
+					MemoryIndexState:    "healthy",
+					ExplainCacheSummary: "5 entries",
+					Artifacts: map[string]string{
+						"schema/schema.json": "present",
+					},
+				},
+			},
+		},
+	}
+
+	RenderStatsHuman(&buf, data)
+	output := buf.String()
+	if !strings.Contains(output, "TestDB") {
+		t.Errorf("expected database name 'TestDB' in output, got: %s", output)
+	}
+	if !strings.Contains(output, "Active database: db-1") {
+		t.Errorf("expected active database reference, got: %s", output)
 	}
 }

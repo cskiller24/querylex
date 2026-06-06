@@ -50,19 +50,19 @@ func mergeTableArgs(tables []string, tablesJSON string) []string {
 // can generate static completion files for inclusion in release archives.
 var RootCmd = &cobra.Command{
 	Use:   "querylex",
-	Short: "Querylex — AI-augmented SQL generation and optimization",
-	Long: `Querylex is a CLI-based, AI-augmented SQL query generation and optimization system.
+	Short: "Querylex — context-aware SQL query companion for MySQL, MariaDB, PostgreSQL, SQLite, and MSSQL",
+	Long: `Querylex is a CLI-based, context-aware SQL query companion for database introspection
+and analysis.
 
-It helps users generate SQL from natural language using live database context
-and optimize existing SQL using explain plans, schema data, statistics, indexes,
-and dialect-aware rewrite heuristics. It supports MySQL, MariaDB, PostgreSQL,
-SQLite, and Microsoft SQL Server.
+It helps users explore database schemas, validate SQL, explain query plans, analyze
+indexes, discover join paths, and manage query memory across multiple database engines.
+It supports MySQL, MariaDB, PostgreSQL, SQLite, and Microsoft SQL Server.
 
 Getting Started:
   1. Add a database:     querylex add-db
   2. Check status:       querylex workspace-stats --human
-  3. Generate SQL:       querylex sql "your question in plain English"
-  4. Optimize a query:   querylex optimize "SELECT ..."
+  3. Explain a query:    querylex explain "SELECT ..."
+  4. Save and search:    querylex save "my query"
 
 Shell Completions:
   querylex completion bash > /path/to/completions`,
@@ -281,49 +281,7 @@ var deleteCmd = &cobra.Command{
 	},
 }
 
-var aiConfigCmd = &cobra.Command{
-	Use:   "ai-config",
-	Short: "Configure AI provider settings",
-	Long:  "Interactively set up AI provider credentials (stored in OS keychain) and model preferences via guided prompts.",
-	Run: func(cmd *cobra.Command, args []string) {
-		if err := cli.RunAIConfig(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
-			os.Exit(1)
-		}
-		fmt.Println("AI configuration saved successfully.")
-	},
-}
 
-var sqlCmd = &cobra.Command{
-	Use:   "sql <question>",
-	Short: "Generate SQL from natural language (AI-powered)",
-	Long:  "Uses AI to generate dialect-correct SQL from a natural language question, leveraging live database context including schema, terminology, joins, statistics, and indexes.",
-	Example: `  querylex sql "show me all orders from last month with customer names"`,
-	Args:  cobra.MinimumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		question := strings.Join(args, " ")
-		if err := cli.RunSQLGeneration(context.Background(), question); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
-			os.Exit(1)
-		}
-	},
-}
-
-var optimizeCmd = &cobra.Command{
-	Use:   "optimize <sql>",
-	Short: "Optimize a SQL query (AI-powered)",
-	Long:  "Uses AI-driven three-strategy rewrite with explain plan comparison to optimize SQL. Supports --analyze for runtime plan analysis and --no-index to suppress index recommendations.",
-	Example: `  querylex optimize "SELECT * FROM orders WHERE created_at > '2024-01-01'"`,
-	Args:  cobra.MinimumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		analyze, _ := cmd.Flags().GetBool("analyze")
-		noIndex, _ := cmd.Flags().GetBool("no-index")
-		if err := cli.RunOptimization(context.Background(), args[0], analyze, noIndex); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
-			os.Exit(1)
-		}
-	},
-}
 
 var resolveCmd = &cobra.Command{
 	Use:   "resolve <question>",
@@ -378,9 +336,6 @@ func init() {
 	RootCmd.AddCommand(historyCmd)
 	RootCmd.AddCommand(deleteCmd)
 	RootCmd.AddCommand(resolveCmd)
-	RootCmd.AddCommand(aiConfigCmd)
-	RootCmd.AddCommand(sqlCmd)
-	RootCmd.AddCommand(optimizeCmd)
 	RootCmd.AddCommand(completionCmd)
 
 	RootCmd.CompletionOptions.HiddenDefaultCmd = true
@@ -391,8 +346,6 @@ func init() {
 	)
 
 	statsCmd.Flags().Bool("human", false, "Render as human-readable summary")
-	optimizeCmd.Flags().Bool("analyze", false, "Execute query for actual runtime plan (with warning)")
-	optimizeCmd.Flags().Bool("no-index", false, "Suppress index recommendation output")
 
 	schemaCmd.Flags().StringArray("table", nil, "Table names (repeatable)")
 	schemaCmd.Flags().String("tables-json", "", "Tables as JSON array")

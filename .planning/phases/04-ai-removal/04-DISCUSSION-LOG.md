@@ -5,80 +5,49 @@
 
 **Date:** 2026-06-07
 **Phase:** 4-AI Removal
-**Areas discussed:** Deletion Strategy, Dependency Cleanup Timing, Retained-File Cleanup Order, Verification Order, PreflightForAICommand Removal
-**Mode:** `--auto` (fully autonomous — recommended option selected for each area)
+**Areas discussed:** Plan Breakdown
 
 ---
 
-## Deletion Strategy
+## Plan Breakdown
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| Batch deletion | Delete all AI files in one command pass, then fix retained files | ✓ |
-| Incremental deletion | Delete file by file, compiling after each | |
+| Single plan | One plan handles everything — delete, edit, tidy, validate | ✓ |
+| Two plans | Plan 1: Package + CLI deletion. Plan 2: Surgical edits + memory cleanup + validation | |
+| Three plans | Plan 1: Package + CLI deletion. Plan 2: Surgical edits. Plan 3: Memory cleanup + validation | |
+| You decide | Let the planner figure out the optimal breakdown | |
 
-**Selection:** Batch deletion (recommended default)
-**Rationale:** AI package is entirely isolated; compiler errors in retained files are predictable. Incremental adds overhead without safety benefit.
-
----
-
-## Dependency Cleanup Timing
+### Sub-decision: Deletion Order
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| Build-first, then tidy | Remove go-openai only after `go build ./...` passes | ✓ |
-| Tidy-first | Run `go mod tidy` as soon as AI files are deleted | |
+| Delete ai/ package first | Compiler catches lingering references. Follows STATE.md guidance. | ✓ |
+| Delete CLI handlers first | Remove run_sql.go, run_optimize.go, run_ai_config.go first, then ai/ | |
 
-**Selection:** Build-first, then tidy (recommended default)
-**Rationale:** STATE.md explicitly warns that premature tidy may remove go-keyring. Build-first guarantees only go-openai is cleaned up.
-
----
-
-## Retained-File Cleanup Order
+### Sub-decision: Build Validation Approach
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| Single pass | Edit all 5 retained files + memory in one edit pass | ✓ |
-| Sequential passes | Edit one file at a time, compiling after each | |
+| Incremental builds | Run go build ./... after each major step | ✓ |
+| Build only at the end | Make all changes, build once | |
 
-**Selection:** Single pass (recommended default)
-**Rationale:** None of the retained-file edits depend on each other; no benefit to interleaving.
-
----
-
-## Verification Order
+### Sub-decision: go mod tidy / goreleaser Timing
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| vet before test | go build → go vet → go test → go mod tidy → goreleaser | ✓ |
-| test before vet | go build → go test → go vet → go mod tidy → goreleaser | |
+| After all deletions + builds pass | go mod tidy, verify, goreleaser only at end | ✓ |
+| Tidy incrementally | Tidy after ai/ deletion, then again at end | |
 
-**Selection:** vet before test (recommended default)
-**Rationale:** Vet catches compilation issues faster than running the full test suite.
-
----
-
-## PreflightForAICommand Removal
-
-| Option | Description | Selected |
-|--------|-------------|----------|
-| Full removal | Delete function, AIPreflight struct, and import entirely | ✓ |
-| Keep stub | Leave empty function returning nil (paranoid safety) | |
-
-**Selection:** Full removal (recommended default)
-**Rationale:** No remaining callers after AI CLI handler deletion. Keeping a stub adds dead code.
+**User's choice:** Single plan
+**Notes:** User selected single plan with ai/ deletion first, incremental builds, final go mod tidy and goreleaser.
 
 ---
 
-## the agent's Discretion
+## Agent's Discretion
 
-- Exact edit ordering within the retained-files single pass — no cross-file dependencies, planner can decide.
+No areas deferred to the agent.
 
 ## Deferred Ideas
 
-None — discussion stayed within phase scope.
-
----
-
-*Phase: 4-AI Removal*
-*Discussion logged: 2026-06-07*
+None.

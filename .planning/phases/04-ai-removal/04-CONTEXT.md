@@ -1,4 +1,4 @@
-# Phase 4: AI Removal — Context
+# Phase 4: AI Removal - Context
 
 **Gathered:** 2026-06-07
 **Status:** Ready for planning
@@ -6,47 +6,25 @@
 <domain>
 ## Phase Boundary
 
-Delete the `internal/ai/` package and all AI-related code interleaved in retained files across the codebase. The phase covers:
+Delete all AI-related code from the QueryLex codebase: the `internal/ai/` package (11 source + test files), AI CLI handler files (run_sql.go, run_optimize.go, run_ai_config.go), AI root command registrations (sqlCmd, optimizeCmd, aiConfigCmd), AI code interleaved in 5 retained files (preflight, error codes, credentials env, passphrase, factory_test), and AI-embedding dead code from `internal/memory/`. Full build validation after all deletions.
 
-1. **Delete `internal/ai/`** — 11 files (5 source + 5 test + 1 config): client, chat, embed, prompt, tokens, config
-2. **Delete AI CLI handlers** — `internal/cli/run_sql.go`, `internal/cli/run_sql_test.go`, `internal/cli/run_optimize.go`, `internal/cli/run_ai_config.go`, `internal/cli/run_ai_config_test.go`
-3. **Remove AI command registrations** — `sqlCmd`, `optimizeCmd`, `aiConfigCmd` var definitions, `AddCommand` calls, and function imports from `internal/rootcmd/root.go`
-4. **Surgical edit preflight.go** — Remove `AIConfig` field from `PreflightResult`, remove `ai.ResolveAIConfig` call, remove `PreflightForAICommand` function and `AIPreflight` struct entirely, remove unused imports
-5. **Remove AI error codes** — 4 constants (`ErrCodeAIServiceUnavailable`, `ErrCodeAIConfigMissing`, `ErrCodeAIGenerationFailed`, `ErrCodeAIContextOverflow`) and their descriptions from `internal/format/error.go`
-6. **Remove AI key handling** — `envVarAIKey` constant and `case "ai-key"` branch from `internal/credentials/env.go`
-7. **Remove AI passphrase branch** — `kind == "ai"` branch from `internal/cli/passphrase.go`
-8. **Clean factory_test.go** — Remove AI key env var setup/teardown from `internal/credentials/factory_test.go`
-9. **Memory dead code cleanup (MEMCLN-01)** — Remove `EmbeddingMetadata` struct, `EmbeddingVectors` map field, `SearchWithEmbeddings` function, `cosineSimilarity` function, `embeddingsActive` parameter branch, `EMBEDDINGS_UNAVAILABLE` warning from `internal/memory/`
-10. **Dependency cleanup** — Remove `github.com/sashabaranov/go-openai` from go.mod
-11. **Full build validation** — go build, go vet, go test, go mod tidy/verify, goreleaser snapshot
+**9 requirements covered:** AIPKG-01, AIPKG-02, AIPKG-03, AIEDIT-01, AIEDIT-02, AIEDIT-03, AIEDIT-04, AIEDIT-05, MEMCLN-01
 
-**NOT in scope for this phase:** E2E infrastructure removal (Phase 5), credential store restructuring (unchanged), schema indexing pipeline changes (unchanged), heuristic analysis changes (unchanged).
-
+**Out of scope (addressed in Phase 5):** E2E infrastructure removal (test/ directory, Docker Compose, CI workflow, Makefile targets).
 </domain>
 
 <decisions>
 ## Implementation Decisions
 
-### Deletion Strategy
-- **D-01: Batch deletion** — Delete all AI files (`internal/ai/` + CLI handlers) in one command pass before editing retained files. The AI package is entirely isolated; the resulting compiler errors in retained files are well-understood (root.go command vars, preflight.go imports and AIConfig field) and fixed in a single subsequent pass. Incremental file-by-file deletion adds overhead without safety benefit.
+### Plan Breakdown
+- **D-01:** Single plan covering all 4 work types + build validation. No need to split into multiple plans — the phase is linear and well-understood.
+- **D-02:** Deletion order: (1) delete `internal/ai/` directory first, then (2) delete AI CLI handler files + root command registrations, then (3) surgical edits to 5 retained files, then (4) memory dead code cleanup.
+- **D-03:** Incremental build validation — run `go build ./...` after each major step (after ai/ deletion, after CLI handler deletion, after surgical edits). Catches issues immediately at the point of introduction.
+- **D-04:** `go mod tidy -v` and `goreleaser build --snapshot --clean --single-target` run only after all deletions are complete and all intermediate builds pass. Never tidy before build passes.
 
-### Dependency Cleanup Timing
-- **D-02: Build-first, then tidy** — Remove `github.com/sashabaranov/go-openai` from go.mod ONLY after `go build ./...` passes. Never run `go mod tidy` before build passes — STATE.md explicitly warns that premature tidy may incorrectly remove `github.com/zalando/go-keyring` (still used by `credentials/keychain.go`). Sequence: build passes → `go mod tidy -v` → confirm only go-openai removed → `go mod verify`.
-
-### Retained-File Cleanup Order
-- **D-03: Edit all retained files in a single pass** — After AI files are deleted, edit all 5 retained files (root.go, preflight.go, error.go, env.go, passphrase.go) and memory/ together in one edit pass. No interleaved reordering needed — none of these edits depend on each other.
-
-### Verification Order
-- **D-04: vet before test** — Run `go vet ./...` before `go test ./...`. Full sequence: `go build ./...` → `go vet ./...` → `go test ./... -short -count=1` → `go mod tidy -v` + `go mod verify` → `goreleaser build --snapshot --clean --single-target`.
-
-### PreflightForAICommand Removal
-- **D-05: Full removal** — After AI CLI handlers are deleted, no remaining code calls `PreflightForAICommand` or references `AIPreflight`. Remove the function, the struct, and the import from preflight.go entirely.
-
-### agent's Discretion
-- The exact edit ordering within the single retained-files pass is left to the planner — none of the 5 retained files have cross-file edit dependencies.
-
-### Folded Todos
-None — no matching todos found.
+### Critical Ordering Constraints
+- AI package MUST be deleted before surgical edits — compiler catches lingering references to deleted package.
+- `go mod tidy` must NOT be run before `go build ./...` passes — premature tidy may incorrectly remove the `go-keyring` dependency (which is still needed by credentials/keychain.go).
 
 </decisions>
 
@@ -55,29 +33,18 @@ None — no matching todos found.
 
 **Downstream agents MUST read these before planning or implementing.**
 
-### Requirements
-- `.planning/REQUIREMENTS.md` — Requirement definitions AIPKG-01–03, AIEDIT-01–05, MEMCLN-01 (all scoped to Phase 4)
-- `.planning/ROADMAP.md` §Phase 4 — Goal, dependency, success criteria (12 enumerated items), verification script
+### Phase Requirements
+- `.planning/REQUIREMENTS.md` §AI Package Removal, §AI Surgical Edits, §Memory Dead Code Cleanup — Detailed requirements (AIPKG-01–03, AIEDIT-01–05, MEMCLN-01) with specific files and symbols to delete
+- `.planning/ROADMAP.md` §Phase 4 — Success criteria (12 items), verification script
 
-### Codebase Maps
-- `.planning/codebase/ARCHITECTURE.md` — Component dependency graph (AI layer depends on cli/ via root.go and preflight.go)
-- `.planning/codebase/STRUCTURE.md` — File layout for all affected directories
-- `.planning/codebase/STACK.md` — Dependency stack showing go-openai usage
+### Project Context
+- `.planning/STATE.md` §Accumulated Context — Ordering constraints (AI package before surgical edits, go mod tidy after build)
+- `.planning/PROJECT.md` §Constraints — Build constraints (CGO_ENABLED=0), backward compatibility requirements
 
-### Project State
-- `.planning/STATE.md` — Contains critical warning about go-keychain retention risk; session continuity info
-- `.planning/PROJECT.md` — Milestone goal, key decisions, constraints
-
-### Affected Source Files (read before planning)
-- `internal/rootcmd/root.go` — 3 AI command vars, 3 AddCommand calls, 3 function imports
-- `internal/cli/preflight.go` — `AIConfig` field in `PreflightResult` (line 42), `ai.ResolveAIConfig` call (line 380), `PreflightForAICommand` (line 324), `AIPreflight` struct (line 317)
-- `internal/format/error.go` — 4 AI error code constants (lines 56-63), 2 AI descriptions (lines 94-95)
-- `internal/credentials/env.go` — `envVarAIKey` constant (line 26), `case "ai-key"` branch (line 44), `Available()` override (line 72)
-- `internal/cli/passphrase.go` — `kind == "ai"` branch (line 31)
-- `internal/credentials/factory_test.go` — `setEnvForTest` with aiKey param (lines 124-138), AI key assertions (line 83)
-- `internal/memory/index.go` — `EmbeddingMetadata` struct (line 14), `EmbeddingVectors` field (line 26)
-- `internal/memory/scoring.go` — `cosineSimilarity` (line 50), `embeddingsActive` branch in `ComputeSimilarity` (line 40)
-- `internal/memory/search.go` — `SearchWithEmbeddings` (line 170), `embeddingsActive` references (lines 261-272)
+### Codebase Architecture
+- `.planning/codebase/ARCHITECTURE.md` §Component Responsibilities — Shows where AI code connects: ai/ package, CLI handlers, root command registrations, interleaved code in preflight/credentials/passphrase
+- `.planning/codebase/STACK.md` §Key Dependencies — `github.com/sashabaranov/go-openai` is the dependency to be removed by go mod tidy
+- `.planning/codebase/CONVENTIONS.md` §Package Organization — Directory listing confirms internal/ai/ entry point for deletion
 
 </canonical_refs>
 
@@ -85,32 +52,43 @@ None — no matching todos found.
 ## Existing Code Insights
 
 ### Reusable Assets
-- **Factory test pattern** (`internal/credentials/factory_test.go:setEnvForTest`) — The existing test helper sets DB and AI env vars; the AI parameter must be removed and any test case that depends on AI-only env setup must be updated.
-- **root.go AddCommand pattern** — AI commands are registered in the same block as all other commands (lines 381-383); removal follows the established convention of grouping plus the convention of removing the var definitions (lines 284-312), the AddCommand calls, and the function-level imports.
+- **Cobra command pattern** in `internal/rootcmd/root.go` — AI commands (sqlCmd, optimizeCmd, aiConfigCmd) follow the same structure as retained commands. Removal follows the established pattern: delete variable definitions, AddCommand calls, and function imports.
+- **Preflight pattern** in `internal/cli/preflight.go` — PreflightForAICommand is the target for deletion. The preflight layer has a documented copy-paste anti-pattern (3 variants), but this phase only removes the AI variant — not a refactor.
+- **Error code pattern** in `internal/format/error.go` — AI error codes (ErrCodeAIServiceUnavailable, etc.) follow the same sentinel-error pattern as DB error codes. Removal: delete the constants and their ErrorCodeDescriptions entries.
 
 ### Established Patterns
-- **Error code pattern** (`internal/format/error.go`) — ErrorCode constants with descriptions map. AI codes are 4 of 24 total; remove just the AI entries without changing the surrounding pattern.
-- **preflight.go preflight variants** — Three preflight functions (`PreflightForCommand`, `PreflightForMemoryCommand`, `PreflightForAICommand`). Architecture analysis flags this as an anti-pattern (duplicated workspace loading logic). The AI variant removal should NOT introduce `PreflightForCommand` changes — just remove the AI variant cleanly.
+- **Preflight → execute → respond** — Every command handler follows this pattern. AI commands are the only ones using PreflightForAICommand; removing them eliminates the only caller.
+- **Blank-import init pattern** — AI package is not blank-imported (unlike db adapters). It is imported directly by CLI handler files being deleted.
+- **Survey/v2 usage** — Used by both run_ai_config.go (delete target) and prompts.go (retained for add-db). Survey dependency is retained; no migration needed.
 
-### Integration Points
-- **root.go** is the single point where AI commands are wired into the cobra tree — removing 3 command defs, 3 AddCommand calls, and 2 function imports (`cli.RunSQLGeneration`, `cli.RunOptimize`: root.go imports these; `cli.RunAIConfig` is called directly via `cli.RunAIConfig()`)
-- **preflight.go** is where `ai` package import lives — removing it also removes the `AIConfig` coupling from `PreflightResult`
-- **No transitive dependencies** — deleting AI files only breaks root.go, preflight.go, and the deleted CLI handler files. No other internal packages import `internal/ai`.
+### Integration Points (Files to Modify)
+- `internal/cli/run_sql.go` — Delete entire file
+- `internal/cli/run_sql_test.go` — Delete entire file
+- `internal/cli/run_optimize.go` — Delete entire file
+- `internal/cli/run_ai_config.go` — Delete entire file
+- `internal/cli/run_ai_config_test.go` — Delete entire file
+- `internal/rootcmd/root.go` — Remove sqlCmd, optimizeCmd, aiConfigCmd definitions, AddCommand calls, and function imports
+- `internal/cli/preflight.go` — Remove AIConfig field from PreflightResult, remove ai.ResolveAIConfig call
+- `internal/format/error.go` — Remove 4 AI error code constants and their descriptions
+- `internal/credentials/env.go` — Remove envVarAIKey constant, case "ai-key" branch from Retrieve() and Available()
+- `internal/cli/passphrase.go` — Remove `kind == "ai"` branch
+- `internal/credentials/factory_test.go` — Remove AI key env var and AI-related assertions
+- `internal/memory/*.go` — Remove EmbeddingMetadata, EmbeddingVectors, SearchWithEmbeddings, cosineSimilarity, embeddingsActive, EMBEDDINGS_UNAVAILABLE
 
 </code_context>
 
 <specifics>
 ## Specific Ideas
 
-No specific implementation preferences beyond the decisions above — standard batch-delete approach applies.
-
+- Build validation follows the "incremental compile check" pattern: build after each major deletion step catches issues immediately where they occur.
+- Single plan approach keeps coordination simple — no inter-plan dependencies to manage within the phase.
+- The verification script from ROADMAP.md §Phase 4 should be the plan's final step.
 </specifics>
 
 <deferred>
 ## Deferred Ideas
 
 None — discussion stayed within phase scope.
-
 </deferred>
 
 ---
