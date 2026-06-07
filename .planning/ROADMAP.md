@@ -20,7 +20,7 @@
 
 **Milestone Goal:** Remove AI-related code and E2E testing infrastructure to reduce maintenance burden and simplify the codebase.
 
-- [ ] **Phase 4: AI Removal** — Delete AI package, CLI handlers, root command registrations, surgical edits in 5 retained files, and memory dead code cleanup. Full build validation.
+- [x] **Phase 4: AI Removal** — Delete AI package, CLI handlers, root command registrations, surgical edits in 5 retained files, and memory dead code cleanup. Full build validation. (completed 2026-06-06)
 - [ ] **Phase 5: E2E Infrastructure Removal** — Delete test/ directory, Docker Compose files, CI workflow, and E2E Makefile targets.
 
 ## Phase Details
@@ -67,7 +67,7 @@ goreleaser build --snapshot --clean --single-target 2>&1 | tail -5
 **UI hint**: no
 
 **Plans:**
-- [ ] 04-01-PLAN.md — Delete AI package, CLI handlers, root registrations, surgical edits in 5 retained files, memory dead code cleanup, full build validation
+- [x] 04-01-PLAN.md — Delete AI package, CLI handlers, root registrations, surgical edits in 5 retained files, memory dead code cleanup, full build validation
 
 ---
 
@@ -93,8 +93,11 @@ goreleaser build --snapshot --clean --single-target 2>&1 | tail -5
 ! grep -qE 'compose|docker.*test|testdata|golden|e2e' .github/workflows/ci.yml && \
 go build ./...
 ```
-**Plans**: TBD
+**Plans**: 1 plan
 **UI hint**: no
+
+**Plans:**
+- [ ] 05-01-PLAN.md — Delete test/ directory, compose.yaml, Dockerfile.mssql, e2e.yml, Makefile targets, doc references; full build validation
 
 ---
 
@@ -105,8 +108,8 @@ go build ./...
 | 1. Monorepo Cleanup + Docker Infrastructure | v1.0 | 5/5 | Complete | 2026-06-03 |
 | 2. MySQL E2E Test Suite | v1.0 | 2/2 | Complete | 2026-06-04 |
 | 3. CI Automation + Cross-Engine Expansion | v1.0 | 6/6 | Complete | 2026-06-03 |
-| 4. AI Removal | v1.1 | 0/1 | Planned | - |
-| 5. E2E Infrastructure Removal | v1.1 | 0/0 | Not started | - |
+| 4. AI Removal | v1.1 | 1/1 | Complete   | 2026-06-06 |
+| 5. E2E Infrastructure Removal | v1.1 | 0/1 | Not started | - |
 
 ---
 
