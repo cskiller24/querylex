@@ -1,5 +1,16 @@
 # Milestones
 
+## v1.1 Cleanup (Shipped: 2026-06-07)
+
+**Phases completed:** 2 phases, 2 plans, 6 tasks
+
+**Key accomplishments:**
+
+- Complete AI code removal: internal/ai/ package (11 files), 5 CLI handler files, AI command registrations, AI references in 5 retained files, and embedding dead code in memory/ — with full validation suite passing
+- Complete removal of all E2E testing infrastructure: test/ directory hierarchy, Docker Compose files, CI workflow, Makefile targets, and documentation references
+
+---
+
 ## v1.0 MVP
 
 **Shipped:** 2026-06-06
