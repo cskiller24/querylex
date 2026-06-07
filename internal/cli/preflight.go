@@ -171,7 +171,7 @@ func PreflightForCommand() (*PreflightResult, *format.Response[any]) {
 	// Auto-unlock EncryptedFileStore when QUERYLEX_KEYCHAIN_PASSPHRASE is set.
 	// This mirrors the interactive promptEncryptedFilePassphrase pattern used
 	// by run_adddb.go and run_ai_config.go but is non-interactive — intended
-	// for CI/E2E environments where the passphrase is passed via env var.
+	// for CI environments where the passphrase is passed via env var.
 	if encStore, ok := credStore.(*credentials.EncryptedFileStore); ok {
 		if passphrase := os.Getenv("QUERYLEX_KEYCHAIN_PASSPHRASE"); passphrase != "" {
 			if unlockErr := encStore.Unlock(passphrase); unlockErr != nil {
