@@ -49,6 +49,7 @@ Key decisions are logged in PROJECT.md Key Decisions table.
 | # | Description | Date | Commit |
 |---|-------------|------|--------|
 | 260606-jkr | change root command default behavior to show --help output instead of custom message | 2026-06-06 | f0f026c |
+| 260607-v40 | simplify CI to run only the test job on ubuntu-latest | 2026-06-07 |  |
 
 ## Deferred Items
 
