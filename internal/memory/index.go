@@ -16,6 +16,7 @@ type MemoryIndex struct {
 	Revision      int                 `json:"revision"`
 	EntryCount    int                 `json:"entry_count"`
 	KeywordIndex  map[string][]string `json:"keyword_index"` // token → entry IDs
+	TokenFrequency map[string]int     `json:"token_frequency"` // token → number of entries containing it
 	LastRebuiltAt string              `json:"last_rebuilt_at"`
 	SchemaVersion int                 `json:"schema_version"`
 }
@@ -51,14 +52,17 @@ func WriteIndex(dbDir string, index *MemoryIndex) error {
 }
 
 // RebuildIndex builds a MemoryIndex from a slice of MemoryEntry values.
-// It tokenizes each entry's input and builds a keyword_index mapping token → entry IDs.
+// It tokenizes each entry's input and builds a keyword_index mapping token → entry IDs,
+// tracks per-token frequency, and generates bigram keys.
 func RebuildIndex(dbDir string, entries []MemoryEntry) (*MemoryIndex, error) {
 	index := &MemoryIndex{
-		EntryCount:    len(entries),
-		KeywordIndex:  make(map[string][]string),
-		SchemaVersion: 1,
+		EntryCount:     len(entries),
+		KeywordIndex:   make(map[string][]string),
+		TokenFrequency: make(map[string]int),
+		SchemaVersion:  1,
 	}
 
+	// First pass: build keyword index and count token frequencies
 	for i := range entries {
 		entry := entries[i]
 		tokens := tokenize(entry.Input)
@@ -69,6 +73,7 @@ func RebuildIndex(dbDir string, entries []MemoryEntry) (*MemoryIndex, error) {
 			}
 			seen[token] = true
 			index.KeywordIndex[token] = append(index.KeywordIndex[token], entry.ID)
+			index.TokenFrequency[token]++
 		}
 	}
 

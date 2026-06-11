@@ -87,7 +87,8 @@ func searchFTS(ctx context.Context, db *sql.DB, normalizedInput string) ([]Memor
 }
 
 // Search uses 5-component lexical-only scoring (entity overlap, sql
-// structure, intent, filter overlap, recency decay).
+// structure, intent, filter overlap, recency decay) and skips
+// high-frequency tokens (frequency > 50) during keyword lookup.
 func Search(dbDir string, input string, maxResults int) ([]ScoredEntry, *format.Warning, error) {
 	normalizedInput := NormalizeInput(input)
 
@@ -157,6 +158,10 @@ func Search(dbDir string, input string, maxResults int) ([]ScoredEntry, *format.
 		inputTokens := tokenize(normalizedInput)
 		candidateIDs := make(map[string]bool)
 		for _, token := range inputTokens {
+			// Skip high-frequency stop words (> 50 entries contain this token)
+			if index.TokenFrequency[token] > 50 {
+				continue
+			}
 			if ids, ok := index.KeywordIndex[token]; ok {
 				for _, id := range ids {
 					candidateIDs[id] = true
