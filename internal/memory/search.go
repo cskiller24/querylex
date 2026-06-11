@@ -2,8 +2,10 @@ package memory
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/cskiller24/querylex/internal/format"
@@ -26,8 +28,66 @@ type ScoredEntry struct {
 //  5. Compute similarity for each candidate
 //  6. Sort by score descending, return top maxResults
 //
-// Search uses 4-component lexical-only scoring (entity overlap, intent,
-// filter overlap, recency decay).
+// searchFTS performs a full-text search using the FTS5 index.
+// It tokenizes the input and matches against the FTS index, falling back
+// to a prefix-based LIKE query on the input column for short terms that
+// FTS5 cannot match effectively.
+func searchFTS(ctx context.Context, db *sql.DB, normalizedInput string) ([]MemoryEntry, error) {
+	inputTokens := tokenize(normalizedInput)
+	if len(inputTokens) == 0 {
+		return nil, nil
+	}
+
+	// Build FTS5 query: each non-empty token as a phrase match
+	var ftsTerms []string
+	for _, t := range inputTokens {
+		if len(t) >= 2 {
+			ftsTerms = append(ftsTerms, t)
+		}
+	}
+	if len(ftsTerms) == 0 {
+		return nil, nil
+	}
+
+	ftsQuery := strings.Join(ftsTerms, " OR ")
+
+	rows, err := db.QueryContext(ctx, `
+		SELECT e.id, e.input, e.sql, e.sql_hash, e.match_type,
+		       COALESCE(e.optimization_summary, ''),
+		       e.created_at, e.updated_at, COALESCE(e.last_used_at, ''), e.database_id
+		FROM entries_fts f
+		JOIN entries e ON e.rowid = f.rowid
+		WHERE entries_fts MATCH ?
+		ORDER BY rank
+		LIMIT 50
+	`, ftsQuery)
+	if err != nil {
+		return nil, fmt.Errorf("fts5 search: %w", err)
+	}
+	defer rows.Close()
+
+	var entries []MemoryEntry
+	for rows.Next() {
+		var e MemoryEntry
+		if err := rows.Scan(
+			&e.ID, &e.Input, &e.SQL, &e.SQLHash,
+			&e.MatchType, &e.OptimizationSummary,
+			&e.CreatedAt, &e.UpdatedAt, &e.LastUsedAt,
+			&e.DatabaseID,
+		); err != nil {
+			return nil, fmt.Errorf("scan fts entry: %w", err)
+		}
+		entries = append(entries, e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("fts rows iteration: %w", err)
+	}
+
+	return entries, nil
+}
+
+// Search uses 5-component lexical-only scoring (entity overlap, sql
+// structure, intent, filter overlap, recency decay).
 func Search(dbDir string, input string, maxResults int) ([]ScoredEntry, *format.Warning, error) {
 	normalizedInput := NormalizeInput(input)
 
@@ -114,13 +174,18 @@ func Search(dbDir string, input string, maxResults int) ([]ScoredEntry, *format.
 			}
 		}
 
-		// If no candidates from index, scan all
+		// If no candidates from index, use FTS5 fallback
 		if len(entries) == 0 {
-			allEntries, listErr := ListEntries(ctx, db)
-			if listErr != nil {
-				return nil, nil, fmt.Errorf("list entries: %w", listErr)
+			ftsEntries, ftsErr := searchFTS(ctx, db, normalizedInput)
+			if ftsErr == nil && len(ftsEntries) > 0 {
+				entries = ftsEntries
+			} else {
+				allEntries, listErr := ListEntries(ctx, db)
+				if listErr != nil {
+					return nil, nil, fmt.Errorf("list entries: %w", listErr)
+				}
+				entries = allEntries
 			}
-			entries = allEntries
 		}
 	}
 

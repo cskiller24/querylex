@@ -56,6 +56,8 @@ func OpenStore(dbDir string) (*sql.DB, error) {
 
 // createTables ensures the memory store schema exists.
 func createTables(db *sql.DB) error {
+	var err error
+
 	entriesSQL := `CREATE TABLE IF NOT EXISTS entries (
 		id TEXT PRIMARY KEY,
 		input TEXT NOT NULL UNIQUE,
@@ -80,8 +82,39 @@ func createTables(db *sql.DB) error {
 		return fmt.Errorf("create _meta table: %w", err)
 	}
 
+	// Create FTS5 virtual table for full-text search on input and sql columns
+	ftsSQL := `CREATE VIRTUAL TABLE IF NOT EXISTS entries_fts USING fts5(
+		input, sql, content='entries', content_rowid='rowid'
+	)`
+	if _, err := db.Exec(ftsSQL); err != nil {
+		return fmt.Errorf("create entries_fts: %w", err)
+	}
+
+	// Triggers to keep FTS5 index in sync with entries table
+	_, err = db.Exec(`CREATE TRIGGER IF NOT EXISTS entries_ai AFTER INSERT ON entries BEGIN
+		INSERT INTO entries_fts(rowid, input, sql) VALUES (new.rowid, new.input, new.sql);
+	END`)
+	if err != nil {
+		return fmt.Errorf("create entries_ai trigger: %w", err)
+	}
+
+	_, err = db.Exec(`CREATE TRIGGER IF NOT EXISTS entries_ad AFTER DELETE ON entries BEGIN
+		INSERT INTO entries_fts(entries_fts, rowid, input, sql) VALUES('delete', old.rowid, old.input, old.sql);
+	END`)
+	if err != nil {
+		return fmt.Errorf("create entries_ad trigger: %w", err)
+	}
+
+	_, err = db.Exec(`CREATE TRIGGER IF NOT EXISTS entries_au AFTER UPDATE ON entries BEGIN
+		INSERT INTO entries_fts(entries_fts, rowid, input, sql) VALUES('delete', old.rowid, old.input, old.sql);
+		INSERT INTO entries_fts(rowid, input, sql) VALUES (new.rowid, new.input, new.sql);
+	END`)
+	if err != nil {
+		return fmt.Errorf("create entries_au trigger: %w", err)
+	}
+
 	// Insert default index_revision if not exists
-	_, err := db.Exec(`INSERT OR IGNORE INTO _meta (key, value) VALUES ('index_revision', '0')`)
+	_, err = db.Exec(`INSERT OR IGNORE INTO _meta (key, value) VALUES ('index_revision', '0')`)
 	if err != nil {
 		return fmt.Errorf("insert default index_revision: %w", err)
 	}
