@@ -26,7 +26,8 @@ type ScoredEntry struct {
 //  3. If stale → rebuild index from SQLite (or fallback to direct scan)
 //  4. Tokenize input → keyword lookup → collect candidates
 //  5. Compute similarity for each candidate
-//  6. Sort by score descending, return top maxResults
+//  6. Filter entries with last_used_at older than 90 days
+//  7. Sort by score descending, return top maxResults
 //
 // searchFTS performs a full-text search using the FTS5 index.
 // It tokenizes the input and matches against the FTS index, falling back
@@ -90,6 +91,7 @@ func searchFTS(ctx context.Context, db *sql.DB, normalizedInput string) ([]Memor
 // structure, intent, filter overlap, recency decay) and skips
 // high-frequency tokens (frequency > 50) during keyword lookup.
 // Bigram keys are also generated and looked up for better phrase matching.
+// Entries with last_used_at older than 90 days are filtered from results.
 func Search(dbDir string, input string, maxResults int) ([]ScoredEntry, *format.Warning, error) {
 	normalizedInput := NormalizeInput(input)
 
@@ -223,6 +225,31 @@ func Search(dbDir string, input string, maxResults int) ([]ScoredEntry, *format.
 			Similarity: sim,
 		})
 	}
+
+	// Decay old entries: filter out entries with last_used_at older than 90 days
+	// from the top results list.
+	filtered := scored[:0]
+	for _, se := range scored {
+		lastUsed := se.Entry.LastUsedAt
+		if lastUsed == "" {
+			lastUsed = se.Entry.UpdatedAt
+		}
+		if lastUsed == "" {
+			// No date at all — keep it
+			filtered = append(filtered, se)
+			continue
+		}
+		lastTime, parseErr := time.Parse(time.RFC3339, lastUsed)
+		if parseErr != nil {
+			filtered = append(filtered, se)
+			continue
+		}
+		daysSince := now.Sub(lastTime).Hours() / 24.0
+		if daysSince < 90.0 {
+			filtered = append(filtered, se)
+		}
+	}
+	scored = filtered
 
 	// Sort by similarity descending
 	sort.Slice(scored, func(i, j int) bool {
