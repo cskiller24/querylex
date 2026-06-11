@@ -62,7 +62,7 @@ func RebuildIndex(dbDir string, entries []MemoryEntry) (*MemoryIndex, error) {
 		SchemaVersion:  1,
 	}
 
-	// First pass: build keyword index and count token frequencies
+	// First pass: build keyword index, count token frequencies, and generate bigrams
 	for i := range entries {
 		entry := entries[i]
 		tokens := tokenize(entry.Input)
@@ -74,6 +74,17 @@ func RebuildIndex(dbDir string, entries []MemoryEntry) (*MemoryIndex, error) {
 			seen[token] = true
 			index.KeywordIndex[token] = append(index.KeywordIndex[token], entry.ID)
 			index.TokenFrequency[token]++
+		}
+
+		// Generate bigram keys: "__bigram__<token_i> <token_i+1>"
+		bigramSeen := make(map[string]bool)
+		for j := 0; j < len(tokens)-1; j++ {
+			bigramKey := "__bigram__" + tokens[j] + " " + tokens[j+1]
+			if bigramSeen[bigramKey] {
+				continue
+			}
+			bigramSeen[bigramKey] = true
+			index.KeywordIndex[bigramKey] = append(index.KeywordIndex[bigramKey], entry.ID)
 		}
 	}
 

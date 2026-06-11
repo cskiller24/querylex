@@ -89,6 +89,7 @@ func searchFTS(ctx context.Context, db *sql.DB, normalizedInput string) ([]Memor
 // Search uses 5-component lexical-only scoring (entity overlap, sql
 // structure, intent, filter overlap, recency decay) and skips
 // high-frequency tokens (frequency > 50) during keyword lookup.
+// Bigram keys are also generated and looked up for better phrase matching.
 func Search(dbDir string, input string, maxResults int) ([]ScoredEntry, *format.Warning, error) {
 	normalizedInput := NormalizeInput(input)
 
@@ -157,12 +158,23 @@ func Search(dbDir string, input string, maxResults int) ([]ScoredEntry, *format.
 	if index != nil {
 		inputTokens := tokenize(normalizedInput)
 		candidateIDs := make(map[string]bool)
+
+		// Unigram lookup: skip high-frequency stop words (> 50 entries)
 		for _, token := range inputTokens {
-			// Skip high-frequency stop words (> 50 entries contain this token)
 			if index.TokenFrequency[token] > 50 {
 				continue
 			}
 			if ids, ok := index.KeywordIndex[token]; ok {
+				for _, id := range ids {
+					candidateIDs[id] = true
+				}
+			}
+		}
+
+		// Bigram lookup: collect candidates from bigram keys
+		for j := 0; j < len(inputTokens)-1; j++ {
+			bigramKey := "__bigram__" + inputTokens[j] + " " + inputTokens[j+1]
+			if ids, ok := index.KeywordIndex[bigramKey]; ok {
 				for _, id := range ids {
 					candidateIDs[id] = true
 				}
