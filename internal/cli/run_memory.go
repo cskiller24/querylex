@@ -63,7 +63,7 @@ func RunMemory(input string) *format.Response[MemoryData] {
 	// Determine result
 	var data MemoryData
 
-	if len(results) > 0 && results[0].Similarity >= 0.86 {
+	if len(results) > 0 && results[0].Similarity >= 0.60 {
 		top := results[0]
 		sim := top.Similarity
 		matchType := top.Entry.MatchType
