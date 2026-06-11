@@ -79,7 +79,7 @@ func RunSave(input, sql string) *format.Response[SaveData] {
 	}
 
 	// Rebuild index after successful save
-	warning := addEmbeddingsWarning()
+	var warning []format.Warning
 	if allEntries, listErr := memory.ListEntries(ctx, db); listErr == nil {
 		if rebuiltIndex, rebuildErr := memory.RebuildIndex(preflight.DBDir, allEntries); rebuildErr == nil {
 			if revision, revErr := memory.GetRevision(ctx, db); revErr == nil {
@@ -112,16 +112,6 @@ func RunSave(input, sql string) *format.Response[SaveData] {
 	resp.Warnings = append(resp.Warnings, warning...)
 	resp.Complete(start)
 	return resp
-}
-
-// addEmbeddingsWarning returns the standard EMBEDDINGS_UNAVAILABLE warning.
-func addEmbeddingsWarning() []format.Warning {
-	return []format.Warning{
-		{
-			Code:    "EMBEDDINGS_UNAVAILABLE",
-			Message: "Similarity scoring uses lexical methods; embeddings unavailable. Results may have lower precision.",
-		},
-	}
 }
 
 // convertSaveError converts an any-typed error response to a SaveData-typed one.

@@ -114,7 +114,6 @@ func RunHistory(topic string) *format.Response[HistoryData] {
 	}
 
 	resp := format.NewSuccessResponse(data, traceID, &preflight.ActiveDBID)
-	resp.Warnings = addEmbeddingsWarning()
 	if warning != nil {
 		resp.Warnings = append(resp.Warnings, *warning)
 	}

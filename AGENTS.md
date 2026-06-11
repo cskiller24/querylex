@@ -38,7 +38,7 @@ QueryLex is a context-aware SQL generator and optimizer CLI tool for AI agents. 
 - `github.com/jackc/pgx/v5` v5.9.2 - PostgreSQL driver (used by `internal/db/postgresql/`)
 - `github.com/microsoft/go-mssqldb` v1.10.0 - Microsoft SQL Server driver (used by `internal/db/mssql/`)
 - `modernc.org/sqlite` v1.51.0 - Pure-Go SQLite driver (used by `internal/db/sqlite/` and `internal/memory/store.go` for the memory store)
-- `github.com/sashabaranov/go-openai` v1.41.2 - OpenAI API client for SQL generation and embeddings (`internal/ai/client.go`, `internal/ai/embed.go`)
+- `github.com/sashabaranov/go-openai` v1.41.2 - OpenAI API client for SQL generation (`internal/ai/client.go`)
 - `github.com/spf13/cobra` v1.9.1 - CLI framework, shell completions
 - `github.com/zalando/go-keyring` v0.2.8 - OS-native keychain access (macOS Keychain, Windows Credential Manager, Linux Secret Service via D-Bus)
 - `github.com/AlecAivazis/survey/v2` v2.3.7 - Interactive terminal prompts (`internal/cli/prompts.go`, `internal/cli/run_ai_config.go`)
@@ -53,7 +53,6 @@ QueryLex is a context-aware SQL generator and optimizer CLI tool for AI agents. 
 - `QUERYLEX_AI_API_KEY` — AI provider API key (inline config, bypasses keychain)
 - `QUERYLEX_AI_ENDPOINT` — API endpoint override (default: `https://api.openai.com/v1`)
 - `QUERYLEX_AI_MODEL` — Model name (default: `gpt-4o`)
-- `QUERYLEX_AI_EMBEDDING_MODEL` — Embedding model (default: `text-embedding-3-small`)
 - `QUERYLEX_AI_MAX_TOKENS` — Max context tokens (default: `128000`)
 - `QUERYLEX_DB_PASSWORD` — Database password fallback (env store)
 - `QUERYLEX_AI_KEY` — AI key fallback (env store)
@@ -172,9 +171,9 @@ QueryLex is a context-aware SQL generator and optimizer CLI tool for AI agents. 
 | `cli/run_*.go` | Per-subcommand handler functions (validate, explain, schema, optimize, etc.) | `internal/cli/run_*.go` |
 | `db` | Adapter interface, types, registry factory — the database abstraction layer | `internal/db/adapter.go`, `internal/db/types.go`, `internal/db/factory.go` |
 | `db/mysql` (et al.) | Database-specific SQL adapters implementing the `db.Adapter` interface | `internal/db/mysql/adapter.go`, etc. |
-| `ai` | OpenAI client wrapper, chat completions, embeddings, prompt builders, token budgeting | `internal/ai/client.go`, `internal/ai/chat.go`, `internal/ai/prompt.go`, `internal/ai/tokens.go` |
+| `ai` | OpenAI client wrapper, chat completions, prompt builders, token budgeting | `internal/ai/client.go`, `internal/ai/chat.go`, `internal/ai/prompt.go`, `internal/ai/tokens.go` |
 | `index` | Schema indexing pipeline (6 phases), join graph, domain clustering, manifest | `internal/index/pipeline.go`, `internal/index/schema.go`, `internal/index/schema_map.go` |
-| `memory` | SQLite-backed persistent query memory with keyword index, embedding scoring | `internal/memory/store.go`, `internal/memory/search.go`, `internal/memory/scoring.go` |
+| `memory` | SQLite-backed persistent query memory with keyword index, keyword scoring | `internal/memory/store.go`, `internal/memory/search.go`, `internal/memory/scoring.go` |
 | `state` | Workspace CRUD, atomic file writes, advisory flock-based locking, crash recovery | `internal/state/workspace.go`, `internal/state/atomic.go`, `internal/state/lock.go` |
 | `credentials` | Multi-backend secret storage: OS keychain, AES-256-GCM encrypted file, env vars | `internal/credentials/store.go`, `internal/credentials/factory.go` |
 | `format` | Standardized JSON response envelope (`Response[T]`), error codes, trace IDs | `internal/format/response.go`, `internal/format/error.go` |

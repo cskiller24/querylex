@@ -29,7 +29,7 @@ type MemoryEntryData struct {
 }
 
 // RunMemory executes the querylex memory command.
-// It searches memory for strong matches (similarity >= 0.86) and returns the
+// It searches memory for strong matches (similarity >= 0.60) and returns the
 // top result, or match_found: false if no strong match exists.
 func RunMemory(input string) *format.Response[MemoryData] {
 	start := time.Now()
@@ -91,7 +91,6 @@ func RunMemory(input string) *format.Response[MemoryData] {
 	}
 
 	resp := format.NewSuccessResponse(data, traceID, &preflight.ActiveDBID)
-	resp.Warnings = addEmbeddingsWarning()
 	if warning != nil {
 		resp.Warnings = append(resp.Warnings, *warning)
 	}
