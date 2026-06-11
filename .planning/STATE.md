@@ -5,7 +5,7 @@ milestone_name: Cleanup
 status: Awaiting next milestone
 stopped_at: Phase 5 context gathered
 last_updated: "2026-06-07T11:55:42.599Z"
-last_activity: 2026-06-08 — Completed quick task 260608-8e4: CLI documentation
+last_activity: 2026-06-11 — Completed quick task 260611-i6z: Execute all improvements from new-improvements.md
 progress:
   total_phases: 2
   completed_phases: 2
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-06-07)
 
 Status: ✅ v1.1 shipped
 Phases: 2 shipped (Phase 4-5)
-Last activity: 2026-06-08 — Completed quick task 260608-8e4: CLI documentation
+Last activity: 2026-06-11 — Completed quick task 260611-i6z: Execute all improvements from new-improvements.md
 
 ## Performance Metrics
 
@@ -51,6 +51,7 @@ Key decisions are logged in PROJECT.md Key Decisions table.
 | 260606-jkr | change root command default behavior to show --help output instead of custom message | 2026-06-06 | f0f026c |
 | 260607-v40 | simplify CI to run only the test job on ubuntu-latest | 2026-06-07 | 6d52bc1 |
 | 260608-8e4 | CLI documentation | 2026-06-08 | 14b845d |
+| 260611-i6z | Execute all improvements from new-improvements.md | 2026-06-11 | |
 
 ## Deferred Items
 
