@@ -1,0 +1,37 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: employees-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: employees
+      MYSQL_USER: employees
+      MYSQL_PASSWORD: employees
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./data/test_db:/employees-data:ro
+      - ./init/mysql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgresql:
+    image: postgres:16
+    container_name: employees-postgresql
+    environment:
+      POSTGRES_DB: employees
+      POSTGRES_USER: employees
+      POSTGRES_PASSWORD: employees
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/test_db:/employees-data:ro
+      - ./init/postgresql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U employees -d employees"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

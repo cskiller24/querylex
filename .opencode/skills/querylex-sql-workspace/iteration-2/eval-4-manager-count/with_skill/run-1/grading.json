@@ -1,0 +1,100 @@
+{
+  "expectations": [
+    {
+      "text": "SQL is a valid SELECT statement",
+      "passed": true,
+      "evidence": "Output SQL begins with SELECT and follows valid syntax. Transcript Step 11 confirms: 'Result: valid=true, read_only=true. Validation passed on first attempt.'"
+    },
+    {
+      "text": "SQL joins dept_manager and dept_emp tables",
+      "passed": true,
+      "evidence": "output.txt line 6: 'LEFT JOIN dept_emp de ON dm.dept_no = de.dept_no AND de.to_date = \"9999-01-01\"'. dept_manager is the FROM table (line 4). Both tables are joined."
+    },
+    {
+      "text": "SQL uses COUNT() aggregation to count employees per manager",
+      "passed": true,
+      "evidence": "output.txt line 2: 'SELECT e.first_name, e.last_name, d.dept_name, COUNT(de.emp_no) AS employee_count'. Line 8: 'GROUP BY dm.emp_no, dm.dept_no, e.first_name, e.last_name, d.dept_name' groups by manager emp_no."
+    },
+    {
+      "text": "SQL filters dept_manager for current rows (dm.to_date = '9999-01-01')",
+      "passed": true,
+      "evidence": "output.txt line 7: 'WHERE dm.to_date = \"9999-01-01\"'. Explicit filter on dept_manager current rows."
+    },
+    {
+      "text": "SQL filters dept_emp for current rows (de.to_date = '9999-01-01')",
+      "passed": true,
+      "evidence": "output.txt line 6: 'LEFT JOIN dept_emp de ON dm.dept_no = de.dept_no AND de.to_date = \"9999-01-01\"'. Filter applied in JOIN condition."
+    },
+    {
+      "text": "Output does NOT include EMBEDDINGS_UNAVAILABLE warnings",
+      "passed": true,
+      "evidence": "Scanned both output.txt (14 lines) and full_transcript.txt (86 lines). No EMBEDDINGS_UNAVAILABLE warning found in either file."
+    },
+    {
+      "text": "SQL includes manager name columns from the employees table",
+      "passed": true,
+      "evidence": "output.txt line 2: 'SELECT e.first_name, e.last_name, ...'. Line 5: 'JOIN employees e ON dm.emp_no = e.emp_no' joins employees table on manager's emp_no. first_name and last_name columns are selected."
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "tool_calls": {},
+    "total_tool_calls": 0,
+    "total_steps": 12,
+    "errors_encountered": 1,
+    "output_chars": 805,
+    "transcript_chars": 4363
+  },
+  "timing": {},
+  "claims": [
+    {
+      "claim": "Joins dept_manager (current managers only, via to_date = '9999-01-01') to employees (manager names) and departments (department name) on FK-confirmed paths",
+      "type": "factual",
+      "verified": true,
+      "evidence": "SQL in output.txt confirms: JOIN employees on emp_no (line 5), JOIN departments on dept_no (line 6), WHERE dm.to_date = '9999-01-01' (line 7). Transcript Step 8 confirms FK-confirmed join paths with confidence=1.0."
+    },
+    {
+      "claim": "LEFT JOINs dept_emp (current employees only) to count active employees per department",
+      "type": "factual",
+      "verified": true,
+      "evidence": "output.txt line 6: 'LEFT JOIN dept_emp de ON dm.dept_no = de.dept_no AND de.to_date = \"9999-01-01\"'."
+    },
+    {
+      "claim": "GROUP BY manager and department ensures accurate per-manager counts",
+      "type": "quality",
+      "verified": true,
+      "evidence": "output.txt line 8: 'GROUP BY dm.emp_no, dm.dept_no, e.first_name, e.last_name, d.dept_name'. Grouping by manager emp_no and dept_no ensures aggregation boundary is correct."
+    },
+    {
+      "claim": "Memory ID: mem_01KTJNDD2KJ0WXQ3M3B0WE8408 (updated existing entry)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Transcript Step 12 confirms: 'Memory ID: mem_01KTJNDD2KJ0WXQ3M3B0WE8408' and 'updated_existing=true'."
+    },
+    {
+      "claim": "Validation passed on first attempt (valid=true, read_only=true)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Transcript Step 11: 'Result: valid=true, read_only=true. Validation passed on first attempt.'"
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": ["Stats command (Step 7) failed with 'context deadline exceeded (30s timeout)' — non-blocking, workflow continued successfully despite this."]
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "SQL uses COUNT() aggregation to count employees per manager",
+        "reason": "The SQL groups by both dm.emp_no AND dm.dept_no, producing per-manager-per-department counts. If a manager manages multiple departments, they appear in multiple rows rather than getting a single total. No assertion checks whether the aggregation rolls up to one-row-per-manager. Consider adding an assertion about having one output row per manager, or verifying the GROUP BY only includes manager-level columns."
+      }
+    ],
+    "overall": "Assertions cover SQL structure well. The per-department grouping nuance is the main gap — the question likely expects per-manager totals, not a per-department breakdown."
+  }
+}

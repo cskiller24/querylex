@@ -1,0 +1,74 @@
+# querylex-sql 12-Step Workflow Transcript
+
+## Step 1: Receive the User Question
+Question: "Show me all employees hired in the last 5 years with their current salary and department."
+
+## Step 2: Active Database Preflight
+- Read $HOME/.querylex/querylex.json → active_database_id: "benchmark-employees-mysql"
+- Read database.json → type: mysql, database: employees, host: localhost:3306, user: employees
+- Read index_status.json → status: "indexed", progress: 100%
+- Result: Database ready. Proceed normally.
+
+## Step 3: Resolve Intent
+- Command: `querylex resolve "Show me all employees hired in the last 5 years with their current salary and department."`
+- Success: true, confidence: 0.95
+- Resolved tables: current_dept_emp (0.70), departments (0.85), employees (0.95), salaries (0.95)
+
+## Step 4: Check Memory
+- Command: `querylex memory "..."` → match_found: false (no strong match)
+- Command: `querylex history "..."` → 7 results, best similarity: 0.38
+- Notable: mem_01KTJNBEMKJ6AMP2VAXXDHRRHW ("show me all employees hired in the last 5 years...") uses current_dept_emp with LEFT JOIN and to_date='9999-01-01' pattern
+
+## Step 5: Read Terminology Map
+- File: $HOME/.querylex/benchmark-employees-mysql/terminologies.md → exists
+- Contains only template entry (example_term). No business term mappings to apply.
+
+## Step 6: Schema (Context Gathering)
+- Command: `querylex schema --tables-json '["current_dept_emp","departments","employees","salaries"]'`
+- Success: true
+- Key findings:
+  - employees: emp_no (PK), first_name, last_name, hire_date (date, NOT NULL)
+  - salaries: emp_no + from_date (PK), salary (int), to_date (date). FK → employees(emp_no)
+  - current_dept_emp: view with emp_no, dept_no, from_date, to_date
+  - departments: dept_no (PK, char(4)), dept_name (varchar(40))
+
+## Step 7: Statistics (Context Gathering)
+- Command: `querylex stats --tables-json '[...]'`
+- Error: INTERNAL_ERROR - "converting NULL to int64 is unsupported" (MySQL stats scan on TABLE_ROWS)
+- Action: Warned, continuing without stats.
+
+## Step 8: Join Paths (Context Gathering)
+- Command: `querylex joins --tables-json '[...]'`
+- Success: true
+- Key paths:
+  - salaries → employees on emp_no (FK, confidence=1.0)
+  - dept_emp → employees on emp_no (FK, confidence=1.0)
+  - dept_emp → departments on dept_no (FK, confidence=1.0)
+- current_dept_emp is a view; inherits join paths from dept_emp.
+
+## Step 9: Indexes (Context Gathering)
+- Command: `querylex indexes --tables-json '[...]'`
+- Success: true
+- Key indexes:
+  - employees: PRIMARY (emp_no)
+  - salaries: PRIMARY (emp_no, from_date) + idx_salaries_composite (emp_no, from_date)
+  - departments: PRIMARY (dept_no) + idx_departments_dept_name (dept_name)
+  - current_dept_emp: none (view)
+
+## Step 10: Construct SQL
+- Dialect: MySQL
+- Design decisions:
+  - Filter hire_date >= DATE_SUB(CURDATE(), INTERVAL 5 YEAR) — sargable (no function on column)
+  - Salaries: INNER JOIN with to_date='9999-01-01' for current salary (FK-backed, all employees have salary history)
+  - Department: LEFT JOIN via current_dept_emp view → departments to include employees without current dept assignment
+  - ORDER BY hire_date DESC for most recent hires first
+
+## Step 11: Validate
+- Command: `querylex validate "SELECT ..."`
+- Result: valid=true, read_only=true
+- Passed on first attempt (0 retries needed)
+
+## Step 12: Save
+- Command: `querylex save "..." "SELECT ..."`
+- Result: saved=true, updated_existing=true
+- Memory ID: mem_01KTJNBEMKJ6AMP2VAXXDHRRHW

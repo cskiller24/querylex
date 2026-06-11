@@ -1,0 +1,17 @@
+SELECT
+    d.dept_name,
+    AVG(s.salary) AS avg_salary
+FROM departments d
+JOIN dept_emp de
+    ON d.dept_no = de.dept_no
+   AND de.to_date = '9999-01-01'
+JOIN salaries s
+    ON de.emp_no = s.emp_no
+   AND s.to_date = '9999-01-01'
+GROUP BY d.dept_name
+ORDER BY avg_salary DESC;
+
+-- Joins departments -> dept_emp -> salaries on emp_no/dept_no.
+-- Filters on to_date = '9999-01-01' in both dept_emp and salaries
+-- to include only current department assignments and current salary rows.
+-- Groups by dept_name and computes AVG(salary), sorted descending.

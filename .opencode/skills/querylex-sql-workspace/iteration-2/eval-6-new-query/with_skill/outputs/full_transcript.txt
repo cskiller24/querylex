@@ -1,0 +1,66 @@
+=== querylex-sql 12-Step Workflow Transcript ===
+Question: "How many employees does each manager supervise?"
+
+--- Step 1: Receive User Question ---
+Question captured: "How many employees does each manager supervise?"
+
+--- Step 2: Active Database Preflight ---
+Workspace: /home/yasuraoka/.querylex/querylex.json
+  Active DB ID: benchmark-employees-mysql
+  DB Type: mysql
+  DB Name: Employees MySQL
+  Status: indexed (100%)
+  Result: Proceed normally.
+
+--- Step 3: Resolve Intent ---
+Command: querylex resolve "How many employees does each manager supervise?"
+Resolved tables: ["dept_manager", "employees"]
+Confidence: 0.95
+Note: Also included "dept_emp" and "departments" based on history patterns and join requirements.
+
+--- Step 4: Check Memory ---
+Memory: No match found (match_found: false)
+History: Found relevant pattern — "list all managers and the number of employees they manage."
+  Reference SQL uses dept_manager -> employees -> departments <- dept_emp join chain.
+
+--- Step 5: Terminology Map ---
+File: /home/yasuraoka/.querylex/benchmark-employees-mysql/terminologies.md
+Result: Only placeholder entry present. No relevant business terms mapped.
+
+--- Step 6: Schema ---
+Tables resolved: dept_manager, employees, dept_emp, departments
+  dept_manager: emp_no, dept_no, from_date, to_date (PK: emp_no+dept_no, FK to employees, FK to departments)
+  employees: emp_no, birth_date, first_name, last_name, gender, hire_date (PK: emp_no)
+  dept_emp: emp_no, dept_no, from_date, to_date (PK: emp_no+dept_no, FK to employees, FK to departments)
+  departments: dept_no, dept_name (PK: dept_no)
+
+--- Step 7: Statistics ---
+Result: FAILED — context deadline exceeded (30s timeout). Proceeding without stats.
+
+--- Step 8: Join Paths ---
+  dept_manager -> employees: confidence=1.0 (foreign key on emp_no)
+  dept_manager -> departments: confidence=1.0 (foreign key on dept_no)
+  dept_emp -> employees: confidence=1.0 (foreign key on emp_no)
+  dept_emp -> departments: confidence=1.0 (foreign key on dept_no)
+  dept_manager <-> dept_emp implicitly connected through shared dept_no.
+
+--- Step 9: Indexes ---
+  employees: PRIMARY on emp_no
+  departments: PRIMARY on dept_no, idx_departments_dept_name on dept_name
+  dept_emp: PRIMARY on (emp_no, dept_no), idx_dept_emp_composite on (emp_no, dept_no)
+  dept_manager: PRIMARY on (emp_no, dept_no), idx_dept_manager_composite on (emp_no, dept_no)
+
+--- Step 10: Construct SQL ---
+Dialect: MySQL
+Key decisions:
+  - Use to_date = '9999-01-01' for current manager and employee assignments (temporal tables)
+  - LEFT JOIN dept_emp on dept_no to count employees per manager's department
+  - Exclude manager from count with de.emp_no != dm.emp_no
+
+--- Step 11: Validate ---
+Result: VALID (valid: true, read_only: true)
+
+--- Step 12: Save ---
+Saved: true
+Memory ID: mem_01KTJPQBWTE2D4EJVG19HX2JE4
+SQL Hash: sha256:ca64c49c6177

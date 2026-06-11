@@ -1,0 +1,73 @@
+{
+  "expectations": [
+    {
+      "text": "SQL is a valid SELECT statement",
+      "passed": true,
+      "evidence": "output.txt lines 1-18 contain a syntactically valid SQL SELECT statement. Transcript Step 11 confirms: 'VALID (valid: true, read_only: true)'."
+    },
+    {
+      "text": "SQL joins dept_manager and dept_emp tables",
+      "passed": true,
+      "evidence": "output.txt line 9: 'FROM dept_manager dm' and line 12: 'LEFT JOIN dept_emp de ON dm.dept_no = de.dept_no'. Both tables are joined."
+    },
+    {
+      "text": "SQL uses COUNT() aggregation",
+      "passed": true,
+      "evidence": "output.txt line 8: 'COUNT(de.emp_no) AS employees_supervised'. Uses COUNT aggregation function."
+    },
+    {
+      "text": "SQL filters for current rows using to_date = '9999-01-01'",
+      "passed": true,
+      "evidence": "output.txt line 13: 'AND de.to_date = '9999-01-01'' and line 15: 'WHERE dm.to_date = '9999-01-01''. Both temporal tables are filtered for current rows."
+    },
+    {
+      "text": "SQL includes manager identification from employees table",
+      "passed": true,
+      "evidence": "output.txt line 10: 'JOIN employees e ON dm.emp_no = e.emp_no' and lines 3-5 select 'e.first_name, e.last_name'. Manager names retrieved from employees table."
+    },
+    {
+      "text": "Output does NOT include EMBEDDINGS_UNAVAILABLE warnings",
+      "passed": true,
+      "evidence": "output.txt and full_transcript.txt were fully searched — no 'EMBEDDINGS_UNAVAILABLE' string found in either file."
+    },
+    {
+      "text": "Output includes only the SQL query and a brief explanation",
+      "passed": true,
+      "evidence": "output.txt contains exactly two parts: a fenced SQL code block (lines 1-18) and a single explanatory paragraph (line 20). No extraneous content, error messages, or warnings present."
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "output_chars": 859,
+    "transcript_chars": 2864
+  },
+  "claims": [
+    {
+      "claim": "SQL joins dept_manager to employees for names and departments for department context",
+      "type": "process",
+      "verified": true,
+      "evidence": "JOIN employees e ON dm.emp_no = e.emp_no (line 10) and JOIN departments d ON dm.dept_no = d.dept_no (line 11) confirmed."
+    },
+    {
+      "claim": "SQL excludes each manager from their own supervisee count",
+      "type": "quality",
+      "verified": true,
+      "evidence": "AND de.emp_no != dm.emp_no (line 14) confirms exclusion of self from employee count."
+    },
+    {
+      "claim": "Groups by manager to aggregate the employee count per manager per department",
+      "type": "process",
+      "verified": true,
+      "evidence": "GROUP BY dm.emp_no, dm.dept_no, e.first_name, e.last_name, d.dept_name (line 16) and COUNT(de.emp_no) AS employees_supervised (line 8) confirmed."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "No suggestions, evals look solid. All assertions check discriminating outcomes specific to this temporal employee schema query."
+  }
+}

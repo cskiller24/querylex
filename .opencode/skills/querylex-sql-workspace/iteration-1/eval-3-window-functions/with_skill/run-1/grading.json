@@ -1,0 +1,107 @@
+{
+  "expectations": [
+    {
+      "text": "SQL is a valid SELECT statement",
+      "passed": true,
+      "evidence": "output.txt contains a complete, syntactically valid SELECT statement (lines 4-31). Transcript Step 11 confirms: 'Validation passed on first attempt. No retries needed.' with 'data.valid=true, read_only=true'."
+    },
+    {
+      "text": "SQL uses ROW_NUMBER() or RANK() window function, or a correlated subquery to find max per department",
+      "passed": true,
+      "evidence": "output.txt line 19: 'ROW_NUMBER() OVER (PARTITION BY d.dept_no ORDER BY s.salary DESC) AS rn' and line 30: 'WHERE rn = 1' — uses ROW_NUMBER() window function to rank employees by salary within each department, then filters to top rank."
+    },
+    {
+      "text": "SQL partitions or groups by department",
+      "passed": true,
+      "evidence": "output.txt line 19: 'PARTITION BY d.dept_no' — the window function partitions by department number."
+    },
+    {
+      "text": "SQL orders by salary descending",
+      "passed": true,
+      "evidence": "output.txt line 19: 'ORDER BY s.salary DESC' within the ROW_NUMBER() OVER clause — salaries are ordered descending so rank 1 corresponds to the highest salary."
+    },
+    {
+      "text": "SQL filters for current rows using to_date = '9999-01-01' on temporal tables",
+      "passed": true,
+      "evidence": "output.txt line 23: 'de.to_date = '9999-01-01'' (on dept_emp) and line 28: 's.to_date = '9999-01-01'' (on salaries). Both temporal tables have current-row filters applied."
+    },
+    {
+      "text": "Output includes a memory ID (mem_ prefix)",
+      "passed": true,
+      "evidence": "output.txt line 35: 'mem_01KTJNDJDKRVNGEPRWD94JAJDA'. Transcript Step 12 also confirms the save returned this memory ID."
+    },
+    {
+      "text": "Output mentions validation was performed",
+      "passed": true,
+      "evidence": "Transcript Step 11 (line 69-71): 'Command (attempt 1): querylex validate \"<SQL>\" / Response: success=true, data.valid=true, read_only=true / Validation passed on first attempt. No retries needed.' Note: output.txt does not mention validation; evidence comes solely from full_transcript.txt."
+    },
+    {
+      "text": "SQL includes employee name columns from the employees table",
+      "passed": true,
+      "evidence": "output.txt lines 8-9: 'first_name' and 'last_name' are selected, and line 16-17 confirms they come from 'e.first_name, e.last_name' with 'e' aliased from 'employees e' on line 20."
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 0,
+    "total": 8,
+    "pass_rate": 1.00
+  },
+  "execution_metrics": {
+    "output_chars": 1823,
+    "transcript_chars": 4687
+  },
+  "claims": [
+    {
+      "claim": "This query finds the highest-paid employee in each department",
+      "type": "quality",
+      "verified": true,
+      "evidence": "The SQL uses ROW_NUMBER() partitioned by dept_no, ordered by salary DESC, filtered to rn=1 — correctly implements the stated goal."
+    },
+    {
+      "claim": "Join paths: dept_emp → employees via emp_no (FK, confidence 1.0)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed in transcript Step 8: 'salaries → employees via emp_no (FK, confidence 1.0)' and 'dept_emp → employees via emp_no (FK, confidence 1.0)'."
+    },
+    {
+      "claim": "dept_emp → departments via dept_no (FK, confidence 1.0)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed in transcript Step 8: 'dept_emp → departments via dept_no (FK, confidence 1.0)'."
+    },
+    {
+      "claim": "salaries → employees via emp_no (FK, confidence 1.0)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed in transcript Step 8: 'salaries → employees via emp_no (FK, confidence 1.0)'."
+    },
+    {
+      "claim": "Validation passed on first attempt. No retries needed.",
+      "type": "process",
+      "verified": true,
+      "evidence": "Transcript Step 11 (line 71): 'Validation passed on first attempt. No retries needed.'"
+    },
+    {
+      "claim": "No cached similar query found",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Transcript Step 4: 'match_found=false' and 'results=[] (empty)' for both memory and history searches."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Output mentions validation was performed",
+        "reason": "This assertion passes only because the transcript (full_transcript.txt) mentions validation — the user-facing output (output.txt) says nothing about it. A consumer who only sees output.txt would have no evidence validation ran. Consider checking that output.txt itself contains validation results, not just the execution trace."
+      },
+      {
+        "reason": "No assertion checks that all four required tables (employees, departments, dept_emp, salaries) are joined. The SQL could drop the departments table or use a wrong join path for the employee-department mapping and still pass all current assertions."
+      },
+      {
+        "reason": "No assertion verifies the join between employees and departments via the dept_emp bridge table. A query that directly joined employees to departments (skipping dept_emp) would still pass if it happened to use ROW_NUMBER() and to_date filters — but the results would be broken."
+      }
+    ],
+    "overall": "All 8 expectations pass with clear evidence. The SQL is well-formed and correctly implements the window function pattern. Expectation 7 is the weakest — it checks for surface-level mention of validation in the transcript rather than verifying validation output is present in the user-facing result. Two join-path correctness checks are missing that would catch a significant class of errors."
+  }
+}

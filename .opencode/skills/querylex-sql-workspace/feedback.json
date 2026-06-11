@@ -1,0 +1,45 @@
+{
+  "reviews": [
+    {
+      "run_id": "eval-1-multi-table-join-with_skill",
+      "feedback": "Remove the parallelism",
+      "timestamp": "2026-06-08T04:01:50.171Z"
+    },
+    {
+      "run_id": "eval-1-multi-table-join-without_skill",
+      "feedback": "",
+      "timestamp": "2026-06-08T04:01:50.171Z"
+    },
+    {
+      "run_id": "eval-2-aggregation-with_skill",
+      "feedback": "Remove the parallelism",
+      "timestamp": "2026-06-08T04:01:50.171Z"
+    },
+    {
+      "run_id": "eval-2-aggregation-without_skill",
+      "feedback": "",
+      "timestamp": "2026-06-08T04:01:50.171Z"
+    },
+    {
+      "run_id": "eval-3-window-functions-with_skill",
+      "feedback": "Remove the warnings as the embeddings are not supported anymore, only show the query and explanation ",
+      "timestamp": "2026-06-08T04:01:50.171Z"
+    },
+    {
+      "run_id": "eval-3-window-functions-without_skill",
+      "feedback": "",
+      "timestamp": "2026-06-08T04:01:50.171Z"
+    },
+    {
+      "run_id": "eval-4-manager-count-with_skill",
+      "feedback": "Same as before",
+      "timestamp": "2026-06-08T04:01:50.171Z"
+    },
+    {
+      "run_id": "eval-4-manager-count-without_skill",
+      "feedback": "",
+      "timestamp": "2026-06-08T04:01:50.171Z"
+    }
+  ],
+  "status": "complete"
+}

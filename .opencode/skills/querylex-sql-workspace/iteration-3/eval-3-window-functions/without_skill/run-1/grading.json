@@ -1,0 +1,71 @@
+{
+  "expectations": [
+    {
+      "text": "SQL is a valid SELECT statement",
+      "passed": true,
+      "evidence": "Output.txt contains a CTE (WITH clause) followed by a SELECT statement (lines 5-20). The main query body is a syntactically well-formed SELECT with FROM, JOIN, WHERE, and ORDER BY clauses."
+    },
+    {
+      "text": "SQL uses ROW_NUMBER() or RANK() window function, or a correlated subquery to find max per department",
+      "passed": true,
+      "evidence": "Output.txt line 11: 'ROW_NUMBER() OVER (PARTITION BY de.dept_no ORDER BY s.salary DESC) AS rn' — uses ROW_NUMBER() window function partitioned by department."
+    },
+    {
+      "text": "SQL partitions or groups by department",
+      "passed": true,
+      "evidence": "Output.txt line 11: 'PARTITION BY de.dept_no' — partitions the window function by department number."
+    },
+    {
+      "text": "SQL orders by salary descending",
+      "passed": true,
+      "evidence": "Output.txt line 11: 'ORDER BY s.salary DESC' inside the ROW_NUMBER() window function — orders by salary in descending order."
+    },
+    {
+      "text": "SQL filters for current rows using to_date = '9999-01-01'",
+      "passed": true,
+      "evidence": "Output.txt line 13: 's.to_date = \\'9999-01-01\\'' and line 14: 'de.to_date = \\'9999-01-01\\'' — both salaries and dept_emp temporal tables are filtered for current rows."
+    },
+    {
+      "text": "SQL includes employee name columns from the employees table",
+      "passed": true,
+      "evidence": "Output.txt lines 7-8: 'e.first_name, e.last_name' in the CTE SELECT, and line 17: 'first_name, last_name' in the final SELECT — includes employee names from the employees table."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  },
+  "claims": [
+    {
+      "claim": "Only current salary and current department assignments are considered",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Output.txt comment line 3 states this, and both the salaries JOIN (line 13: s.to_date = '9999-01-01') and dept_emp JOIN (line 14: de.to_date = '9999-01-01') apply the filter."
+    },
+    {
+      "claim": "Uses MySQL-compatible syntax",
+      "type": "factual",
+      "verified": true,
+      "evidence": "The ROW_NUMBER() window function, WITH CTE, and JOIN syntax are all valid MySQL. No database-specific features from other dialects are present."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "SQL is a valid SELECT statement",
+        "reason": "Without a transcript showing querylex validate output, we can only judge structural well-formedness, not actual database validity. Any SELECT-looking string would pass. Consider requiring validation evidence or checking at minimum that all referenced tables and columns are syntactically consistent."
+      },
+      {
+        "reason": "No assertion checks whether ties are handled (ROW_NUMBER picks one arbitrarily when multiple employees have the same max salary in a department). This is a semantic gap — RANK() or DENSE_RANK() might be more appropriate for 'highest paid' queries."
+      }
+    ],
+    "overall": "Assertions cover structure and filtering well. Assertion 1 is particularly weak without validation evidence. The without_skill variant has no transcript, limiting verifiability of all process-related claims."
+  }
+}

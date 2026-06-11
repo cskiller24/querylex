@@ -1,0 +1,75 @@
+{
+  "expectations": [
+    {
+      "text": "SQL is a valid SELECT statement",
+      "passed": true,
+      "evidence": "output.txt line 2: 'SELECT d.dept_no, d.dept_name, AVG(s.salary) AS avg_salary' — starts with SELECT, has FROM, JOINs, GROUP BY, ORDER BY, terminated with semicolon. Transcript Step 11 confirms validation returned valid=true, read_only=true."
+    },
+    {
+      "text": "SQL uses AVG() aggregation function",
+      "passed": true,
+      "evidence": "output.txt line 2: 'AVG(s.salary) AS avg_salary' — uses AVG() on salaries.salary column with an alias."
+    },
+    {
+      "text": "SQL uses GROUP BY on department columns",
+      "passed": true,
+      "evidence": "output.txt line 6: 'GROUP BY d.dept_no, d.dept_name' — groups by department number and department name."
+    },
+    {
+      "text": "SQL includes department names in the output",
+      "passed": true,
+      "evidence": "output.txt line 2: 'SELECT d.dept_no, d.dept_name, ...' — d.dept_name is included in the SELECT clause."
+    },
+    {
+      "text": "SQL filters for current rows using to_date = '9999-01-01'",
+      "passed": true,
+      "evidence": "output.txt lines 4-5: 'de.to_date = '9999-01-01'' and 's.to_date = '9999-01-01'' — both dept_emp and salaries JOIN conditions filter on to_date. Transcript Step 10 explicitly confirms: 'Both temporal tables filtered to current rows: dept_emp.to_date='9999-01-01', salaries.to_date='9999-01-01'.'"
+    },
+    {
+      "text": "Output does NOT include EMBEDDINGS_UNAVAILABLE warnings",
+      "passed": true,
+      "evidence": "Searched both output.txt (582 chars across 10 lines) and full_transcript.txt (2943 chars across 65 lines) — no occurrence of 'EMBEDDINGS_UNAVAILABLE' or any embedding-related warning found."
+    },
+    {
+      "text": "Output includes only the SQL query and a brief explanation",
+      "passed": true,
+      "evidence": "output.txt contains a fenced SQL code block (lines 1-8) followed by a concise 2-sentence explanation (line 10) describing the join path, temporal filtering, grouping, and aggregation. No extraneous content, error messages, or warnings present."
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "output_chars": 582,
+    "transcript_chars": 2943
+  },
+  "timing": {},
+  "claims": [
+    {
+      "claim": "Joins departments → dept_emp (on dept_no, confidence 1.0 FK) then dept_emp → salaries (on emp_no, via join graph path)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Transcript Step 8 shows join path 'departments → dept_emp → employees → salaries' with edges at confidence 1.0. The SQL in output.txt matches: departments INNER JOIN dept_emp ON dept_no, dept_emp INNER JOIN salaries ON emp_no."
+    },
+    {
+      "claim": "Both temporal tables (dept_emp, salaries) are filtered to current rows only (to_date = '9999-01-01')",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Output SQL lines 4-5 show both JOINs include to_date='9999-01-01' conditions. Transcript Step 10 explicitly states this intent."
+    },
+    {
+      "claim": "Groups by department and computes average salary",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Output SQL line 6: 'GROUP BY d.dept_no, d.dept_name' and line 2: 'AVG(s.salary) AS avg_salary'."
+    }
+  ],
+  "user_notes_summary": {},
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "No suggestions, evals look solid. All assertions check meaningful substance — specific SQL constructs (AVG, GROUP BY, to_date filter), output completeness, and format cleanliness. Assertion 7's 'brief explanation' is somewhat vague but the output contains a substantive explanation, so it's discriminative in practice."
+  }
+}

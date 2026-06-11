@@ -1,0 +1,44 @@
+{
+  "expectations": [
+    {
+      "text": "SQL is a valid SELECT statement",
+      "passed": true,
+      "evidence": "output.txt lines 4-15 contain a well-formed SELECT with columns, FROM dept_manager, multiple JOINs, WHERE, GROUP BY, and ORDER BY clauses"
+    },
+    {
+      "text": "SQL joins dept_manager and dept_emp tables",
+      "passed": true,
+      "evidence": "output.txt line 9: 'FROM dept_manager dm'; line 12: 'LEFT JOIN dept_emp de ON dm.dept_no = de.dept_no'"
+    },
+    {
+      "text": "SQL uses COUNT() aggregation",
+      "passed": true,
+      "evidence": "output.txt line 8: 'COUNT(DISTINCT de.emp_no) AS supervised_employees'"
+    },
+    {
+      "text": "SQL filters for current rows using to_date = '9999-01-01'",
+      "passed": true,
+      "evidence": "output.txt line 12: 'de.to_date = '9999-01-01'' on dept_emp join; line 13: 'WHERE dm.to_date = '9999-01-01'' on dept_manager"
+    },
+    {
+      "text": "SQL includes manager identification from employees table",
+      "passed": true,
+      "evidence": "output.txt lines 5-6: 'e.first_name, e.last_name' selected; line 10: 'JOIN employees e ON dm.emp_no = e.emp_no'"
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "output_chars": 487,
+    "transcript_chars": null
+  },
+  "claims": [],
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "No suggestions, evals look solid. All 5 assertions are substantive SQL checks — join structure, aggregation use, temporal filtering, and manager identification. Each requires the SQL to actually address the question correctly."
+  }
+}

@@ -172,6 +172,7 @@ type explainMockAdapter struct {
 func (m *explainMockAdapter) Connect(ctx context.Context, dsn string) error { return nil }
 func (m *explainMockAdapter) Ping(ctx context.Context) error                 { return nil }
 func (m *explainMockAdapter) Close(ctx context.Context) error                { return nil }
+func (m *explainMockAdapter) TestConnect(ctx context.Context, dsn string) error { return nil }
 func (m *explainMockAdapter) DatabaseType() string                           { return "mock" }
 
 func (m *explainMockAdapter) Schema(ctx context.Context, tables []string) (*db.SchemaResult, error) {

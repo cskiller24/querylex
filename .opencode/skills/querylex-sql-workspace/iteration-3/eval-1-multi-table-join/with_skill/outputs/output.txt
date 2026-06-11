@@ -1,0 +1,23 @@
+```sql
+SELECT
+    e.emp_no,
+    e.first_name,
+    e.last_name,
+    e.hire_date,
+    s.salary AS current_salary,
+    d.dept_name AS department
+FROM employees e
+INNER JOIN salaries s ON e.emp_no = s.emp_no AND s.to_date = '9999-01-01'
+INNER JOIN dept_emp de ON e.emp_no = de.emp_no AND de.to_date = '9999-01-01'
+INNER JOIN departments d ON de.dept_no = d.dept_no
+WHERE e.hire_date >= DATE_SUB(CURDATE(), INTERVAL 5 YEAR)
+ORDER BY e.hire_date DESC
+```
+
+**Explanation:**
+
+- **Join path:** `employees` → `salaries` (emp_no FK, confidence 1.0) → `dept_emp` (emp_no FK, confidence 1.0) → `departments` (dept_no FK, confidence 1.0). All INNER JOINs since every employee should have salary and department records.
+- **Current salary:** Filtered via `s.to_date = '9999-01-01'` on the temporal `salaries` table, selecting only the current salary row for each employee.
+- **Current department:** Filtered via `de.to_date = '9999-01-01'` on the temporal `dept_emp` table, selecting the current department assignment.
+- **Last 5 years:** MySQL `DATE_SUB(CURDATE(), INTERVAL 5 YEAR)` computes the cutoff date; `hire_date >=` is sargable and can use the employees primary key/index.
+- **Index usage:** All joins hit PKs (employees.emp_no, dept_emp(emp_no, dept_no), departments.dept_no). The salaries join uses emp_no as the leading PK column.

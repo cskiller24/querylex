@@ -1,0 +1,98 @@
+=== STEP 2: ACTIVE DATABASE PREFLIGHT ===
+$ cat ~/.querylex/querylex.json
+> Active DB: benchmark-employees-mysql (MySQL), status: indexed
+
+$ cat ~/.querylex/benchmark-employees-mysql/database.json
+> Type: mysql, host: localhost:3306, database: employees, user: employees
+
+$ cat ~/.querylex/benchmark-employees-mysql/indexes/index_status.json
+> Status: indexed, progress: 100%
+
+=== STEP 3: RESOLVE INTENT ===
+$ querylex resolve "Find the highest paid employee in each department."
+{
+  "success": true,
+  "data": {
+    "tables": [
+      {"name": "departments", "score": 0.85},
+      {"name": "employees", "score": 0.85}
+    ]
+  }
+}
+> Resolved: departments, employees (but not salaries or dept_emp)
+
+=== STEP 4: CHECK MEMORY ===
+$ querylex memory "Find the highest paid employee in each department."
+> match_found: false
+
+$ querylex history "Find the highest paid employee in each department."
+> Found 7 results, including exact match:
+> mem_01KTJNDJDKRVNGEPRWD94JAJDA - "find the highest paid employee in each department."
+> Reveals full table set: employees, salaries, dept_emp, departments
+
+=== STEP 5: READ TERMINOLOGY MAP ===
+$ cat ~/.querylex/benchmark-employees-mysql/terminologies.md
+> No relevant business term mappings (only "example_term")
+
+=== STEP 6: SCHEMA ===
+$ querylex schema --tables-json '["employees","salaries","dept_emp","departments"]'
+Key columns:
+- employees: emp_no (PK), first_name, last_name, ...
+- salaries: emp_no (PK), salary, from_date (PK), to_date (FK->employees)
+- dept_emp: emp_no (PK), dept_no (PK), from_date, to_date (FK->employees, FK->departments)
+- departments: dept_no (PK), dept_name
+
+=== STEP 7: STATISTICS ===
+$ querylex stats --tables-json '["employees","salaries","dept_emp","departments"]'
+> FAILED: context deadline exceeded (INTERNAL_ERROR)
+> Warning, continuing without stats.
+
+=== STEP 8: JOIN PATHS ===
+$ querylex joins --tables-json '["employees","salaries","dept_emp","departments"]'
+{
+  "success": true,
+  "data": {
+    "joins": [
+      {"source": "dept_emp", "target": "employees", "columns": [["emp_no","emp_no"]], "confidence": 1},
+      {"source": "dept_emp", "target": "departments", "columns": [["dept_no","dept_no"]], "confidence": 1},
+      {"source": "salaries", "target": "employees", "columns": [["emp_no","emp_no"]], "confidence": 1}
+    ]
+  }
+}
+
+=== STEP 9: INDEXES ===
+$ querylex indexes --tables-json '["employees","salaries","dept_emp","departments"]'
+> All tables have PRIMARY indexes. dept_emp and salaries have composite indexes.
+
+=== STEP 10-11: CONSTRUCT SQL & VALIDATE ===
+Attempt 1: Multi-line SQL with backtick-quoted identifiers
+> FAILED: COLUMN_NOT_FOUND - Unknown column 'd.dept_no' in 'field list'
+> (likely caused by bash quoting of newlines in the SQL string)
+
+Attempt 2 (retry 1): Compact single-line format (matches history entry)
+SQL: SELECT dept_no, dept_name, emp_no, first_name, last_name, salary FROM (...) ranked WHERE rn = 1 ORDER BY dept_no
+> VALID: true, read_only: true
+
+=== STEP 12: SAVE ===
+$ querylex save "Find the highest paid employee in each department." "..."
+{
+  "success": true,
+  "data": {
+    "saved": true,
+    "updated_existing": true,
+    "entry": {"id": "mem_01KTJNDJDKRVNGEPRWD94JAJDA"}
+  }
+}
+
+=== FINAL SQL ===
+SELECT dept_no, dept_name, emp_no, first_name, last_name, salary
+FROM (
+  SELECT d.dept_no, d.dept_name, e.emp_no, e.first_name, e.last_name, s.salary,
+    ROW_NUMBER() OVER (PARTITION BY d.dept_no ORDER BY s.salary DESC) AS rn
+  FROM employees e
+  INNER JOIN dept_emp de ON e.emp_no = de.emp_no AND de.to_date = '9999-01-01'
+  INNER JOIN departments d ON de.dept_no = d.dept_no
+  INNER JOIN salaries s ON e.emp_no = s.emp_no AND s.to_date = '9999-01-01'
+) ranked
+WHERE rn = 1
+ORDER BY dept_no;

@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eval Review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&family=Lora:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg: #faf9f5;
+      --surface: #ffffff;
+      --border: #e8e6dc;
+      --text: #141413;
+      --text-muted: #b0aea5;
+      --accent: #d97757;
+      --accent-hover: #c4613f;
+      --green: #788c5d;
+      --green-bg: #eef2e8;
+      --red: #c44;
+      --red-bg: #fceaea;
+      --header-bg: #141413;
+      --header-text: #faf9f5;
+      --radius: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Lora', Georgia, serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ---- Header ---- */
+    .header {
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .header h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .header .instructions {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      margin-top: 0.25rem;
+    }
+    .header .progress {
+      font-size: 0.875rem;
+      opacity: 0.8;
+      text-align: right;
+    }
+
+    /* ---- Main content ---- */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    /* ---- Sections ---- */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      flex-shrink: 0;
+    }
+    .section-header {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .section-body {
+      padding: 1rem;
+    }
+
+    /* ---- Config badge ---- */
+    .config-badge {
+      display: inline-block;
+      padding: 0.2rem 0.625rem;
+      border-radius: 9999px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-left: 0.75rem;
+      vertical-align: middle;
+    }
+    .config-badge.config-primary {
+      background: rgba(33, 150, 243, 0.12);
+      color: #1976d2;
+    }
+    .config-badge.config-baseline {
+      background: rgba(255, 193, 7, 0.15);
+      color: #f57f17;
+    }
+
+    /* ---- Prompt ---- */
+    .prompt-text {
+      white-space: pre-wrap;
+      font-size: 0.9375rem;
+      line-height: 1.6;
+    }
+
+    /* ---- Outputs ---- */
+    .output-file {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .output-file + .output-file {
+      margin-top: 1rem;
+    }
+    .output-file-header {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .output-file-header .dl-btn {
+      font-size: 0.7rem;
+      color: var(--accent);
+      text-decoration: none;
+      cursor: pointer;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-weight: 500;
+      opacity: 0.8;
+    }
+    .output-file-header .dl-btn:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+    .output-file-content {
+      padding: 0.75rem;
+      overflow-x: auto;
+    }
+    .output-file-content pre {
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+    .output-file-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+    .output-file-content iframe {
+      width: 100%;
+      height: 600px;
+      border: none;
+    }
+    .output-file-content table {
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+      width: 100%;
+    }
+    .output-file-content table td,
+    .output-file-content table th {
+      border: 1px solid var(--border);
+      padding: 0.375rem 0.5rem;
+      text-align: left;
+    }
+    .output-file-content table th {
+      background: var(--bg);
+      font-weight: 600;
+    }
+    .output-file-content .download-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    .output-file-content .download-link:hover {
+      background: var(--border);
+    }
+    .empty-state {
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    /* ---- Feedback ---- */
+    .prev-feedback {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.625rem 0.75rem;
+      margin-top: 0.75rem;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .prev-feedback-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.25rem;
+      color: var(--text-muted);
+    }
+    .feedback-textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      resize: vertical;
+      color: var(--text);
+    }
+    .feedback-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    .feedback-status {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      min-height: 1.1em;
+    }
+
+    /* ---- Grades (collapsible) ---- */
+    .grades-toggle {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .grades-toggle:hover {
+      color: var(--accent);
+    }
+    .grades-toggle .arrow {
+      margin-right: 0.5rem;
+      transition: transform 0.15s;
+      font-size: 0.75rem;
+    }
+    .grades-toggle .arrow.open {
+      transform: rotate(90deg);
+    }
+    .grades-content {
+      display: none;
+      margin-top: 0.75rem;
+    }
+    .grades-content.open {
+      display: block;
+    }
+    .grades-summary {
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .grade-badge {
+      display: inline-block;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .grade-pass { background: var(--green-bg); color: var(--green); }
+    .grade-fail { background: var(--red-bg); color: var(--red); }
+    .assertion-list {
+      list-style: none;
+    }
+    .assertion-item {
+      padding: 0.625rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8125rem;
+    }
+    .assertion-item:last-child { border-bottom: none; }
+    .assertion-status {
+      font-weight: 600;
+      margin-right: 0.5rem;
+    }
+    .assertion-status.pass { color: var(--green); }
+    .assertion-status.fail { color: var(--red); }
+    .assertion-evidence {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+      padding-left: 1.5rem;
+    }
+
+    /* ---- View tabs ---- */
+    .view-tabs {
+      display: flex;
+      gap: 0;
+      padding: 0 2rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .view-tab {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.625rem 1.25rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .view-tab:hover { color: var(--text); }
+    .view-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .view-panel { display: none; }
+    .view-panel.active { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+    /* ---- Benchmark view ---- */
+    .benchmark-view {
+      padding: 1.5rem 2rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .benchmark-table {
+      border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.8125rem;
+      width: 100%;
+      margin-bottom: 1.5rem;
+    }
+    .benchmark-table th, .benchmark-table td {
+      padding: 0.625rem 0.75rem;
+      text-align: left;
+      border: 1px solid var(--border);
+    }
+    .benchmark-table th {
+      font-family: 'Poppins', sans-serif;
+      background: var(--header-bg);
+      color: var(--header-text);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .benchmark-table tr:hover { background: var(--bg); }
+    .benchmark-table tr.benchmark-row-with { background: rgba(33, 150, 243, 0.06); }
+    .benchmark-table tr.benchmark-row-without { background: rgba(255, 193, 7, 0.06); }
+    .benchmark-table tr.benchmark-row-with:hover { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-without:hover { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-table tr.benchmark-row-avg { font-weight: 600; border-top: 2px solid var(--border); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-with { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-without { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-delta-positive { color: var(--green); font-weight: 600; }
+    .benchmark-delta-negative { color: var(--red); font-weight: 600; }
+    .benchmark-notes {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+    }
+    .benchmark-notes h3 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+    }
+    .benchmark-notes ul {
+      list-style: disc;
+      padding-left: 1.25rem;
+    }
+    .benchmark-notes li {
+      font-size: 0.8125rem;
+      line-height: 1.6;
+      margin-bottom: 0.375rem;
+    }
+    .benchmark-empty {
+      color: var(--text-muted);
+      font-style: italic;
+      text-align: center;
+      padding: 3rem;
+    }
+
+    /* ---- Navigation ---- */
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .nav-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text);
+      transition: all 0.15s;
+    }
+    .nav-btn:hover:not(:disabled) {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .done-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .done-btn:hover {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .done-btn.ready {
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+    .done-btn.ready:hover {
+      background: var(--accent-hover);
+    }
+    /* ---- Done overlay ---- */
+    .done-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .done-overlay.visible {
+      display: flex;
+    }
+    .done-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 2rem 3rem;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+    }
+    .done-card h2 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .done-card p {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    .done-card .btn-row {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    .done-card button {
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+    .done-card button:hover {
+      background: var(--bg);
+    }
+    /* ---- Toast ---- */
+    .toast {
+      position: fixed;
+      bottom: 5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 0.625rem 1.25rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 200;
+    }
+    .toast.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" style="height:100vh; display:flex; flex-direction:column;">
+    <div class="header">
+      <div>
+        <h1>Eval Review: <span id="skill-name"></span></h1>
+        <div class="instructions">Review each output and leave feedback below. Navigate with arrow keys or buttons. When done, copy feedback and paste into Claude Code.</div>
+      </div>
+      <div class="progress" id="progress"></div>
+    </div>
+
+    <!-- View tabs (only shown when benchmark data exists) -->
+    <div class="view-tabs" id="view-tabs" style="display:none;">
+      <button class="view-tab active" onclick="switchView('outputs')">Outputs</button>
+      <button class="view-tab" onclick="switchView('benchmark')">Benchmark</button>
+    </div>
+
+    <!-- Outputs panel (qualitative review) -->
+    <div class="view-panel active" id="panel-outputs">
+    <div class="main">
+      <!-- Prompt -->
+      <div class="section">
+        <div class="section-header">Prompt <span class="config-badge" id="config-badge" style="display:none;"></span></div>
+        <div class="section-body">
+          <div class="prompt-text" id="prompt-text"></div>
+        </div>
+      </div>
+
+      <!-- Outputs -->
+      <div class="section">
+        <div class="section-header">Output</div>
+        <div class="section-body" id="outputs-body">
+          <div class="empty-state">No output files found</div>
+        </div>
+      </div>
+
+      <!-- Previous Output (collapsible) -->
+      <div class="section" id="prev-outputs-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="togglePrevOutputs()">
+            <span class="arrow" id="prev-outputs-arrow">&#9654;</span>
+            Previous Output
+          </div>
+        </div>
+        <div class="grades-content" id="prev-outputs-content"></div>
+      </div>
+
+      <!-- Grades (collapsible) -->
+      <div class="section" id="grades-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="toggleGrades()">
+            <span class="arrow" id="grades-arrow">&#9654;</span>
+            Formal Grades
+          </div>
+        </div>
+        <div class="grades-content" id="grades-content"></div>
+      </div>
+
+      <!-- Feedback -->
+      <div class="section">
+        <div class="section-header">Your Feedback</div>
+        <div class="section-body">
+          <textarea
+            class="feedback-textarea"
+            id="feedback"
+            placeholder="What do you think of this output? Any issues, suggestions, or things that look great?"
+          ></textarea>
+          <div class="feedback-status" id="feedback-status"></div>
+          <div class="prev-feedback" id="prev-feedback" style="display:none;">
+            <div class="prev-feedback-label">Previous feedback</div>
+            <div id="prev-feedback-text"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav" id="outputs-nav">
+      <button class="nav-btn" id="prev-btn" onclick="navigate(-1)">&#8592; Previous</button>
+      <button class="done-btn" id="done-btn" onclick="showDoneDialog()">Submit All Reviews</button>
+      <button class="nav-btn" id="next-btn" onclick="navigate(1)">Next &#8594;</button>
+    </div>
+    </div><!-- end panel-outputs -->
+
+    <!-- Benchmark panel (quantitative stats) -->
+    <div class="view-panel" id="panel-benchmark">
+      <div class="benchmark-view" id="benchmark-content">
+        <div class="benchmark-empty">No benchmark data available. Run a benchmark to see quantitative results here.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Done overlay -->
+  <div class="done-overlay" id="done-overlay">
+    <div class="done-card">
+      <h2>Review Complete</h2>
+      <p>Your feedback has been saved. Go back to your Claude Code session and tell Claude you're done reviewing.</p>
+      <div class="btn-row">
+        <button onclick="closeDoneDialog()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ---- Embedded data (injected by generate_review.py) ----
+    const EMBEDDED_DATA = {"skill_name": "querylex-optimize", "runs": [{"id": "sargable-predicate-rewrite-with_skill", "prompt": "Optimize this MySQL query that's running slow because YEAR() wraps the date column...", "eval_id": 1, "outputs": [{"name": "optimization_result.md", "type": "text", "content": "# Query Optimization Result\n\n## Metadata\n\n| Field | Value |\n|-------|-------|\n| **Active Database** | TPC-H MySQL (`tpch-mysql`, type: `mysql`, status: `indexed`) |\n| **Strategy Used** | Strategy 1 \u2014 Predicate and Projection Rewrite (Sargable Predicate) |\n| **Analysis Type** | Offline (DB not running; analysis based on cached index metadata + TPC-H schema knowledge) |\n| **Date** | 2026-06-11 |\n\n## Original SQL\n\n```sql\nSELECT o_orderkey, o_custkey, o_totalprice, o_orderdate\nFROM orders\nWHERE YEAR(o_orderdate) = 1994\nORDER BY o_orderdate DESC\n```\n\n## Problem Analysis\n\n### Root Cause: Non-Sargable Predicate\n\nThe function `YEAR(o_orderdate)` wraps the indexed column `o_orderdate`, which prevents MySQL from using `idx_orders_o_orderdate` (a BTREE index on `o_orderdate`). This makes the predicate **non-sargable** (Search ARGument ABLE).\n\n### Index Context (from cached QueryLex data)\n\n| Index | Columns | Type | Unique |\n|-------|---------|------|--------|\n| `PRIMARY` | `o_orderkey` ASC | BTREE | Yes |\n| `idx_orders_o_orderdate` | `o_orderdate` ASC | BTREE | No |\n| `idx_orders_o_custkey` | `o_custkey` ASC | BTREE | No |\n\n### Table Context\n\n| Table | Approx. Rows | Engine |\n|-------|-------------|--------|\n| `orders` | 1,500,000 (SF=1) | InnoDB |\n\n### Baseline Plan (expected)\n\n```\n-> Sort: o_orderdate DESC  (filesort \u2014 costly, on-disk sort for 1.5M scanned rows)\n   -> Filter: YEAR(o_orderdate) = 1994\n      -> Table scan on orders  (full scan of ~1.5M rows)\n```\n\n**Key problems in baseline plan:**\n\n1. **Full table scan on orders** \u2014 1.5M rows scanned because MySQL must evaluate `YEAR()` on every row; the index on `o_orderdate` is bypassed\n2. **Non-sargable predicate** \u2014 `YEAR(o_orderdate) = 1994` prevents index range scan, heuristic flag: `NON_SARGABLE_PREDICATE`\n3. **Filesort for ORDER BY** \u2014 even though `idx_orders_o_orderdate` exists, the full scan forces a separate sort pass (potentially on-disk temp table)\n\n### Heuristic Findings\n\n| Heuristic | Severity | Detail |\n|-----------|----------|--------|\n| `FULL_TABLE_SCAN` | HIGH | 1.5M row full scan on `orders` \u2014 the `idx_orders_o_orderdate` index exists but is not usable due to `YEAR()` wrapping |\n| `NON_SARGABLE_PREDICATE` | HIGH | `YEAR(o_orderdate)` prevents index usage on `o_orderdate` |\n| `EXCESSIVE_SORTING` | MEDIUM | `ORDER BY o_orderdate DESC` requires filesort since index cannot be used for the scan |\n\n## Optimized SQL\n\n```sql\nSELECT o_orderkey, o_custkey, o_totalprice, o_orderdate\nFROM orders\nWHERE o_orderdate >= '1994-01-01'\n  AND o_orderdate < '1995-01-01'\nORDER BY o_orderdate DESC\n```\n\n### What Changed\n\n| Change | Before | After |\n|--------|--------|-------|\n| **Predicate** | `YEAR(o_orderdate) = 1994` | `o_orderdate >= '1994-01-01' AND o_orderdate < '1995-01-01'` |\n| **Sargability** | Non-sargable (function on column) | Fully sargable (bare column with range operators) |\n| **Index usage** | `idx_orders_o_orderdate` unusable | `idx_orders_o_orderdate` used for range scan |\n\n### Why This Rewrite Works\n\n1. **Range equivalence**: `YEAR(date_col) = 1994` is semantically equivalent to `date_col >= '1994-01-01' AND date_col < '1995-01-01'`. All dates in 1994 fall in the half-open interval [1994-01-01, 1995-01-01).\n\n2. **Index usability**: With the bare column `o_orderdate` on both sides of the range operators, MySQL's optimizer can use `idx_orders_o_orderdate` (BTREE) for an **index range scan**. MySQL evaluates the range condition against the index B-tree structure directly \u2014 no function evaluation needed per row.\n\n3. **Sort elimination**: Because the index is on `o_orderdate ASC` and the query sorts `DESC`, MySQL can traverse the index **backwards** during the range scan, producing rows in `o_orderdate DESC` order directly from the index. This eliminates the filesort entirely.\n\n4. **Row reduction**: Instead of scanning 1.5M rows and filtering, the index range scan touches only the ~365/3650 \u2248 10% of rows that fall in the 1994 date range (assuming uniform date distribution over ~10 years for TPC-H). Expected row examination drops from 1.5M to ~150K.\n\n## Plan Comparison\n\n| Metric | Original (Expected) | Optimized (Expected) | Improvement |\n|--------|--------------------|--------------------|-------------|\n| **Access type** | `ALL` (full table scan) | `range` (index range scan) | Full scan eliminated |\n| **Key used** | `NULL` | `idx_orders_o_orderdate` | Index enabled |\n| **Rows examined** | ~1,500,000 | ~150,000 (est. 10%) | **~10x reduction** |\n| **Extra (sort)** | `Using filesort` | `Backward index scan` | Filesort eliminated |\n| **Using where** | Yes (evaluates YEAR per row) | Yes (range condition on index) | Predicate pushed to index |\n| **Temp table** | Possible (on-disk filesort) | None | Eliminated |\n\n### Expected EXPLAIN Output Comparison\n\n**Original:**\n```\n+----+-------------+--------+------+---------------+------+---------+------+---------+-----------------------------+\n| id | select_type | table  | type | possible_keys | key  | key_len | ref  | rows    | Extra                       |\n+----+-------------+--------+------+---------------+------+---------+------+---------+-----------------------------+\n|  1 | SIMPLE      | orders | ALL  | NULL          | NULL | NULL    | NULL | 1500000 | Using where; Using filesort |\n+----+-------------+--------+------+---------------+------+---------+------+---------+-----------------------------+\n```\n\n**Optimized:**\n```\n+----+-------------+--------+-------+-------------------------+-------------------------+---------+------+--------+----------------------------------+\n| id | select_type | table  | type  | possible_keys           | key                     | key_len | ref  | rows   | Extra                            |\n+----+-------------+--------+-------+-------------------------+-------------------------+---------+------+--------+----------------------------------+\n|  1 | SIMPLE      | orders | range | idx_orders_o_orderdate  | idx_orders_o_orderdate  | 4       | NULL | 150000 | Using index condition; Backward  |\n+----+-------------+--------+-------+-------------------------+-------------------------+---------+------+--------+----------------------------------+\n```\n\n## Rewrite Strategies Tried\n\n### Strategy 1: Predicate and Projection Rewrite (WINNER)\n\n**Action**: Unwrap `YEAR()` by replacing with a sargable date range.\n\n**Result**: Eliminates full table scan, enables `idx_orders_o_orderdate` range scan, eliminates filesort.\n\n### Strategy 2: Join and Subquery Rewrite\n\n**Not applicable** \u2014 the query is a single-table scan with no joins or subqueries.\n\n### Strategy 3: Aggregation and Query-Shape Rewrite\n\n**Not applicable** \u2014 the query has no aggregation, GROUP BY, HAVING, UNION, or window functions.\n\n## Context Coverage\n\n| Context Source | Status | Impact |\n|----------------|--------|--------|\n| **Schema** | Unavailable (DB offline) | Low \u2014 TPC-H schema is standard and well-known |\n| **Indexes** | Available (cached) | Confirmed `idx_orders_o_orderdate` on `o_orderdate` |\n| **Stats** | Unavailable (DB offline) | Medium \u2014 row counts inferred from TPC-H SF=1 spec |\n| **Joins** | Unavailable (DB offline) | None \u2014 single-table query, no join context needed |\n\n## Limitations\n\n- **Database not running** at `127.0.0.1:3307` \u2014 live `EXPLAIN` and `EXPLAIN ANALYZE` could not be executed. The plan comparison above shows the **expected** behavior based on MySQL optimizer rules and the known index structure.\n- **To verify**: start the TPC-H Docker containers (`make up` from `benchmarks/tpch/`), then run:\n  ```bash\n  querylex explain \"SELECT o_orderkey, o_custkey, o_totalprice, o_orderdate FROM orders WHERE o_orderdate >= '1994-01-01' AND o_orderdate < '1995-01-01' ORDER BY o_orderdate DESC\"\n  ```\n- **Statistics** could not be verified \u2014 actual row estimates depend on `innodb_stats_persistent` and histogram availability.\n\n## Appendix: Complete QueryLex Workflow Executed\n\n```\n# Step 2 \u2014 Preflight\nquerylex workspace-stats\n\u2192 Active: tpch-mysql (mysql, indexed)\n\n# Step 3 \u2014 Memory check\nquerylex memory \"<original SQL>\"\n\u2192 No cached match (similarity scoring used lexical fallback)\n\n# Step 4 \u2014 Validate\nquerylex validate \"<original SQL>\"\n\u2192 FAIL: DB not running \u2014 proceeded with offline analysis\n\n# Step 5 \u2014 Explain\nquerylex explain \"<original SQL>\"\n\u2192 SKIPPED: DB not running\n\n# Step 7 \u2014 Context\nquerylex indexes --table orders\n\u2192 SUCCESS (cached): idx_orders_o_orderdate confirmed on o_orderdate\nquerylex schema --table orders     \u2192 FAIL: DB not running\nquerylex stats --table orders      \u2192 FAIL: DB not running\nquerylex joins --table orders      \u2192 FAIL: DB not running\n\n# Step 9 \u2014 Rewrite\nStrategy 1: Predicate Rewrite (sargable)\n\u2192 Rewrite: YEAR() unwrapped to date range\n\u2192 Validate: SKIPPED (DB offline)\n\u2192 Explain: SKIPPED (DB offline)\n\u2192 Result: EXPECTED IMPROVEMENT \u2014 full scan \u2192 index range scan\n```\n"}], "grading": {"run_id": "sargable-predicate-rewrite-with_skill", "expectations": [{"text": "Output identifies YEAR(o_orderdate) as non-sargable and explains why it prevents index usage", "passed": true, "evidence": "Section 'Problem Analysis': 'The function YEAR(o_orderdate) wraps the indexed column o_orderdate, which prevents MySQL from using idx_orders_o_orderdate... makes the predicate non-sargable (Search ARGument ABLE).'"}, {"text": "Rewritten SQL uses a range condition (>= and <) instead of the YEAR() function", "passed": true, "evidence": "Optimized SQL section: WHERE o_orderdate >= '1994-01-01' AND o_orderdate < '1995-01-01'"}, {"text": "Plan comparison is included with before/after metrics (rows examined, access type, key used)", "passed": true, "evidence": "Plan Comparison table: rows examined (1.5M vs 150K), access type (ALL vs range), key used (NULL vs idx_orders_o_orderdate)"}, {"text": "Output explicitly mentions the index that would be used (idx_orders_date or idx_orders_o_orderdate)", "passed": true, "evidence": "Mentions 'idx_orders_o_orderdate' multiple times in the Plan Comparison and Index sections"}, {"text": "Output explains that ORDER BY DESC benefits from backward index scan", "passed": true, "evidence": "Section 'Why This Rewrite Works': 'MySQL can traverse the index backwards during the range scan... eliminates the filesort entirely.'"}]}}, {"id": "sargable-predicate-rewrite-without_skill", "prompt": "Optimize this MySQL query that's running slow because YEAR() wraps the date column...", "eval_id": 1, "outputs": [{"name": "optimization_result.md", "type": "text", "content": "# Sargable Predicate Rewrite: YEAR() to Range Condition\n\n## Problem Summary\n\nThe original query wraps `o_orderdate` in the `YEAR()` function, making the predicate **non-sargable** \u2014 MySQL cannot use the index on `o_orderdate` because the column is hidden inside a function expression. This forces a full table scan of all 1.5M rows.\n\n## Database Context\n\n- **Engine:** MySQL 8.x (TPC-H schema)\n- **Table:** `orders` \u2014 ~150,000 rows (1.5M in production-equivalent scale)\n- **Column:** `o_orderdate` (type: `date`, nullable: false)\n- **Index:** `idx_orders_date` on `(o_orderdate)` (BTREE, non-unique)\n\n## Query Comparison\n\n### Original (Non-Sargable)\n\n```sql\nSELECT o_orderkey, o_custkey, o_totalprice, o_orderdate\nFROM orders\nWHERE YEAR(o_orderdate) = 1994\nORDER BY o_orderdate DESC\n```\n\n**Problem:** `YEAR(o_orderdate)` prevents index usage. MySQL must:\n1. Full table scan of all ~150,000 rows\n2. Compute `YEAR()` on every row\n3. Filter matches\n4. Filesort for `ORDER BY` (since no index scan direction can be used)\n\n### Optimized (Sargable)\n\n```sql\nSELECT o_orderkey, o_custkey, o_totalprice, o_orderdate\nFROM orders\nWHERE o_orderdate >= '1994-01-01'\n  AND o_orderdate < '1995-01-01'\nORDER BY o_orderdate DESC\n```\n\n**Fix:** Replace `YEAR(o_orderdate) = 1994` with a bounded range condition. This:\n1. Uses `idx_orders_date` for an index range scan\n2. Translates `ORDER BY o_orderdate DESC` into a backward index scan (no filesort)\n3. Only touches rows in the date range, not the entire table\n\n## Explain Plan Comparison\n\nEvidence from QueryLex explain cache for equivalent patterns on this database:\n\n### Non-Sargable Pattern: `DATE(o_orderdate) = '1995-03-15'`\n\n| Metric | Value |\n|--------|-------|\n| **Strategy** | Full table scan on `orders` |\n| **Estimated Cost** | 15,165.35 |\n| **Rows Examined** | 148,526 (99.7% of table) |\n| **Index Used** | None |\n| **Sort** | Filesort (when ORDER BY present) |\n| **Warning** | None (but functionally expensive) |\n\n### Sargable Pattern: `o_orderdate = '1995-03-15'`\n\n| Metric | Value |\n|--------|-------|\n| **Strategy** | Index lookup on `idx_orders_date` |\n| **Estimated Cost** | 20.65 |\n| **Rows Examined** | 59 |\n| **Index Used** | `idx_orders_date` (access_type: `ref`) |\n| **Sort** | None (index order used) |\n\n### Projected Plan for Our Optimized Query\n\nSince our query spans a full year rather than a single day, the plan will use an **index range scan** on `idx_orders_date` rather than a single-value `ref` lookup:\n\n| Metric | Original (YEAR) | Optimized (Range) |\n|--------|-----------------|-------------------|\n| **Strategy** | Full table scan | Index range scan on `idx_orders_date` |\n| **Estimated Cost** | ~15,200 | ~2,700 (proportional to ~25k rows) |\n| **Rows Examined** | 150,000 (all) | ~25,000 (one year's worth) |\n| **Index Used** | None | `idx_orders_date` (range access) |\n| **Sort** | Filesort required | Backward index scan (no sort) |\n| **Improvement** | \u2014 | **~5.6x** cost reduction, **~6x** fewer rows |\n\nFor TPC-H scale factor 10 (1.5M rows), the improvement is even more dramatic:\n- Full scan: ~1,500,000 rows\n- Range scan: ~250,000 rows (index only)\n- **~6x fewer rows, index-backed sort for free**\n\n## Validation\n\n```sql\n-- Verify the rewrite is semantically equivalent:\n-- Both queries return rows where o_orderdate falls in calendar year 1994\n\n-- Validate the optimized query against schema:\n-- querylex validate \"SELECT o_orderkey, o_custkey, o_totalprice, o_orderdate FROM orders WHERE o_orderdate >= '1994-01-01' AND o_orderdate < '1995-01-01' ORDER BY o_orderdate DESC\"\n```\n\nFor MySQL specifically, the `BETWEEN` alternative is also valid but functionally identical to the `>= ... AND < ...` range:\n\n```sql\n-- Alternative (same plan):\nWHERE o_orderdate BETWEEN '1994-01-01' AND '1994-12-31'\n```\n\nThe `>= ... AND < ...` form is preferred because it's:\n- Independent of the last day of the month/year\n- Handles leap years correctly\n- Works identically for `DATE`, `DATETIME`, and `TIMESTAMP` columns\n\n## General Principle\n\n| Anti-Pattern | Sargable Rewrite |\n|-------------|-----------------|\n| `YEAR(col) = N` | `col >= 'N-01-01' AND col < '(N+1)-01-01'` |\n| `MONTH(col) = N` | `col >= 'yyyy-N-01' AND col < next-month` |\n| `DATE(col) = '...'` | `col >= '...' AND col < '...' + INTERVAL 1 DAY` |\n| `col + 0 = N` | `col = N` |\n| `col LIKE '%text'` | Full-text index or reconsider design |\n| `col / 100 = N` | `col BETWEEN N*100 AND (N+1)*100 - 1` |\n\n## Notes\n\n- **Database was not running** at analysis time. Analysis based on QueryLex cached explain plans from previous runs showing identical sargable vs non-sargable comparison on the same table (`DATE(o_orderdate)` vs direct `o_orderdate` comparison).\n- The cached evidence is definitive: the functional wrapper (whether `DATE()` or `YEAR()`) prevents index usage 100% of the time, and the bounded range rewrite enables the exact index that was designed for this query pattern.\n- Schema confirmed via `querylex indexes orders`: `idx_orders_date` (BTREE, non-unique) on `o_orderdate` exists and is available.\n"}], "grading": {"run_id": "sargable-predicate-rewrite-without_skill", "expectations": [{"text": "Output identifies YEAR(o_orderdate) as non-sargable and explains why it prevents index usage", "passed": true, "evidence": "Problem Summary section: 'the predicate non-sargable \u2014 MySQL cannot use the index on o_orderdate because the column is hidden inside a function expression.'"}, {"text": "Rewritten SQL uses a range condition (>= and <) instead of the YEAR() function", "passed": true, "evidence": "Optimized SQL: WHERE o_orderdate >= '1994-01-01' AND o_orderdate < '1995-01-01'"}, {"text": "Plan comparison is included with before/after metrics (rows examined, access type, key used)", "passed": true, "evidence": "Explain Plan Comparison section with cached evidence showing cost, rows, strategy, and index usage"}, {"text": "Output explicitly mentions the index that would be used (idx_orders_date or idx_orders_o_orderdate)", "passed": true, "evidence": "Mentions 'idx_orders_date' explicitly and shows it used for index range scan"}, {"text": "Output explains that ORDER BY DESC benefits from backward index scan", "passed": true, "evidence": "Optimized section: 'Translates ORDER BY o_orderdate DESC into a backward index scan (no filesort)'"}]}}, {"id": "function-unwrap-and-range-with_skill", "prompt": "Optimize this MySQL aggregation query that's running a full table scan on 6 million lineitem rows...", "eval_id": 2, "outputs": [{"name": "optimization_result.md", "type": "text", "content": "# SQL Optimization Result\n\n**Active Database:** TPC-H MySQL (`tpch-mysql`, type: `mysql`, status: `indexed`)  \n**Source:** `benchmarks/tpch/init/mysql/01-schema.sql`, `03-indexes.sql`  \n**Table:** `lineitem` (~6,001,215 rows at SF=1)  \n**Note:** Database container was not running at analysis time. Analysis performed using available schema/index definitions and the QueryLex skill methodology. Live validation with `querylex validate` and `querylex explain` should be run once the database is available to confirm plan improvements.\n\n---\n\n## Original SQL\n\n```sql\nSELECT DATE(l_shipdate) AS ship_day, COUNT(*) AS order_count, SUM(l_quantity) AS total_qty\nFROM lineitem\nWHERE DATE(l_shipdate) BETWEEN '1996-01-01' AND '1996-12-31'\nGROUP BY DATE(l_shipdate)\nORDER BY ship_day\n```\n\n---\n\n## Optimized SQL\n\n```sql\nSELECT l_shipdate AS ship_day, COUNT(*) AS order_count, SUM(l_quantity) AS total_qty\nFROM lineitem\nWHERE l_shipdate >= '1996-01-01' AND l_shipdate <= '1996-12-31'\nGROUP BY l_shipdate\nORDER BY l_shipdate\n```\n\n---\n\n## What Changed\n\n| # | Change | Reason |\n|---|--------|--------|\n| 1 | **Removed `DATE()` wrapping** in SELECT, WHERE, and GROUP BY | `l_shipdate` is already a `DATE NOT NULL` column. The `DATE()` function is a no-op on DATE-typed values but MySQL's optimizer treats it as a function call, making the predicate **non-sargable** and preventing the use of `idx_lineitem_shipdate`. |\n| 2 | **Converted `BETWEEN '1996-01-01' AND '1996-12-31'`** to `l_shipdate >= '1996-01-01' AND l_shipdate <= '1996-12-31'` | Explicit range conditions are unambiguous and work directly with B-tree index range scans. No semantic difference \u2014 both evaluate to the same date range. |\n| 3 | **Changed `ORDER BY ship_day`** to `ORDER BY l_shipdate` | Since `ship_day` is now an alias for the bare `l_shipdate` column, referencing the column directly allows the optimizer to recognize that GROUP BY and ORDER BY match the index sort order, enabling a loose index scan. |\n\n---\n\n## Plan Comparison (Expected)\n\n| Metric | Before (Original) | After (Optimized) |\n|--------|-------------------|-------------------|\n| **Access method** | Full table scan on `lineitem` (~6M rows) | Range scan on `idx_lineitem_shipdate` |\n| **Rows examined** | ~6,001,215 | ~365 date-bucket lookups from index |\n| **Index used** | None (`NULL` in EXPLAIN key column) | `idx_lineitem_shipdate` |\n| **GROUP BY method** | Using temporary; Using filesort | Using index for group-by (loose index scan) |\n| **ORDER BY method** | Using filesort | Using index (implicit from group-by) |\n| **Estimated cost** | High (sequential scan cost \u00d7 6M rows) | Low (B-tree range seek + index-only group-by) |\n| **Heuristics warnings** | `FULL_TABLE_SCAN`, `NON_SARGABLE_PREDICATE` | None |\n\n### Why the Index Was Not Used Before\n\n`idx_lineitem_shipdate` is a B-tree index on `l_shipdate` (line 12 of `03-indexes.sql`):\n\n```sql\nCREATE INDEX idx_lineitem_shipdate ON lineitem(l_shipdate);\n```\n\nThe original query wraps the column in `DATE(l_shipdate)`. Even though `l_shipdate` is already a `DATE` type, MySQL's query planner evaluates `DATE(l_shipdate)` as `DATE(l_shipdate)` \u2014 a function of the column \u2014 not `l_shipdate` itself. Index scans require a bare column reference (or a leading substring of a composite index). Function-wrapped columns require the engine to evaluate the function on every row, forcing a full table scan.\n\n---\n\n## Strategy Used: Strategy 1 \u2014 Predicate and Projection Rewrite\n\nFrom the skill workflow, Strategy 1 targets sargable predicate repair and function-unwrapping:\n\n> \"Replace `WHERE YEAR(date_col) = 2020` with `WHERE date_col >= '2020-01-01' AND date_col < '2021-01-01'`\"\n\nThe same principle applies: `DATE(l_shipdate) BETWEEN ...` \u2192 `l_shipdate >= ... AND l_shipdate <= ...`. This makes the filter sargable and allows the B-tree index on `l_shipdate` to drive the query with a range scan.\n\n---\n\n## Index Recommendation (Step 11)\n\nIf query performance is still insufficient after enabling the index range scan, consider a covering index for this specific aggregation pattern:\n\n```sql\nCREATE INDEX idx_lineitem_shipdate_qty ON lineitem(l_shipdate, l_quantity);\n```\n\n**Target:** Eliminates the need to read `l_quantity` from the clustered index (PK) after the secondary index lookup. With this composite index, the entire query \u2014 filter on `l_shipdate`, GROUP BY on `l_shipdate`, and SUM on `l_quantity` \u2014 can be satisfied entirely from the index, with zero table access (a **covering index scan**).\n\n**Expected impact:** Further reduction in I/O, as the engine reads only the index pages instead of index pages + table pages. The `COUNT(*)` becomes an index entry count rather than a row count.\n\n**Warning:** As always, test any new index in a non-production environment before deploying. Composite indexes add write overhead and storage cost.\n\n---\n\n## Context Coverage\n\n| Source | Status |\n|--------|--------|\n| Schema (`01-schema.sql`) | Available \u2014 `l_shipdate DATE NOT NULL` confirmed |\n| Indexes (`03-indexes.sql`) | Available \u2014 `idx_lineitem_shipdate ON lineitem(l_shipdate)` confirmed |\n| Stats (`querylex stats`) | Not available \u2014 database offline |\n| Joins (`querylex joins`) | N/A \u2014 single-table query, no join analysis needed |\n| Validate (`querylex validate`) | Not available \u2014 database offline |\n| Explain (`querylex explain`) | Not available \u2014 database offline |\n\n**Warning:** Plan comparison values are estimated based on known schema/indexes and the expected MySQL optimizer behavior. Run `querylex validate` and `querylex explain` against the live database to confirm.\n\n---\n\n## Recommended Verification Commands\n\nOnce the TPC-H MySQL container is running:\n\n```bash\nexport QUERYLEX_DB_PASSWORD=tpch\nexport QUERYLEX_KEYCHAIN_PASSPHRASE=tpch-passphrase\n\n# Validate the optimized SQL\nquerylex validate \"SELECT l_shipdate AS ship_day, COUNT(*) AS order_count, SUM(l_quantity) AS total_qty FROM lineitem WHERE l_shipdate >= '1996-01-01' AND l_shipdate <= '1996-12-31' GROUP BY l_shipdate ORDER BY l_shipdate\"\n\n# Compare explain plans\nquerylex explain \"SELECT DATE(l_shipdate) AS ship_day, COUNT(*) AS order_count, SUM(l_quantity) AS total_qty FROM lineitem WHERE DATE(l_shipdate) BETWEEN '1996-01-01' AND '1996-12-31' GROUP BY DATE(l_shipdate) ORDER BY ship_day\"\n\nquerylex explain \"SELECT l_shipdate AS ship_day, COUNT(*) AS order_count, SUM(l_quantity) AS total_qty FROM lineitem WHERE l_shipdate >= '1996-01-01' AND l_shipdate <= '1996-12-31' GROUP BY l_shipdate ORDER BY l_shipdate\"\n\n# Save the optimization to memory\nquerylex save \"SELECT DATE(l_shipdate) AS ship_day, COUNT(*) AS order_count, SUM(l_quantity) AS total_qty FROM lineitem WHERE DATE(l_shipdate) BETWEEN '1996-01-01' AND '1996-12-31' GROUP BY DATE(l_shipdate) ORDER BY ship_day\" \"SELECT l_shipdate AS ship_day, COUNT(*) AS order_count, SUM(l_quantity) AS total_qty FROM lineitem WHERE l_shipdate >= '1996-01-01' AND l_shipdate <= '1996-12-31' GROUP BY l_shipdate ORDER BY l_shipdate\"\n```\n"}], "grading": {"run_id": "function-unwrap-and-range-with_skill", "expectations": [{"text": "Output identifies DATE(l_shipdate) as redundant/non-sargable and explains that l_shipdate is already a DATE type", "passed": true, "evidence": "What Changed table: 'l_shipdate is already a DATE NOT NULL column. The DATE() function is a no-op on DATE-typed values but MySQL's optimizer treats it as a function call, making the predicate non-sargable.'"}, {"text": "Rewritten SQL removes DATE() from SELECT, WHERE, and GROUP BY clauses", "passed": true, "evidence": "Optimized SQL shows l_shipdate (not DATE(l_shipdate)) in SELECT, WHERE l_shipdate >=..., and GROUP BY l_shipdate"}, {"text": "Rewritten SQL converts BETWEEN to explicit range conditions or maintains sargable equivalents", "passed": true, "evidence": "WHERE clause: l_shipdate >= '1996-01-01' AND l_shipdate <= '1996-12-31'"}, {"text": "Plan comparison shows expected elimination of full table scan (type changes from ALL to range)", "passed": true, "evidence": "Plan Comparison table: Access method changes from 'Full table scan on lineitem (~6M rows)' to 'Range scan on idx_lineitem_shipdate'"}, {"text": "Output includes or considers an index recommendation (covering index or composite index)", "passed": true, "evidence": "Index Recommendation section: CREATE INDEX idx_lineitem_shipdate_qty ON lineitem(l_shipdate, l_quantity)"}]}}, {"id": "function-unwrap-and-range-without_skill", "prompt": "Optimize this MySQL aggregation query that's running a full table scan on 6 million lineitem rows...", "eval_id": 2, "outputs": [{"name": "optimization_result.md", "type": "text", "content": "# MySQL Aggregation Query Optimization: DATE() Unwrap + Range Scan\n\n## Original Query\n\n```sql\nSELECT DATE(l_shipdate) AS ship_day, COUNT(*) AS order_count, SUM(l_quantity) AS total_qty\nFROM lineitem\nWHERE DATE(l_shipdate) BETWEEN '1996-01-01' AND '1996-12-31'\nGROUP BY DATE(l_shipdate)\nORDER BY ship_day\n```\n\n## Schema Context (from QueryLex indexed artifacts)\n\n**Table:** `lineitem` (TPC-H, ~6,000,000 rows)\n\n| Column | Type | Nullable |\n|---|---|---|\n| l_orderkey | int | NO |\n| l_partkey | int | NO |\n| l_suppkey | int | NO |\n| l_linenumber | int | NO |\n| l_quantity | decimal(15,2) | NO |\n| l_extendedprice | decimal(15,2) | NO |\n| l_discount | decimal(15,2) | NO |\n| l_tax | decimal(15,2) | NO |\n| l_returnflag | char(1) | NO |\n| l_linestatus | char(1) | NO |\n| **l_shipdate** | **date** | **NO** |\n| l_commitdate | date | NO |\n| l_receiptdate | date | NO |\n| l_shipinstruct | char(25) | NO |\n| l_shipmode | char(10) | NO |\n| l_comment | varchar(44) | NO |\n\n**Indexes on lineitem:**\n\n| Index Name | Columns | Unique |\n|---|---|---|\n| PRIMARY | l_orderkey, l_linenumber | No |\n| idx_lineitem_orderkey | l_orderkey | No |\n| idx_lineitem_partkey_suppkey | l_partkey, l_suppkey | No |\n| **idx_lineitem_shipdate** | **l_shipdate** | **No** |\n\n---\n\n## Problem Analysis\n\n### 1. Redundant `DATE()` wrapper (CRITICAL)\n\n`l_shipdate` is already a `date` type column. The `DATE()` function:\n\n- Does nothing useful (date column \u2192 date value is identity)\n- **Prevents index usage** \u2014 MySQL cannot use `idx_lineitem_shipdate` when the column is wrapped in a function\n- Forces a **full table scan** of all ~6,000,000 lineitem rows\n- Also forces a **temporary table + filesort** for `GROUP BY DATE(l_shipdate)` since the function result has no index ordering\n\n### 2. `BETWEEN` with date boundaries (MINOR)\n\nWhile `BETWEEN '1996-01-01' AND '1996-12-31'` is semantically clear after removing `DATE()`, it still:\n- Relies on MySQL interpreting the string literals as dates (implicit conversion)\n- Using explicit range operators (`>= AND <`) is more explicit and avoids any edge cases with `BETWEEN`'s inclusive upper bound on datetime types\n\n---\n\n## Optimized Query\n\n```sql\nSELECT l_shipdate AS ship_day, COUNT(*) AS order_count, SUM(l_quantity) AS total_qty\nFROM lineitem\nWHERE l_shipdate >= '1996-01-01' AND l_shipdate < '1997-01-01'\nGROUP BY l_shipdate\nORDER BY l_shipdate\n```\n\n---\n\n## What Changed\n\n| Aspect | Original | Optimized | Impact |\n|---|---|---|---|\n| **SELECT** | `DATE(l_shipdate)` | `l_shipdate` | Removes redundant function call; `l_shipdate` is already `date` type |\n| **WHERE** | `DATE(l_shipdate) BETWEEN '1996-01-01' AND '1996-12-31'` | `l_shipdate >= '1996-01-01' AND l_shipdate < '1997-01-01'` | Bare column enables index range scan on `idx_lineitem_shipdate` |\n| **GROUP BY** | `DATE(l_shipdate)` | `l_shipdate` | Allows MySQL to use index ordering for grouping, avoiding filesort |\n| **ORDER BY** | `ship_day` (alias) | `l_shipdate` (explicit) | Direct reference to indexed column; identical semantics |\n\n---\n\n## Execution Plan Comparison\n\n### Original (estimated)\n\n```\nTable scan: lineitem (~6,000,000 rows examined)\nType: ALL (full table scan)\nKey: NULL \u2014 no index usable due to DATE() wrapper\nExtra: Using where; Using temporary; Using filesort\nEstimated cost: Very high \u2014 linear scan of all 6M rows\n```\n\n### Optimized (estimated)\n\n```\nTable scan: lineitem (limited range, ~365 days)\nType: range\nKey: idx_lineitem_shipdate\nKey length: 4 (date type = 3 bytes + nullable)\nExtra: Using index condition; Using where (no temp, no filesort)\nRows examined: ~240,000 (approximately 365/3650 days = ~10% of total if uniformly distributed)\nEstimated cost: Low \u2014 B-tree range scan + index-only grouping\n```\n\n---\n\n## Performance Estimates\n\n| Metric | Original | Optimized | Improvement |\n|---|---|---|---|\n| **Rows examined** | ~6,000,000 | ~240,000 (est.) | ~25x fewer |\n| **Scan type** | Full table scan (ALL) | Index range scan (range) | Index seeks instead of sequential scan |\n| **Sorting** | Filesort (temporary table) | Index-ordered (no sort) | Eliminates temp disk I/O |\n| **Index used** | None | idx_lineitem_shipdate | Leverages existing index |\n| **Disk I/O** | Full table read (~1.5GB) | Index scan + row reads (~60MB) | ~25x less I/O |\n\n**Expected speedup:** 20-50x on 6M row table, depending on buffer pool state and storage engine.\n\n---\n\n## Validation Note\n\nThe MySQL database (`tpch-mysql` on `localhost:3307`) was not running during this analysis, so actual EXPLAIN output could not be generated via `querylex explain`. The analysis above is based on:\n\n1. **QueryLex indexed schema artifacts** (`schema.json`, `schema_map.json`) \u2014 confirming `l_shipdate` is `date` type and `idx_lineitem_shipdate` exists\n2. **MySQL optimizer behavior** \u2014 the rule that function-wrapped columns (`DATE(col)`, `YEAR(col)`, `LOWER(col)`, etc.) disable index usage is well-established MySQL behavior\n3. **TPC-H dataset profile** \u2014 lineitem has ~6M rows for scale factor 1\n\nTo verify with a live database, run:\n\n```bash\nQUERYLEX_KEYCHAIN_PASSPHRASE=\"<passphrase>\" querylex explain \"SELECT l_shipdate AS ship_day, COUNT(*) AS order_count, SUM(l_quantity) AS total_qty FROM lineitem WHERE l_shipdate >= '1996-01-01' AND l_shipdate < '1997-01-01' GROUP BY l_shipdate ORDER BY l_shipdate\"\n```\n\n---\n\n## Additional Optimization (if l_shipdate coverage is needed)\n\nIf this query is run frequently and the table grows, consider a covering index that includes the aggregated column:\n\n```sql\nCREATE INDEX idx_lineitem_shipdate_covering ON lineitem (l_shipdate, l_quantity);\n```\n\nThis would allow **index-only scans** (no table access), reducing I/O further since MySQL can read `l_quantity` directly from the index.\n\n---\n\nGenerated: 2026-06-11 | Source: QueryLex schema artifacts + MySQL optimization heuristics\n"}], "grading": {"run_id": "function-unwrap-and-range-without_skill", "expectations": [{"text": "Output identifies DATE(l_shipdate) as redundant/non-sargable and explains that l_shipdate is already a DATE type", "passed": true, "evidence": "Problem Analysis: 'l_shipdate is already a date type column. The DATE() function... does nothing useful... prevents index usage.'"}, {"text": "Rewritten SQL removes DATE() from SELECT, WHERE, and GROUP BY clauses", "passed": true, "evidence": "Optimized Query: SELECT l_shipdate ... WHERE l_shipdate >= ... AND l_shipdate < ... GROUP BY l_shipdate ORDER BY l_shipdate"}, {"text": "Rewritten SQL converts BETWEEN to explicit range conditions or maintains sargable equivalents", "passed": true, "evidence": "WHERE uses >= AND < range instead of BETWEEN"}, {"text": "Plan comparison shows expected elimination of full table scan (type changes from ALL to range)", "passed": true, "evidence": "Plan Comparison: scan type changes from ALL (full table scan) to range, rows from 6M to ~240K"}, {"text": "Output includes or considers an index recommendation (covering index or composite index)", "passed": true, "evidence": "Additional Optimization section: CREATE INDEX idx_lineitem_shipdate_covering ON lineitem (l_shipdate, l_quantity)"}]}}, {"id": "join-optimization-with_skill", "prompt": "Optimize this MySQL join query joining customer (150K rows) and orders (1.5M rows)...", "eval_id": 3, "outputs": [{"name": "optimization_result.md", "type": "text", "content": "# Query Optimization Result\n\n**Database:** TPC-H MySQL (`tpch-mysql`)  \n**Dialect:** MySQL 8.0  \n**Date:** 2026-06-11  \n**Methodology:** QueryLex 12-step workflow (plan analysis via heuristic methodology \u2014 MySQL container was not running at analysis time)\n\n---\n\n## Original SQL\n\n```sql\nSELECT c.c_name, c.c_mktsegment, o.o_orderpriority, COUNT(*) as order_count\nFROM customer c\nJOIN orders o ON c.c_custkey = o.o_custkey\nWHERE o.o_orderdate >= '1995-01-01'\n  AND c.c_mktsegment = 'BUILDING'\nGROUP BY c.c_name, c.c_mktsegment, o.o_orderpriority\nORDER BY order_count DESC\nLIMIT 100\n```\n\n---\n\n## Context Summary\n\n| Source | Status |\n|--------|--------|\n| Workspace | `tpch-mysql` active, status `indexed` |\n| Schema | TPC-H standard: `customer` (150K), `orders` (1.5M) |\n| Indexes | `idx_orders_custkey` (o_custkey), `idx_orders_date` (o_orderdate), `idx_customer_nationkey` (c_nationkey) |\n| Joins | FK path: `customer.c_custkey` \u2192 `orders.o_custkey` |\n| Stats | Row counts from TPC-H SF=1 (customer=150K, orders=1.5M) |\n| Memory | No cached optimization found |\n\n---\n\n## Baseline Plan Analysis (Expected)\n\nMySQL's optimizer would likely produce this plan for the original query:\n\n```\n1. Table scan on orders via idx_orders_date (range on o_orderdate >= '1995-01-01')\n   \u2192 ~1.1M rows filtered from 1.5M (orders from 1995 onward at SF=1)\n2. Nested loop join to customer via idx_orders_custkey / PRIMARY KEY\n   \u2192 ~1.1M lookups into customer\n3. Filter customer by c_mktsegment = 'BUILDING' (applied per-row during join)\n4. GROUP BY c_name, c_mktsegment, o_orderpriority\n   \u2192 Creates temporary table + filesort (Using temporary; Using filesort)\n   \u2192 Groups ~100K+ rows (BUILDING segment \u2248 5% of 150K = ~7.5K customers \u00d7 N orders)\n5. ORDER BY COUNT(*) DESC \u2192 filesort on aggregate result\n6. LIMIT 100\n```\n\n### Problems Identified\n\n| Priority | Problem | Impact |\n|----------|---------|--------|\n| **P1** | `Using temporary; Using filesort` for GROUP BY across columns from two tables | Creates temp table on disk for intermediate grouping, major I/O cost |\n| **P2** | No index on `customer.c_mktsegment` | Filtering 150K customers without index forces full scan lookups per joined row |\n| **P3** | Large intermediate result before aggregation | ~1.1M order rows joined to ~150K customer rows before GROUP BY reduces the data volume |\n| **P4** | GROUP BY includes `c_name` (VARCHAR, variable width) | Increases temp table size and makes index-based grouping impossible |\n\n---\n\n## Strategy Attempts\n\n### Strategy 1: Predicate and Projection Rewrite\n\n**Assessment:** The WHERE predicates are already sargable. `o_orderdate >= '1995-01-01'` can use `idx_orders_date`. `c_mktsegment = 'BUILDING'` is also sargable but lacks an index. No function wrapping exists. No `SELECT *` issue.\n\n**Verdict:** No predicate rewrite improves this query. The bottleneck is structural (GROUP BY temp table).\n\n### Strategy 2: Join and Subquery Rewrite\n\n**Attempt 2A \u2014 Derived table for customer filter:**\n\n```sql\nSELECT c.c_name, c.c_mktsegment, o.o_orderpriority, COUNT(*) as order_count\nFROM (\n  SELECT c_custkey, c_name, c_mktsegment\n  FROM customer\n  WHERE c_mktsegment = 'BUILDING'\n) c\nJOIN orders o ON c.c_custkey = o.o_custkey\nWHERE o.o_orderdate >= '1995-01-01'\nGROUP BY c.c_name, c.c_mktsegment, o.o_orderpriority\nORDER BY order_count DESC\nLIMIT 100\n```\n\n**Assessment:** Marginally reduces rows joined (only BUILDING customers enter the join), but without an index on `c_mktsegment`, the derived table still performs a full scan on customer. The GROUP BY temp table problem persists. Not a meaningful improvement.\n\n**Attempt 2B \u2014 STRAIGHT_JOIN from customer to orders:**\n\n```sql\nSELECT c.c_name, c.c_mktsegment, o.o_orderpriority, COUNT(*) as order_count\nFROM customer c\nSTRAIGHT_JOIN orders o ON c.c_custkey = o.o_custkey\nWHERE c.c_mktsegment = 'BUILDING'\n  AND o.o_orderdate >= '1995-01-01'\nGROUP BY c.c_name, c.c_mktsegment, o.o_orderpriority\nORDER BY order_count DESC\nLIMIT 100\n```\n\n**Assessment:** Forces MySQL to start from customer (150K full scan \u2192 filter to ~7.5K BUILDING rows), then join to orders. Still has GROUP BY temp table. Without an index on `c_mktsegment`, the customer scan is still expensive.\n\n### Strategy 3: Aggregation and Query-Shape Rewrite \u2605 WINNER\n\n**Optimized SQL:**\n\n```sql\nSELECT c.c_name, c.c_mktsegment, agg.o_orderpriority, agg.order_count\nFROM customer c\nJOIN (\n  SELECT o_custkey, o_orderpriority, COUNT(*) AS order_count\n  FROM orders\n  WHERE o_orderdate >= '1995-01-01'\n  GROUP BY o_custkey, o_orderpriority\n) agg ON c.c_custkey = agg.o_custkey\nWHERE c.c_mktsegment = 'BUILDING'\nORDER BY agg.order_count DESC\nLIMIT 100\n```\n\n**What changed:**\n\n1. **Pre-aggregate orders before the join.** The subquery groups orders by `(o_custkey, o_orderpriority)` directly, producing one row per customer+priority combination instead of one row per order. This reduces the result from ~1.1M order rows to ~50K\u2013100K aggregated rows (one per customer+priority with date filter).\n\n2. **The GROUP BY in the subquery works on a single table** (orders) with a date range filter using `idx_orders_date`. MySQL can use the index for the range scan and then group \u2014 still uses a temp table, but over a much smaller working set in a simpler single-table context.\n\n3. **The outer query has no GROUP BY.** After joining the pre-aggregated data to customer, there is no aggregation left to do \u2014 each (customer, priority) pair already has its count. This eliminates the post-join temp table entirely.\n\n4. **Semantic safety:** `c.custkey` is the PRIMARY KEY of customer, so `c_name` and `c_mktsegment` are functionally dependent. Grouping by `o_custkey` in the subquery is equivalent to grouping by `c_name, c_mktsegment` in the original, since each `o_custkey` maps to exactly one customer name and segment.\n\n**Why this works better than Strategy 1\u20132 rewrites:**\n- Moves aggregation before the join, radically reducing the join input size\n- Eliminates the post-join GROUP BY (which was the primary temp-table bottleneck)\n- The orders subquery can still use `idx_orders_date` for the range filter\n- The remaining outer query is a simple filtered join + sort with LIMIT 100\n\n---\n\n## Plan Comparison (Expected)\n\n### Baseline Plan (Original SQL)\n\n```\nid | select_type | table | type   | possible_keys                    | key              | rows    | Extra\n1  | SIMPLE      | o     | range  | idx_orders_date,idx_orders_cust  | idx_orders_date  | ~1.1M   | Using index condition\n1  | SIMPLE      | c     | eq_ref | PRIMARY                          | PRIMARY          | 1       | Using where\n                                                        \u2191 Using temporary; Using filesort \u2191\nEstimated cost:    ~100,000  (dominated by temp table sort on 1.1M joined rows)\nRows examined:     ~1.1M from orders + 1.1M customer lookups\nTemp table:        Yes (on-disk, wide VARCHAR key for c_name)\nFilesort:          Yes (for ORDER BY COUNT(*) DESC)\n```\n\n### Optimized SQL Plan (Expected)\n\n```\nid | select_type | table      | type   | possible_keys              | key              | rows    | Extra\n1  | PRIMARY     | <derived2> | ALL    |                            |                  | ~70K    |\n1  | PRIMARY     | c          | eq_ref | PRIMARY                    | PRIMARY          | 1       | Using where\n2  | DERIVED     | o          | range  | idx_orders_date            | idx_orders_date  | ~1.1M   | Using where; Using temporary; Using filesort\n                                                        \u2191 temp table on subquery only \u2191\nEstimated cost:    ~35,000  (reduced join size, no outer GROUP BY)\nRows examined:     ~1.1M orders + ~70K derived join + ~7.5K customer rows\nTemp table:        Yes (subquery only \u2014 smaller, single-table, no VARCHAR customer name)\nFilesort:          Yes (but on pre-aggregated ~70K result set, not 1.1M)\n```\n\n### Key Metric Changes\n\n| Metric | Baseline | Optimized | Delta |\n|--------|----------|-----------|-------|\n| Post-join GROUP BY temp table | Yes (1.1M rows, wide) | **Eliminated** | Major win |\n| Join input size (non-customer) | ~1.1M raw order rows | ~70K aggregated rows | **~15x reduction** |\n| Customer rows in join | ~1.1M lookups | ~7.5K filtered rows | **~150x reduction** |\n| Sort input size for ORDER BY | ~100K grouped rows | ~5K-10K post-join rows | **~10x reduction** |\n| Filesort location | Outer query (after join) | Subquery only | Better locality |\n\n---\n\n## Index Recommendation\n\nThe SQL rewrite addresses the temp-table bottleneck, but a missing index on `customer.c_mktsegment` remains a secondary concern. This index benefits both the original and optimized queries.\n\n### Recommended Index\n\n```sql\nCREATE INDEX idx_customer_mktsegment_custkey ON customer(c_mktsegment, c_custkey);\n```\n\n**What it targets:**\n- The `WHERE c.c_mktsegment = 'BUILDING'` filter \u2014 converts a full table scan (in the optimized query, or 1.1M individual PK lookups with WHERE pushdown in the baseline) into an index range scan\n- The composite with `c_custkey` makes the index slightly covering, letting MySQL avoid a second PK lookup for the join column\n\n**Expected impact:**\n- `type: ALL` on customer \u2192 `type: ref` on idx_customer_mktsegment_custkey\n- Customer filter cost reduced from ~150K row scan to ~7.5K index range scan\n- Additional ~10\u201315% cost reduction on top of the SQL rewrite improvement\n\n**Warning:** Create and test in a non-production environment first. Verify with `EXPLAIN` that the optimizer actually uses this index. On MySQL 8.0, run `ANALYZE TABLE customer` after creating the index to update histogram statistics.\n\n### Optional: Composite Orders Index (if write overhead is acceptable)\n\n```sql\nCREATE INDEX idx_orders_date_custkey_priority ON orders(o_orderdate, o_custkey, o_orderpriority);\n```\n\nThis would serve as a covering index for the pre-aggregation subquery, eliminating the need to read `orders` table rows at all (index-only scan). However, at 3 columns on a 1.5M-row table with frequent inserts, evaluate the write-amplification trade-off.\n\n---\n\n## Warnings\n\n- **Database not accessible during analysis.** The explain plans above are expected/heuristic, not measured. Actual MySQL 8.0 optimizer behavior may differ depending on `innodb_buffer_pool_size`, `tmp_table_size`, `max_heap_table_size`, and statistics freshness. Run `EXPLAIN` and `EXPLAIN ANALYZE` against the live database to confirm.\n- **Embeddings unavailable** (embeddings service not configured). Memory similarity used lexical matching only.\n- **Stale artifacts risk is low** since TPC-H is a static benchmark schema.\n\n---\n\n## Summary\n\n| Item | Detail |\n|------|--------|\n| **Winning strategy** | Strategy 3 \u2014 Aggregation and Query-Shape Rewrite |\n| **Primary change** | Pre-aggregate orders by `(o_custkey, o_orderpriority)` inside a derived table before joining to customer |\n| **Why it wins** | Eliminates the post-join GROUP BY temp table (the #1 bottleneck), reduces join input by ~15x |\n| **Index recommendation** | `CREATE INDEX idx_customer_mktsegment_custkey ON customer(c_mktsegment, c_custkey)` |\n| **Estimated cost reduction** | ~65% (100K \u2192 ~35K estimated cost units) |\n"}], "grading": {"run_id": "join-optimization-with_skill", "expectations": [{"text": "Output identifies the GROUP BY temp table or filesort as a key bottleneck", "passed": true, "evidence": "Problems Identified table: P1 'Using temporary; Using filesort for GROUP BY across columns from two tables... Creates temp table on disk, major I/O cost'"}, {"text": "Output proposes a structural rewrite (derived table with pre-aggregation, subquery-to-join, or join reordering)", "passed": true, "evidence": "Strategy 3: pre-aggregates orders inside a derived table (SELECT o_custkey, o_orderpriority, COUNT(*) AS order_count FROM orders ... GROUP BY o_custkey, o_orderpriority) then joins to customer"}, {"text": "Output includes at least one index recommendation with CREATE INDEX syntax", "passed": true, "evidence": "Index Recommendation section: CREATE INDEX idx_customer_mktsegment_custkey ON customer(c_mktsegment, c_custkey)"}, {"text": "Plan comparison is included with before/after metrics on rows examined or cost estimates", "passed": true, "evidence": "Key Metric Changes table: rows, cost, temp table, filesort, join input compared before/after (~65% cost reduction)"}, {"text": "Output explains why the rewrite reduces intermediate result size or eliminates temp table operations", "passed": true, "evidence": "Why this works: 'Moves aggregation before the join, radically reducing the join input size... eliminates the post-join GROUP BY (which was the primary temp-table bottleneck)'"}]}}, {"id": "join-optimization-without_skill", "prompt": "Optimize this MySQL join query joining customer (150K rows) and orders (1.5M rows)...", "eval_id": 3, "outputs": [{"name": "optimization_result.md", "type": "text", "content": "# MySQL Join Query Optimization: customer o orders \u2014 GROUP BY Temp Table\n\n## Environment\n\n- **Database:** MySQL 8.x (TPC-H benchmark schema)\n- **Database status:** Server is **not running** on port 3307\n- **Analysis method:** Static schema analysis + historical EXPLAIN ANALYZE cache (40 cached plans from QueryLex)\n- **Workspace:** TPC-H MySQL (`tpch-mysql`), fully indexed artifacts\n- **Schema artifacts:** schema.json, schema_map.json, join_graph.json, domain_map.json, indexes, terminologies all present\n\n## Original Query\n\n```sql\nSELECT c.c_name, c.c_mktsegment, o.o_orderpriority, COUNT(*) as order_count\nFROM customer c\nJOIN orders o ON c.c_custkey = o.o_custkey\nWHERE o.o_orderdate >= '1995-01-01'\n  AND c.c_mktsegment = 'BUILDING'\nGROUP BY c.c_name, c.c_mktsegment, o.o_orderpriority\nORDER BY order_count DESC\nLIMIT 100\n```\n\n### Table Sizes\n| Table | Rows |\n|-------|------|\n| customer | ~150,000 |\n| orders | ~1,500,000 |\n\n### Current Indexes\n| Table | Index | Columns | Type |\n|-------|-------|---------|------|\n| customer | PRIMARY | (c_custkey) | BTREE, UNIQUE |\n| customer | idx_customer_nationkey | (c_nationkey) | BTREE |\n| orders | PRIMARY | (o_orderkey) | BTREE, UNIQUE |\n| orders | idx_orders_date | (o_orderdate) | BTREE |\n| orders | idx_orders_custkey | (o_custkey) | BTREE |\n\n---\n\n## Original Execution Plan (projected from cached EXPLAIN ANALYZE)\n\nClosest cached match: `sha256:cf32be60e6b9` \u2014 a similar join query without GROUP BY on the same dataset:\n\n```\n-> Limit: 100 row(s)\n    -> Sort: order_count DESC, limit input to 100 row(s) per chunk      !!! TEMP TABLE + FILESORT\n        -> Table scan on <temporary>                                     !!! TEMP TABLE\n            -> Aggregate: COUNT(*), GROUP BY c.c_name, c.c_mktsegment, o.o_orderpriority\n                -> Nested loop inner join  (rows=~160,000)\n                    -> Filter: (c.c_mktsegment = 'BUILDING')  (rows=~30,000)          *** FULL SCAN\n                        -> Table scan on c  (rows=150,000)                            *** 150K rows\n                    -> Filter: (o.o_orderdate >= '1995-01-01')  (rows=10 avg)         *** POST-JOIN FILTER\n                        -> Index lookup on o using idx_orders_custkey (o_custkey=c.c_custkey)\n```\n\n### Three Bottlenecks Identified\n\n| # | Bottleneck | Impact | Cause |\n|---|-----------|--------|-------|\n| 1 | **Full table scan on customer** | Scans all 150K rows | No index on `c_mktsegment` \u2014 MySQL must scan all customers to find the ~20% matching 'BUILDING' |\n| 2 | **Post-join date filtering** | 10 rows looked up per customer, then date-filtered row-by-row | `idx_orders_custkey` is single-column; `o_orderdate` filtering happens after index lookup, not within it |\n| 3 | **Temporary table for GROUP BY + sort** | Creates on-disk temp table for aggregation, then filesort for ORDER BY | GROUP BY on heterogeneous columns (c_name from customer, o_orderpriority from orders) can't use an index; ORDER BY on aggregate differs from GROUP BY columns |\n\n---\n\n## Index Recommendations\n\n### Index 1: `idx_customer_mktsegment`\n```sql\nCREATE INDEX idx_customer_mktsegment ON customer (c_mktsegment);\n```\n- **Eliminates** full scan on customer (150K \u2192 ~30K index lookups for 'BUILDING')\n- **Impact:** ~1.3ms saved on customer scan (validated in cached EXPLAIN: 4.42ms \u2192 0.83ms)\n\n### Index 2: `idx_orders_custkey_date` (composite)\n```sql\nCREATE INDEX idx_orders_custkey_date ON orders (o_custkey, o_orderdate);\n```\n- **Eliminates** post-join date filter \u2014 date predicate becomes part of index condition\n- Makes both JOIN key and date filter a **single index seek** instead of index lookup + row evaluation\n- **Impact:** ~1.4ms saved per customer iteration (validated in cached EXPLAIN: 0.014ms \u2192 0.004ms per loop, 30K loops)\n\n### Index 3: `idx_orders_custkey_date_priority` (3-column composite, optional)\n```sql\nCREATE INDEX idx_orders_custkey_date_priority ON orders (o_custkey, o_orderdate, o_orderpriority);\n```\n- Extends Index 2 to cover `o_orderpriority` for GROUP BY\n- Allows MySQL to use **loose index scan** or **index condition pushdown** for the derived-table aggregation\n- Reduces temp table size by making the inner aggregation index-aware\n\n---\n\n## Optimized Query\n\n### Rewrite: Pre-aggregate orders (Recommended)\n\n```sql\nSELECT c.c_name, c.c_mktsegment, o.o_orderpriority, o.order_count\nFROM customer c\nJOIN (\n    SELECT o_custkey, o_orderpriority, COUNT(*) as order_count\n    FROM orders\n    WHERE o_orderdate >= '1995-01-01'\n    GROUP BY o_custkey, o_orderpriority\n) o ON c.c_custkey = o.o_custkey\nWHERE c.c_mktsegment = 'BUILDING'\nORDER BY o.order_count DESC\nLIMIT 100;\n```\n\n### Why this rewrite helps\n\n| Aspect | Original Query | Optimized Query |\n|--------|---------------|-----------------|\n| **Join cardinality** | Joins customer to **all** matching orders, then groups | Groups orders **first** (reducing to ~1 row per customer+priority), then joins |\n| **Temp table scope** | Aggregates over joined result (hundreds of rows per customer) | Aggregates over orders only (pre-join), smaller working set |\n| **GROUP BY columns** | Mix of customer and orders columns \u2192 forces temp table | Inner GROUP BY uses orders columns only \u2192 better index alignment |\n| **Index support** | `idx_orders_custkey` used for join, `idx_orders_date` unused | `idx_orders_date` can drive the WHERE filter in subquery |\n| **Outer sort** | Sorts all aggregated rows | Sorts pre-aggregated, post-filtered rows (fewer rows) |\n\n### With all 3 recommended indexes, the derived table can optimize further:\n\n```\n-> Limit: 100 row(s)\n    -> Sort: o.order_count DESC, limit input to 100 row(s)\n        -> Nested loop inner join  (rows=~30,000)\n            -> Covering index lookup on c using idx_customer_mktsegment (c_mktsegment='BUILDING')  \n            -> Filter: (o_custkey = c.c_custkey)  \n                -> Covering index lookup on derived table using auto_key0\n```\n\n---\n\n## Plan Comparison\n\n### Estimated Performance (SF=10 scale, ~150K customer / ~1.5M orders)\n\n| Metric | Original | With Indexes 1+2 | With Indexes 1+2+3 + Rewrite |\n|--------|----------|-----------------|------------------------------|\n| **Customer access** | Table scan 150K rows | Index lookup ~30K rows | Index lookup ~30K rows |\n| **Orders access** | 30K \u00d7 10 = 300K index lookups | 30K \u00d7 10 = 300K index seeks (cheaper) | 1.5M filtered via idx_orders_date, then aggregated |\n| **Post-filter eval** | 300K row evaluations | Eliminated (index condition) | N/A (WHERE in subquery) |\n| **GROUP BY rows** | ~300K joined rows | ~300K joined rows | ~30K aggregated rows (pre-join) |\n| **Temp table** | Yes (on-disk, GROUP BY + sort) | Yes (smaller) | Minimized (sort on fewer rows) |\n| **Est. total time** | ~500ms - 2s | ~200ms - 500ms | ~100ms - 300ms |\n| **Improvement** | \u2014 | ~3x faster | ~5-8x faster |\n\n### Cached EXPLAIN ANALYZE Benchmark (SF=1, comparable queries)\n\nFrom the QueryLex explain cache at `sha256:edebf6aa43e3` \u2014 a similar join with the recommended indexes added (but without GROUP BY):\n\n```\n-> Limit: 20 row(s)  (actual time=14.7ms)\n    -> Sort: o.o_totalprice DESC  (actual time=14.7ms)\n        -> Nested loop inner join  (actual time=0.09..13.3ms rows=4721)\n            -> Covering index lookup on c using idx_customer_mktsegment (c_mktsegment='BUILDING')\n               (actual time=0.07..0.83ms rows=3111)\n            -> Covering index lookup on o using idx_orders_custkey_date_price (o_custkey=c.c_custkey)\n               (actual time=0.003ms per loop, 3111 loops)\n```\n\nThis is **3.3x faster** (14.7ms vs 49.1ms) than the same query without the recommended indexes (cache `sha256:cf32be60e6b9`).\n\n### MySQL Query Optimizer Notes\n\n1. **STRAIGHT_JOIN anti-pattern:** The cached plan `sha256:f0942136f181` shows that forcing MySQL to start from orders (via `STRAIGHT_JOIN` or `USE INDEX (idx_orders_date)`) causes a **full table scan on orders** (150K rows) followed by 69 customer lookups \u2014 **slower** (60-71ms) because orders has 10x more rows than customer and the 'BUILDING' filter selects fewer rows.\n\n2. **Covering indexes matter:** The 3-column composite index `idx_orders_custkey_date_price` made the join+filter a **covering index lookup**, eliminating the need to read the orders table row at all. This is why the time per loop dropped from 0.014ms to 0.003ms.\n\n---\n\n## Recommended DDL (Run on Database)\n\n```sql\n-- Eliminates customer full table scan\nCREATE INDEX idx_customer_mktsegment ON customer (c_mktsegment);\n\n-- Eliminates post-join date filtering\nCREATE INDEX idx_orders_custkey_date ON orders (o_custkey, o_orderdate);\n\n-- Optional: Covers orderpriority for GROUP BY optimization\nCREATE INDEX idx_orders_custkey_date_priority ON orders (o_custkey, o_orderdate, o_orderpriority);\n```\n\n## Recommended Query\n\n```sql\nSELECT c.c_name, c.c_mktsegment, o.o_orderpriority, o.order_count\nFROM customer c\nJOIN (\n    SELECT o_custkey, o_orderpriority, COUNT(*) as order_count\n    FROM orders\n    WHERE o_orderdate >= '1995-01-01'\n    GROUP BY o_custkey, o_orderpriority\n) o ON c.c_custkey = o.o_custkey\nWHERE c.c_mktsegment = 'BUILDING'\nORDER BY o.order_count DESC\nLIMIT 100;\n```\n\n---\n\n## Verification Steps (When Database is Running)\n\n```bash\n# 1. Set passphrase and run EXPLAIN ANALYZE on the original query\nQUERYLEX_KEYCHAIN_PASSPHRASE=<pass> querylex explain \\\n  \"SELECT c.c_name, c.c_mktsegment, o.o_orderpriority, COUNT(*) as order_count\n   FROM customer c JOIN orders o ON c.c_custkey = o.o_custkey\n   WHERE o.o_orderdate >= '1995-01-01' AND c.c_mktsegment = 'BUILDING'\n   GROUP BY c.c_name, c.c_mktsegment, o.o_orderpriority\n   ORDER BY order_count DESC LIMIT 100\"\n\n# 2. Create recommended indexes\n# (run via mysql client on the TPC-H database)\n\n# 3. Run EXPLAIN ANALYZE on the optimized query\nQUERYLEX_KEYCHAIN_PASSPHRASE=<pass> querylex explain \\\n  \"SELECT c.c_name, c.c_mktsegment, o.o_orderpriority, o.order_count\n   FROM customer c\n   JOIN (SELECT o_custkey, o_orderpriority, COUNT(*) as order_count\n         FROM orders WHERE o_orderdate >= '1995-01-01'\n         GROUP BY o_custkey, o_orderpriority) o\n     ON c.c_custkey = o.o_custkey\n   WHERE c.c_mktsegment = 'BUILDING'\n   ORDER BY o.order_count DESC LIMIT 100\"\n\n# 4. Compare timing and temp table usage\n```\n\n---\n\n*Analysis generated via QueryLex CLI (v dev) using cached schema artifacts and EXPLAIN ANALYZE benchmark data from the TPC-H MySQL workspace. MySQL database was not running at analysis time \u2014 findings based on 40 cached explain plans with identical schema and index manifests.*\n"}], "grading": {"run_id": "join-optimization-without_skill", "expectations": [{"text": "Output identifies the GROUP BY temp table or filesort as a key bottleneck", "passed": true, "evidence": "Three Bottlenecks: #3 'Temporary table for GROUP BY + sort \u2014 Creates on-disk temp table for aggregation, then filesort for ORDER BY'"}, {"text": "Output proposes a structural rewrite (derived table with pre-aggregation, subquery-to-join, or join reordering)", "passed": true, "evidence": "Optimized Query section: derived table with (SELECT o_custkey, o_orderpriority, COUNT(*) as order_count FROM orders WHERE o_orderdate >= '1995-01-01' GROUP BY o_custkey, o_orderpriority) AS o"}, {"text": "Output includes at least one index recommendation with CREATE INDEX syntax", "passed": true, "evidence": "Three CREATE INDEX statements: idx_customer_mktsegment, idx_orders_custkey_date, idx_orders_custkey_date_priority"}, {"text": "Plan comparison is included with before/after metrics on rows examined or cost estimates", "passed": true, "evidence": "Estimated Performance table with timing estimates and improvement factors; cached EXPLAIN ANALYZE benchmark data"}, {"text": "Output explains why the rewrite reduces intermediate result size or eliminates temp table operations", "passed": true, "evidence": "Why this rewrite helps table: 'Joins customer to all matching orders, then groups \u2192 Groups orders first (reducing to ~1 row per customer+priority), then joins'"}]}}], "previous_feedback": {}, "previous_outputs": {}, "benchmark": {"metadata": {"skill_name": "querylex-optimize", "skill_path": "<path/to/skill>", "executor_model": "<model-name>", "analyzer_model": "<model-name>", "timestamp": "2026-06-11T03:18:37Z", "evals_run": [1, 2, 3], "runs_per_configuration": 3}, "runs": [{"eval_id": 1, "configuration": "with_skill", "run_number": 1, "result": {"pass_rate": 1.0, "passed": 5, "failed": 0, "total": 5, "time_seconds": 0.0, "tokens": 0, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "Output identifies YEAR(o_orderdate) as non-sargable and explains why it prevents index usage", "passed": true, "evidence": "Section 'Problem Analysis': 'The function YEAR(o_orderdate) wraps the indexed column o_orderdate, which prevents MySQL from using idx_orders_o_orderdate... makes the predicate non-sargable (Search ARGument ABLE).'"}, {"text": "Rewritten SQL uses a range condition (>= and <) instead of the YEAR() function", "passed": true, "evidence": "Optimized SQL section: WHERE o_orderdate >= '1994-01-01' AND o_orderdate < '1995-01-01'"}, {"text": "Plan comparison is included with before/after metrics (rows examined, access type, key used)", "passed": true, "evidence": "Plan Comparison table: rows examined (1.5M vs 150K), access type (ALL vs range), key used (NULL vs idx_orders_o_orderdate)"}, {"text": "Output explicitly mentions the index that would be used (idx_orders_date or idx_orders_o_orderdate)", "passed": true, "evidence": "Mentions 'idx_orders_o_orderdate' multiple times in the Plan Comparison and Index sections"}, {"text": "Output explains that ORDER BY DESC benefits from backward index scan", "passed": true, "evidence": "Section 'Why This Rewrite Works': 'MySQL can traverse the index backwards during the range scan... eliminates the filesort entirely.'"}], "notes": []}, {"eval_id": 2, "configuration": "with_skill", "run_number": 1, "result": {"pass_rate": 1.0, "passed": 5, "failed": 0, "total": 5, "time_seconds": 0.0, "tokens": 0, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "Output identifies DATE(l_shipdate) as redundant/non-sargable and explains that l_shipdate is already a DATE type", "passed": true, "evidence": "What Changed table: 'l_shipdate is already a DATE NOT NULL column. The DATE() function is a no-op on DATE-typed values but MySQL's optimizer treats it as a function call, making the predicate non-sargable.'"}, {"text": "Rewritten SQL removes DATE() from SELECT, WHERE, and GROUP BY clauses", "passed": true, "evidence": "Optimized SQL shows l_shipdate (not DATE(l_shipdate)) in SELECT, WHERE l_shipdate >=..., and GROUP BY l_shipdate"}, {"text": "Rewritten SQL converts BETWEEN to explicit range conditions or maintains sargable equivalents", "passed": true, "evidence": "WHERE clause: l_shipdate >= '1996-01-01' AND l_shipdate <= '1996-12-31'"}, {"text": "Plan comparison shows expected elimination of full table scan (type changes from ALL to range)", "passed": true, "evidence": "Plan Comparison table: Access method changes from 'Full table scan on lineitem (~6M rows)' to 'Range scan on idx_lineitem_shipdate'"}, {"text": "Output includes or considers an index recommendation (covering index or composite index)", "passed": true, "evidence": "Index Recommendation section: CREATE INDEX idx_lineitem_shipdate_qty ON lineitem(l_shipdate, l_quantity)"}], "notes": []}, {"eval_id": 3, "configuration": "with_skill", "run_number": 1, "result": {"pass_rate": 1.0, "passed": 5, "failed": 0, "total": 5, "time_seconds": 0.0, "tokens": 0, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "Output identifies the GROUP BY temp table or filesort as a key bottleneck", "passed": true, "evidence": "Problems Identified table: P1 'Using temporary; Using filesort for GROUP BY across columns from two tables... Creates temp table on disk, major I/O cost'"}, {"text": "Output proposes a structural rewrite (derived table with pre-aggregation, subquery-to-join, or join reordering)", "passed": true, "evidence": "Strategy 3: pre-aggregates orders inside a derived table (SELECT o_custkey, o_orderpriority, COUNT(*) AS order_count FROM orders ... GROUP BY o_custkey, o_orderpriority) then joins to customer"}, {"text": "Output includes at least one index recommendation with CREATE INDEX syntax", "passed": true, "evidence": "Index Recommendation section: CREATE INDEX idx_customer_mktsegment_custkey ON customer(c_mktsegment, c_custkey)"}, {"text": "Plan comparison is included with before/after metrics on rows examined or cost estimates", "passed": true, "evidence": "Key Metric Changes table: rows, cost, temp table, filesort, join input compared before/after (~65% cost reduction)"}, {"text": "Output explains why the rewrite reduces intermediate result size or eliminates temp table operations", "passed": true, "evidence": "Why this works: 'Moves aggregation before the join, radically reducing the join input size... eliminates the post-join GROUP BY (which was the primary temp-table bottleneck)'"}], "notes": []}, {"eval_id": 1, "configuration": "without_skill", "run_number": 1, "result": {"pass_rate": 1.0, "passed": 5, "failed": 0, "total": 5, "time_seconds": 0.0, "tokens": 0, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "Output identifies YEAR(o_orderdate) as non-sargable and explains why it prevents index usage", "passed": true, "evidence": "Problem Summary section: 'the predicate non-sargable \u2014 MySQL cannot use the index on o_orderdate because the column is hidden inside a function expression.'"}, {"text": "Rewritten SQL uses a range condition (>= and <) instead of the YEAR() function", "passed": true, "evidence": "Optimized SQL: WHERE o_orderdate >= '1994-01-01' AND o_orderdate < '1995-01-01'"}, {"text": "Plan comparison is included with before/after metrics (rows examined, access type, key used)", "passed": true, "evidence": "Explain Plan Comparison section with cached evidence showing cost, rows, strategy, and index usage"}, {"text": "Output explicitly mentions the index that would be used (idx_orders_date or idx_orders_o_orderdate)", "passed": true, "evidence": "Mentions 'idx_orders_date' explicitly and shows it used for index range scan"}, {"text": "Output explains that ORDER BY DESC benefits from backward index scan", "passed": true, "evidence": "Optimized section: 'Translates ORDER BY o_orderdate DESC into a backward index scan (no filesort)'"}], "notes": []}, {"eval_id": 2, "configuration": "without_skill", "run_number": 1, "result": {"pass_rate": 1.0, "passed": 5, "failed": 0, "total": 5, "time_seconds": 0.0, "tokens": 0, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "Output identifies DATE(l_shipdate) as redundant/non-sargable and explains that l_shipdate is already a DATE type", "passed": true, "evidence": "Problem Analysis: 'l_shipdate is already a date type column. The DATE() function... does nothing useful... prevents index usage.'"}, {"text": "Rewritten SQL removes DATE() from SELECT, WHERE, and GROUP BY clauses", "passed": true, "evidence": "Optimized Query: SELECT l_shipdate ... WHERE l_shipdate >= ... AND l_shipdate < ... GROUP BY l_shipdate ORDER BY l_shipdate"}, {"text": "Rewritten SQL converts BETWEEN to explicit range conditions or maintains sargable equivalents", "passed": true, "evidence": "WHERE uses >= AND < range instead of BETWEEN"}, {"text": "Plan comparison shows expected elimination of full table scan (type changes from ALL to range)", "passed": true, "evidence": "Plan Comparison: scan type changes from ALL (full table scan) to range, rows from 6M to ~240K"}, {"text": "Output includes or considers an index recommendation (covering index or composite index)", "passed": true, "evidence": "Additional Optimization section: CREATE INDEX idx_lineitem_shipdate_covering ON lineitem (l_shipdate, l_quantity)"}], "notes": []}, {"eval_id": 3, "configuration": "without_skill", "run_number": 1, "result": {"pass_rate": 1.0, "passed": 5, "failed": 0, "total": 5, "time_seconds": 0.0, "tokens": 0, "tool_calls": 0, "errors": 0}, "expectations": [{"text": "Output identifies the GROUP BY temp table or filesort as a key bottleneck", "passed": true, "evidence": "Three Bottlenecks: #3 'Temporary table for GROUP BY + sort \u2014 Creates on-disk temp table for aggregation, then filesort for ORDER BY'"}, {"text": "Output proposes a structural rewrite (derived table with pre-aggregation, subquery-to-join, or join reordering)", "passed": true, "evidence": "Optimized Query section: derived table with (SELECT o_custkey, o_orderpriority, COUNT(*) as order_count FROM orders WHERE o_orderdate >= '1995-01-01' GROUP BY o_custkey, o_orderpriority) AS o"}, {"text": "Output includes at least one index recommendation with CREATE INDEX syntax", "passed": true, "evidence": "Three CREATE INDEX statements: idx_customer_mktsegment, idx_orders_custkey_date, idx_orders_custkey_date_priority"}, {"text": "Plan comparison is included with before/after metrics on rows examined or cost estimates", "passed": true, "evidence": "Estimated Performance table with timing estimates and improvement factors; cached EXPLAIN ANALYZE benchmark data"}, {"text": "Output explains why the rewrite reduces intermediate result size or eliminates temp table operations", "passed": true, "evidence": "Why this rewrite helps table: 'Joins customer to all matching orders, then groups \u2192 Groups orders first (reducing to ~1 row per customer+priority), then joins'"}], "notes": []}], "run_summary": {"with_skill": {"pass_rate": {"mean": 1.0, "stddev": 0.0, "min": 1.0, "max": 1.0}, "time_seconds": {"mean": 0.0, "stddev": 0.0, "min": 0.0, "max": 0.0}, "tokens": {"mean": 0.0, "stddev": 0.0, "min": 0, "max": 0}}, "without_skill": {"pass_rate": {"mean": 1.0, "stddev": 0.0, "min": 1.0, "max": 1.0}, "time_seconds": {"mean": 0.0, "stddev": 0.0, "min": 0.0, "max": 0.0}, "tokens": {"mean": 0.0, "stddev": 0.0, "min": 0, "max": 0}}, "delta": {"pass_rate": "+0.00", "time_seconds": "+0.0", "tokens": "+0"}}, "notes": ["Both configurations scored 100% pass rate \u2014 the model correctly identifies and fixes SQL optimization issues with or without the skill.", "The skill adds structured process (12-step workflow, strategy tracking, context coverage reporting) without degrading result quality.", "All evals tested different optimization classes: sargable predicate (eval 0), function unwrap + range (eval 1), join + aggregation rewrite (eval 2).", "Time and token data unavailable \u2014 live database was not running during evaluation. Rerun with active database for meaningful timing comparison.", "Qualitative differences: with-skill outputs include strategy attempt logs and context coverage reports. without-skill outputs are more prose-heavy but equally correct.", "Assertions focus on output correctness rather than process quality \u2014 the skill primarily adds process discipline, which is valuable for multi-step complex optimizations."]}};
+
+    // ---- State ----
+    let feedbackMap = {};  // run_id -> feedback text
+    let currentIndex = 0;
+    let visitedRuns = new Set();
+
+    // ---- Init ----
+    async function init() {
+      // Load saved feedback from server — but only if this isn't a fresh
+      // iteration (indicated by previous_feedback being present). When
+      // previous feedback exists, the feedback.json on disk is stale from
+      // the prior iteration and should not pre-fill the textareas.
+      const hasPrevious = Object.keys(EMBEDDED_DATA.previous_feedback || {}).length > 0
+        || Object.keys(EMBEDDED_DATA.previous_outputs || {}).length > 0;
+      if (!hasPrevious) {
+        try {
+          const resp = await fetch("/api/feedback");
+          const data = await resp.json();
+          if (data.reviews) {
+            for (const r of data.reviews) feedbackMap[r.run_id] = r.feedback;
+          }
+        } catch { /* first run, no feedback yet */ }
+      }
+
+      document.getElementById("skill-name").textContent = EMBEDDED_DATA.skill_name;
+      showRun(0);
+
+      // Wire up feedback auto-save
+      const textarea = document.getElementById("feedback");
+      let saveTimeout = null;
+      textarea.addEventListener("input", () => {
+        clearTimeout(saveTimeout);
+        document.getElementById("feedback-status").textContent = "";
+        saveTimeout = setTimeout(() => saveCurrentFeedback(), 800);
+      });
+    }
+
+    // ---- Navigation ----
+    function navigate(delta) {
+      const newIndex = currentIndex + delta;
+      if (newIndex >= 0 && newIndex < EMBEDDED_DATA.runs.length) {
+        saveCurrentFeedback();
+        showRun(newIndex);
+      }
+    }
+
+    function updateNavButtons() {
+      document.getElementById("prev-btn").disabled = currentIndex === 0;
+      document.getElementById("next-btn").disabled =
+        currentIndex === EMBEDDED_DATA.runs.length - 1;
+    }
+
+    // ---- Show a run ----
+    function showRun(index) {
+      currentIndex = index;
+      const run = EMBEDDED_DATA.runs[index];
+
+      // Progress
+      document.getElementById("progress").textContent =
+        `${index + 1} of ${EMBEDDED_DATA.runs.length}`;
+
+      // Prompt
+      document.getElementById("prompt-text").textContent = run.prompt;
+
+      // Config badge
+      const badge = document.getElementById("config-badge");
+      const configMatch = run.id.match(/(with_skill|without_skill|new_skill|old_skill)/);
+      if (configMatch) {
+        const config = configMatch[1];
+        const isBaseline = config === "without_skill" || config === "old_skill";
+        badge.textContent = config.replace(/_/g, " ");
+        badge.className = "config-badge " + (isBaseline ? "config-baseline" : "config-primary");
+        badge.style.display = "inline-block";
+      } else {
+        badge.style.display = "none";
+      }
+
+      // Outputs
+      renderOutputs(run);
+
+      // Previous outputs
+      renderPrevOutputs(run);
+
+      // Grades
+      renderGrades(run);
+
+      // Previous feedback
+      const prevFb = (EMBEDDED_DATA.previous_feedback || {})[run.id];
+      const prevEl = document.getElementById("prev-feedback");
+      if (prevFb) {
+        document.getElementById("prev-feedback-text").textContent = prevFb;
+        prevEl.style.display = "block";
+      } else {
+        prevEl.style.display = "none";
+      }
+
+      // Feedback
+      document.getElementById("feedback").value = feedbackMap[run.id] || "";
+      document.getElementById("feedback-status").textContent = "";
+
+      updateNavButtons();
+
+      // Track visited runs and promote done button when all visited
+      visitedRuns.add(index);
+      const doneBtn = document.getElementById("done-btn");
+      if (visitedRuns.size >= EMBEDDED_DATA.runs.length) {
+        doneBtn.classList.add("ready");
+      }
+
+      // Scroll main content to top
+      document.querySelector(".main").scrollTop = 0;
+    }
+
+    // ---- Render outputs ----
+    function renderOutputs(run) {
+      const container = document.getElementById("outputs-body");
+      container.innerHTML = "";
+
+      const outputs = run.outputs || [];
+      if (outputs.length === 0) {
+        container.innerHTML = '<div class="empty-state">No output files</div>';
+        return;
+      }
+
+      for (const file of outputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        // Always show file header with download link
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const content = document.createElement("div");
+        content.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          content.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          content.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          content.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(content, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          content.appendChild(a);
+        } else if (file.type === "error") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          pre.style.color = "var(--red)";
+          content.appendChild(pre);
+        }
+
+        fileDiv.appendChild(content);
+        container.appendChild(fileDiv);
+      }
+    }
+
+    // ---- XLSX rendering via SheetJS ----
+    function renderXlsx(container, b64Data) {
+      try {
+        const raw = Uint8Array.from(atob(b64Data), c => c.charCodeAt(0));
+        const wb = XLSX.read(raw, { type: "array" });
+
+        for (let i = 0; i < wb.SheetNames.length; i++) {
+          const sheetName = wb.SheetNames[i];
+          const ws = wb.Sheets[sheetName];
+
+          if (wb.SheetNames.length > 1) {
+            const sheetLabel = document.createElement("div");
+            sheetLabel.style.cssText =
+              "font-weight:600; font-size:0.8rem; color:#b0aea5; margin-top:0.5rem; margin-bottom:0.25rem;";
+            sheetLabel.textContent = "Sheet: " + sheetName;
+            container.appendChild(sheetLabel);
+          }
+
+          const htmlStr = XLSX.utils.sheet_to_html(ws, { editable: false });
+          const wrapper = document.createElement("div");
+          wrapper.innerHTML = htmlStr;
+          container.appendChild(wrapper);
+        }
+      } catch (err) {
+        container.textContent = "Error rendering spreadsheet: " + err.message;
+      }
+    }
+
+    // ---- Grades ----
+    function renderGrades(run) {
+      const section = document.getElementById("grades-section");
+      const content = document.getElementById("grades-content");
+
+      if (!run.grading) {
+        section.style.display = "none";
+        return;
+      }
+
+      const grading = run.grading;
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("grades-arrow").classList.remove("open");
+
+      const summary = grading.summary || {};
+      const expectations = grading.expectations || [];
+
+      let html = '<div style="padding: 1rem;">';
+
+      // Summary line
+      const passRate = summary.pass_rate != null
+        ? Math.round(summary.pass_rate * 100) + "%"
+        : "?";
+      const badgeClass = summary.pass_rate >= 0.8 ? "grade-pass" : summary.pass_rate >= 0.5 ? "" : "grade-fail";
+      html += '<div class="grades-summary">';
+      html += '<span class="grade-badge ' + badgeClass + '">' + passRate + '</span>';
+      html += '<span>' + (summary.passed || 0) + ' passed, ' + (summary.failed || 0) + ' failed of ' + (summary.total || 0) + '</span>';
+      html += '</div>';
+
+      // Assertions list
+      html += '<ul class="assertion-list">';
+      for (const exp of expectations) {
+        const statusClass = exp.passed ? "pass" : "fail";
+        const statusIcon = exp.passed ? "\u2713" : "\u2717";
+        html += '<li class="assertion-item">';
+        html += '<span class="assertion-status ' + statusClass + '">' + statusIcon + '</span>';
+        html += '<span>' + escapeHtml(exp.text) + '</span>';
+        if (exp.evidence) {
+          html += '<div class="assertion-evidence">' + escapeHtml(exp.evidence) + '</div>';
+        }
+        html += '</li>';
+      }
+      html += '</ul>';
+
+      html += '</div>';
+      content.innerHTML = html;
+    }
+
+    function toggleGrades() {
+      const content = document.getElementById("grades-content");
+      const arrow = document.getElementById("grades-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Previous outputs (collapsible) ----
+    function renderPrevOutputs(run) {
+      const section = document.getElementById("prev-outputs-section");
+      const content = document.getElementById("prev-outputs-content");
+      const prevOutputs = (EMBEDDED_DATA.previous_outputs || {})[run.id];
+
+      if (!prevOutputs || prevOutputs.length === 0) {
+        section.style.display = "none";
+        return;
+      }
+
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("prev-outputs-arrow").classList.remove("open");
+
+      // Render the files into the content area
+      content.innerHTML = "";
+      const wrapper = document.createElement("div");
+      wrapper.style.padding = "1rem";
+
+      for (const file of prevOutputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const fc = document.createElement("div");
+        fc.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          fc.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          fc.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          fc.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(fc, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          fc.appendChild(a);
+        }
+
+        fileDiv.appendChild(fc);
+        wrapper.appendChild(fileDiv);
+      }
+
+      content.appendChild(wrapper);
+    }
+
+    function togglePrevOutputs() {
+      const content = document.getElementById("prev-outputs-content");
+      const arrow = document.getElementById("prev-outputs-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Feedback (saved to server -> feedback.json) ----
+    function saveCurrentFeedback() {
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // Build reviews array from map
+      const reviews = [];
+      for (const [run_id, feedback] of Object.entries(feedbackMap)) {
+        if (feedback.trim()) {
+          reviews.push({ run_id, feedback, timestamp: new Date().toISOString() });
+        }
+      }
+
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviews, status: "in_progress" }),
+      }).then(() => {
+        document.getElementById("feedback-status").textContent = "Saved";
+      }).catch(() => {
+        // Static mode or server unavailable — no-op on auto-save,
+        // feedback will be downloaded on final submit
+        document.getElementById("feedback-status").textContent = "Will download on submit";
+      });
+    }
+
+    // ---- Done ----
+    function showDoneDialog() {
+      // Save current textarea to feedbackMap (but don't POST yet)
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // POST once with status: complete — include ALL runs so the model
+      // can distinguish "no feedback" (looks good) from "not reviewed"
+      const reviews = [];
+      const ts = new Date().toISOString();
+      for (const r of EMBEDDED_DATA.runs) {
+        reviews.push({ run_id: r.id, feedback: feedbackMap[r.id] || "", timestamp: ts });
+      }
+      const payload = JSON.stringify({ reviews, status: "complete" }, null, 2);
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+      }).then(() => {
+        document.getElementById("done-overlay").classList.add("visible");
+      }).catch(() => {
+        // Server not available (static mode) — download as file
+        const blob = new Blob([payload], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "feedback.json";
+        a.click();
+        URL.revokeObjectURL(url);
+        document.getElementById("done-overlay").classList.add("visible");
+      });
+    }
+
+    function closeDoneDialog() {
+      // Reset status back to in_progress
+      saveCurrentFeedback();
+      document.getElementById("done-overlay").classList.remove("visible");
+    }
+
+    // ---- Toast ----
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("visible");
+      setTimeout(() => toast.classList.remove("visible"), 2000);
+    }
+
+    // ---- Keyboard nav ----
+    document.addEventListener("keydown", (e) => {
+      // Don't capture when typing in textarea
+      if (e.target.tagName === "TEXTAREA") return;
+
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        navigate(-1);
+      } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        navigate(1);
+      }
+    });
+
+    // ---- Util ----
+    function getDownloadUri(file) {
+      if (file.data_uri) return file.data_uri;
+      if (file.data_b64) return "data:application/octet-stream;base64," + file.data_b64;
+      if (file.type === "text") return "data:text/plain;charset=utf-8," + encodeURIComponent(file.content);
+      return "#";
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // ---- View switching ----
+    function switchView(view) {
+      document.querySelectorAll(".view-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".view-panel").forEach(p => p.classList.remove("active"));
+      document.querySelector(`[onclick="switchView('${view}')"]`).classList.add("active");
+      document.getElementById("panel-" + view).classList.add("active");
+    }
+
+    // ---- Benchmark rendering ----
+    function renderBenchmark() {
+      const data = EMBEDDED_DATA.benchmark;
+      if (!data) return;
+
+      // Show the tabs
+      document.getElementById("view-tabs").style.display = "flex";
+
+      const container = document.getElementById("benchmark-content");
+      const summary = data.run_summary || {};
+      const metadata = data.metadata || {};
+      const notes = data.notes || [];
+
+      let html = "";
+
+      // Header
+      html += "<h2 style='font-family: Poppins, sans-serif; margin-bottom: 0.5rem;'>Benchmark Results</h2>";
+      html += "<p style='color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.25rem;'>";
+      if (metadata.skill_name) html += "<strong>" + escapeHtml(metadata.skill_name) + "</strong> &mdash; ";
+      if (metadata.timestamp) html += metadata.timestamp + " &mdash; ";
+      if (metadata.evals_run) html += "Evals: " + metadata.evals_run.join(", ") + " &mdash; ";
+      html += (metadata.runs_per_configuration || "?") + " runs per configuration";
+      html += "</p>";
+
+      // Summary table
+      html += '<table class="benchmark-table">';
+
+      function fmtStat(stat, pct) {
+        if (!stat) return "—";
+        const suffix = pct ? "%" : "";
+        const m = pct ? (stat.mean * 100).toFixed(0) : stat.mean.toFixed(1);
+        const s = pct ? (stat.stddev * 100).toFixed(0) : stat.stddev.toFixed(1);
+        return m + suffix + " ± " + s + suffix;
+      }
+
+      function deltaClass(val) {
+        if (!val) return "";
+        const n = parseFloat(val);
+        if (n > 0) return "benchmark-delta-positive";
+        if (n < 0) return "benchmark-delta-negative";
+        return "";
+      }
+
+      // Discover config names dynamically (everything except "delta")
+      const configs = Object.keys(summary).filter(k => k !== "delta");
+      const configA = configs[0] || "config_a";
+      const configB = configs[1] || "config_b";
+      const labelA = configA.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const labelB = configB.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const a = summary[configA] || {};
+      const b = summary[configB] || {};
+      const delta = summary.delta || {};
+
+      html += "<thead><tr><th>Metric</th><th>" + escapeHtml(labelA) + "</th><th>" + escapeHtml(labelB) + "</th><th>Delta</th></tr></thead>";
+      html += "<tbody>";
+
+      html += "<tr><td><strong>Pass Rate</strong></td>";
+      html += "<td>" + fmtStat(a.pass_rate, true) + "</td>";
+      html += "<td>" + fmtStat(b.pass_rate, true) + "</td>";
+      html += '<td class="' + deltaClass(delta.pass_rate) + '">' + (delta.pass_rate || "—") + "</td></tr>";
+
+      // Time (only show row if data exists)
+      if (a.time_seconds || b.time_seconds) {
+        html += "<tr><td><strong>Time (s)</strong></td>";
+        html += "<td>" + fmtStat(a.time_seconds, false) + "</td>";
+        html += "<td>" + fmtStat(b.time_seconds, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.time_seconds) + '">' + (delta.time_seconds ? delta.time_seconds + "s" : "—") + "</td></tr>";
+      }
+
+      // Tokens (only show row if data exists)
+      if (a.tokens || b.tokens) {
+        html += "<tr><td><strong>Tokens</strong></td>";
+        html += "<td>" + fmtStat(a.tokens, false) + "</td>";
+        html += "<td>" + fmtStat(b.tokens, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.tokens) + '">' + (delta.tokens || "—") + "</td></tr>";
+      }
+
+      html += "</tbody></table>";
+
+      // Per-eval breakdown (if runs data available)
+      const runs = data.runs || [];
+      if (runs.length > 0) {
+        const evalIds = [...new Set(runs.map(r => r.eval_id))].sort((a, b) => a - b);
+
+        html += "<h3 style='font-family: Poppins, sans-serif; margin-bottom: 0.75rem;'>Per-Eval Breakdown</h3>";
+
+        const hasTime = runs.some(r => r.result && r.result.time_seconds != null);
+        const hasErrors = runs.some(r => r.result && r.result.errors > 0);
+
+        for (const evalId of evalIds) {
+          const evalRuns = runs.filter(r => r.eval_id === evalId);
+          const evalName = evalRuns[0] && evalRuns[0].eval_name ? evalRuns[0].eval_name : "Eval " + evalId;
+
+          html += "<h4 style='font-family: Poppins, sans-serif; margin: 1rem 0 0.5rem; color: var(--text);'>" + escapeHtml(evalName) + "</h4>";
+          html += '<table class="benchmark-table">';
+          html += "<thead><tr><th>Config</th><th>Run</th><th>Pass Rate</th>";
+          if (hasTime) html += "<th>Time (s)</th>";
+          if (hasErrors) html += "<th>Crashes During Execution</th>";
+          html += "</tr></thead>";
+          html += "<tbody>";
+
+          // Group by config and render with average rows
+          const configGroups = [...new Set(evalRuns.map(r => r.configuration))];
+          for (let ci = 0; ci < configGroups.length; ci++) {
+            const config = configGroups[ci];
+            const configRuns = evalRuns.filter(r => r.configuration === config);
+            if (configRuns.length === 0) continue;
+
+            const rowClass = ci === 0 ? "benchmark-row-with" : "benchmark-row-without";
+            const configLabel = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+            for (const run of configRuns) {
+              const r = run.result || {};
+              const prClass = r.pass_rate >= 0.8 ? "benchmark-delta-positive" : r.pass_rate < 0.5 ? "benchmark-delta-negative" : "";
+              html += '<tr class="' + rowClass + '">';
+              html += "<td>" + configLabel + "</td>";
+              html += "<td>" + run.run_number + "</td>";
+              html += '<td class="' + prClass + '">' + ((r.pass_rate || 0) * 100).toFixed(0) + "% (" + (r.passed || 0) + "/" + (r.total || 0) + ")</td>";
+              if (hasTime) html += "<td>" + (r.time_seconds != null ? r.time_seconds.toFixed(1) : "—") + "</td>";
+              if (hasErrors) html += "<td>" + (r.errors || 0) + "</td>";
+              html += "</tr>";
+            }
+
+            // Average row
+            const rates = configRuns.map(r => (r.result || {}).pass_rate || 0);
+            const avgRate = rates.reduce((a, b) => a + b, 0) / rates.length;
+            const avgPrClass = avgRate >= 0.8 ? "benchmark-delta-positive" : avgRate < 0.5 ? "benchmark-delta-negative" : "";
+            html += '<tr class="benchmark-row-avg ' + rowClass + '">';
+            html += "<td>" + configLabel + "</td>";
+            html += "<td>Avg</td>";
+            html += '<td class="' + avgPrClass + '">' + (avgRate * 100).toFixed(0) + "%</td>";
+            if (hasTime) {
+              const times = configRuns.map(r => (r.result || {}).time_seconds).filter(t => t != null);
+              html += "<td>" + (times.length ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1) : "—") + "</td>";
+            }
+            if (hasErrors) html += "<td></td>";
+            html += "</tr>";
+          }
+          html += "</tbody></table>";
+
+          // Per-assertion detail for this eval
+          const runsWithExpectations = {};
+          for (const config of configGroups) {
+            runsWithExpectations[config] = evalRuns.filter(r => r.configuration === config && r.expectations && r.expectations.length > 0);
+          }
+          const hasAnyExpectations = Object.values(runsWithExpectations).some(runs => runs.length > 0);
+          if (hasAnyExpectations) {
+            // Collect all unique assertion texts across all configs
+            const allAssertions = [];
+            const seen = new Set();
+            for (const config of configGroups) {
+              for (const run of runsWithExpectations[config]) {
+                for (const exp of (run.expectations || [])) {
+                  if (!seen.has(exp.text)) {
+                    seen.add(exp.text);
+                    allAssertions.push(exp.text);
+                  }
+                }
+              }
+            }
+
+            html += '<table class="benchmark-table" style="margin-top: 0.5rem;">';
+            html += "<thead><tr><th>Assertion</th>";
+            for (const config of configGroups) {
+              const label = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+              html += "<th>" + escapeHtml(label) + "</th>";
+            }
+            html += "</tr></thead><tbody>";
+
+            for (const assertionText of allAssertions) {
+              html += "<tr><td>" + escapeHtml(assertionText) + "</td>";
+
+              for (const config of configGroups) {
+                html += "<td>";
+                for (const run of runsWithExpectations[config]) {
+                  const exp = (run.expectations || []).find(e => e.text === assertionText);
+                  if (exp) {
+                    const cls = exp.passed ? "benchmark-delta-positive" : "benchmark-delta-negative";
+                    const icon = exp.passed ? "\u2713" : "\u2717";
+                    html += '<span class="' + cls + '" title="Run ' + run.run_number + ': ' + escapeHtml(exp.evidence || "") + '">' + icon + "</span> ";
+                  } else {
+                    html += "— ";
+                  }
+                }
+                html += "</td>";
+              }
+              html += "</tr>";
+            }
+            html += "</tbody></table>";
+          }
+        }
+      }
+
+      // Notes
+      if (notes.length > 0) {
+        html += '<div class="benchmark-notes">';
+        html += "<h3>Analysis Notes</h3>";
+        html += "<ul>";
+        for (const note of notes) {
+          html += "<li>" + escapeHtml(note) + "</li>";
+        }
+        html += "</ul></div>";
+      }
+
+      container.innerHTML = html;
+    }
+
+    // ---- Start ----
+    init();
+    renderBenchmark();
+  </script>
+</body>
+</html>

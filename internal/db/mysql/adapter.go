@@ -885,6 +885,17 @@ func (a *MySQLAdapter) Joins(ctx context.Context, tables []string) (*db.JoinsRes
 	return result, nil
 }
 
+func (a *MySQLAdapter) TestConnect(ctx context.Context, dsn string) error {
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	pingCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	return db.PingContext(pingCtx)
+}
+
 func (a *MySQLAdapter) DatabaseType() string {
 	return "mysql"
 }

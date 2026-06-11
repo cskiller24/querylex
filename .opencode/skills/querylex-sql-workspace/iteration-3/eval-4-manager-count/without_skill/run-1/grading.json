@@ -1,0 +1,74 @@
+{
+  "expectations": [
+    {
+      "text": "SQL is a valid SELECT statement",
+      "passed": true,
+      "evidence": "Output.txt contains a syntactically well-formed SELECT statement (lines 4-15) with FROM, JOIN, LEFT JOIN, WHERE, GROUP BY, and ORDER BY clauses."
+    },
+    {
+      "text": "SQL joins dept_manager and dept_emp tables",
+      "passed": true,
+      "evidence": "Output.txt line 9: 'FROM dept_manager dm' and line 12: 'LEFT JOIN dept_emp de ON dm.dept_no = de.dept_no' — both tables are joined."
+    },
+    {
+      "text": "SQL uses COUNT() aggregation to count employees per manager",
+      "passed": true,
+      "evidence": "Output.txt line 8: 'COUNT(DISTINCT de.emp_no) AS employee_count' — uses COUNT(DISTINCT) aggregation on dept_emp rows, grouped by manager."
+    },
+    {
+      "text": "SQL filters dept_manager for current rows (dm.to_date = '9999-01-01')",
+      "passed": true,
+      "evidence": "Output.txt line 13: 'WHERE dm.to_date = \\'9999-01-01\\'' — filters dept_manager for current manager assignments."
+    },
+    {
+      "text": "SQL filters dept_emp for current rows (de.to_date = '9999-01-01')",
+      "passed": true,
+      "evidence": "Output.txt line 12: 'AND de.to_date = \\'9999-01-01\\'' in the LEFT JOIN ON clause — filters dept_emp for current employee assignments."
+    },
+    {
+      "text": "SQL includes manager name columns from the employees table",
+      "passed": true,
+      "evidence": "Output.txt lines 5-6: 'e.first_name, e.last_name' — includes manager name columns from the employees table."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  },
+  "claims": [
+    {
+      "claim": "Current managers joined with current department employees",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Output.txt comment line 2 states this, and both dm.to_date (line 13) and de.to_date (line 12) are filtered for '9999-01-01'."
+    },
+    {
+      "claim": "Uses COUNT(DISTINCT) to avoid double-counting",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Output.txt line 8: 'COUNT(DISTINCT de.emp_no)' — uses DISTINCT modifier on the COUNT aggregation."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "SQL is a valid SELECT statement",
+        "reason": "Without a validation transcript, only structural well-formedness can be judged. A broken query that looks like a SELECT would also pass. Consider requiring validation evidence or at minimum checking clause completeness."
+      },
+      {
+        "reason": "The without_skill SQL does not exclude the manager from the employee count (unlike with_skill's 'de.emp_no != dm.emp_no'). If managers are also in dept_emp for their departments, this overcounts by 1 per manager. No assertion checks this semantic detail — it's an important correctness concern that went uncaught."
+      },
+      {
+        "reason": "No assertion checks whether GROUP BY includes all non-aggregated columns (a common SQL error). The without_skill SQL groups by e.first_name, e.last_name, d.dept_name but also has e.emp_no in GROUP BY line 14, which is good practice. An eval checking GROUP BY completeness would be more discriminating."
+      }
+    ],
+    "overall": "Assertions cover basic structure and filtering. Assertion 1 is weak without validation evidence. The manager-exclusion gap is the most significant unverified semantic issue — the with_skill version correctly excludes managers but the without_skill version may not, and neither assertion catches this difference."
+  }
+}

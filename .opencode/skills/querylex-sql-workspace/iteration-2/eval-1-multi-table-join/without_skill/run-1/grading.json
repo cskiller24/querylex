@@ -1,0 +1,56 @@
+{
+  "expectations": [
+    {
+      "text": "SQL is a valid SELECT statement",
+      "passed": true,
+      "evidence": "output.txt line 1 starts with 'SELECT', has valid FROM, LEFT JOIN, WHERE, ORDER BY clauses with correct syntax and semicolon termination"
+    },
+    {
+      "text": "SQL joins employees and departments tables",
+      "passed": true,
+      "evidence": "output.txt line 8: 'FROM employees e', line 15: 'LEFT JOIN departments d ON de.dept_no = d.dept_no', linked through dept_emp (line 12)"
+    },
+    {
+      "text": "SQL filters by hire_date using date arithmetic",
+      "passed": true,
+      "evidence": "output.txt line 17: 'WHERE e.hire_date >= DATE_SUB(CURDATE(), INTERVAL 5 YEAR)' — uses DATE_SUB with INTERVAL arithmetic"
+    },
+    {
+      "text": "SQL includes salary column from salaries table",
+      "passed": true,
+      "evidence": "output.txt line 6: 's.salary AS current_salary', line 9-11: 'LEFT JOIN salaries s ON e.emp_no = s.emp_no AND s.to_date = \"9999-01-01\"'"
+    },
+    {
+      "text": "SQL filters for current rows using to_date = '9999-01-01' on temporal tables",
+      "passed": true,
+      "evidence": "output.txt line 11: 'AND s.to_date = \"9999-01-01\"' on salaries, line 14: 'AND de.to_date = \"9999-01-01\"' on dept_emp — both temporal tables filtered for current rows"
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "output_chars": 558,
+    "transcript_chars": 0,
+    "note": "No metrics.json found for without_skill variant"
+  },
+  "timing": {
+    "note": "No timing.json found for without_skill variant"
+  },
+  "claims": [],
+  "user_notes_summary": {
+    "note": "No user_notes.md found"
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "SQL is a valid SELECT statement",
+        "reason": "Weak assertion — 'SELECT 1' would also pass. In context of the other more specific assertions it's acceptable as a structural baseline, but consider strengthening to check that the SELECT returns actual employee data columns or that it compiles without syntax errors (if a live DB is available)"
+      }
+    ],
+    "overall": "Assertions are well-targeted. Expectation 1 is the only weak point; expectations 2-5 each check concrete, discriminating requirements (specific tables, columns, and filter conditions) that would fail if the SQL were incorrect."
+  }
+}

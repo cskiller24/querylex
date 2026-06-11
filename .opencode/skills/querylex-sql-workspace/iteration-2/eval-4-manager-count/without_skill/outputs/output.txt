@@ -1,0 +1,23 @@
+SELECT
+    dm.dept_no,
+    d.dept_name,
+    dm.emp_no AS manager_emp_no,
+    e.first_name AS manager_first_name,
+    e.last_name AS manager_last_name,
+    COUNT(de.emp_no) AS employee_count
+FROM dept_manager dm
+JOIN employees e ON e.emp_no = dm.emp_no
+JOIN departments d ON d.dept_no = dm.dept_no
+LEFT JOIN dept_emp de
+    ON de.dept_no = dm.dept_no
+    AND de.to_date = '9999-01-01'
+WHERE dm.to_date = '9999-01-01'
+GROUP BY dm.dept_no, d.dept_name, dm.emp_no, e.first_name, e.last_name
+ORDER BY employee_count DESC;
+
+-- Brief explanation:
+-- Filters dept_manager to current managers (to_date = '9999-01-01').
+-- Joins employees for the manager's name and departments for the department name.
+-- LEFT JOINs dept_emp (current employees only) to count how many employees are
+-- currently in each manager's department. GROUP BY + COUNT gives the headcount.
+-- LEFT JOIN ensures managers with zero employees are shown (count = 0).

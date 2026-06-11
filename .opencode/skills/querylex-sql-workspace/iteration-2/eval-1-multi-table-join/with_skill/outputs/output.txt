@@ -1,0 +1,17 @@
+```mysql
+SELECT e.emp_no, e.first_name, e.last_name, e.hire_date,
+       s.salary AS current_salary,
+       d.dept_name AS department
+FROM employees e
+INNER JOIN salaries s
+  ON e.emp_no = s.emp_no
+  AND s.to_date = '9999-01-01'
+LEFT JOIN current_dept_emp cde
+  ON e.emp_no = cde.emp_no
+LEFT JOIN departments d
+  ON cde.dept_no = d.dept_no
+WHERE e.hire_date >= DATE_SUB(CURDATE(), INTERVAL 5 YEAR)
+ORDER BY e.hire_date DESC;
+```
+
+**Explanation:** Joins `employees` to `salaries` on `emp_no` with `to_date = '9999-01-01'` for current salary (FK-backed, confidence 1.0). Attaches department via `current_dept_emp` view (resolved by querylex) joining to `departments` on `dept_no`. LEFT JOINs on department chain ensure employees without a current dept assignment are still shown. Filters on `hire_date >= 5 years ago` using `DATE_SUB(CURDATE(), INTERVAL 5 YEAR)` — index-friendly (no function wrapping `hire_date`). Results ordered by most recent hires first.

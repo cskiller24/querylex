@@ -25,4 +25,5 @@ type Adapter interface {
 	Joins(ctx context.Context, tables []string) (*JoinsResult, error)
 
 	DatabaseType() string
+	TestConnect(ctx context.Context, dsn string) error
 }

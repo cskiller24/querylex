@@ -1,0 +1,36 @@
+{
+  "run_id": "sargable-predicate-rewrite-without_skill",
+  "expectations": [
+    {
+      "text": "Output identifies YEAR(o_orderdate) as non-sargable and explains why it prevents index usage",
+      "passed": true,
+      "evidence": "Problem Summary section: 'the predicate non-sargable \u2014 MySQL cannot use the index on o_orderdate because the column is hidden inside a function expression.'"
+    },
+    {
+      "text": "Rewritten SQL uses a range condition (>= and <) instead of the YEAR() function",
+      "passed": true,
+      "evidence": "Optimized SQL: WHERE o_orderdate >= '1994-01-01' AND o_orderdate < '1995-01-01'"
+    },
+    {
+      "text": "Plan comparison is included with before/after metrics (rows examined, access type, key used)",
+      "passed": true,
+      "evidence": "Explain Plan Comparison section with cached evidence showing cost, rows, strategy, and index usage"
+    },
+    {
+      "text": "Output explicitly mentions the index that would be used (idx_orders_date or idx_orders_o_orderdate)",
+      "passed": true,
+      "evidence": "Mentions 'idx_orders_date' explicitly and shows it used for index range scan"
+    },
+    {
+      "text": "Output explains that ORDER BY DESC benefits from backward index scan",
+      "passed": true,
+      "evidence": "Optimized section: 'Translates ORDER BY o_orderdate DESC into a backward index scan (no filesort)'"
+    }
+  ],
+  "summary": {
+    "pass_rate": 1.0,
+    "passed": 5,
+    "failed": 0,
+    "total": 5
+  }
+}

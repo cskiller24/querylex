@@ -1,0 +1,72 @@
+{
+  "expectations": [
+    {
+      "text": "SQL is a valid SELECT statement",
+      "passed": true,
+      "evidence": "Lines 2-37 of output.txt contain a valid SQL statement: CTEs (WITH current_salaries, current_dept_emp, ranked_employees) followed by a final SELECT (lines 29-37) with FROM, WHERE, and ORDER BY clauses. Syntactically complete and well-formed."
+    },
+    {
+      "text": "SQL uses ROW_NUMBER() or RANK() window function, or a correlated subquery to find max per department",
+      "passed": true,
+      "evidence": "Lines 20-23 define ROW_NUMBER() OVER (PARTITION BY de.dept_no ORDER BY s.salary DESC) AS rn. Line 36 filters WHERE rn = 1 to select the highest-paid employee per department."
+    },
+    {
+      "text": "SQL partitions or groups by department",
+      "passed": true,
+      "evidence": "Line 21: PARTITION BY de.dept_no partitions the ROW_NUMBER() ranking by department number, ensuring ranking resets per department."
+    },
+    {
+      "text": "SQL orders by salary descending",
+      "passed": true,
+      "evidence": "Line 22: ORDER BY s.salary DESC in the window function orders salaries descending within each partition. Line 37: ORDER BY salary DESC on the final result also sorts descending."
+    },
+    {
+      "text": "SQL filters for current rows using to_date = '9999-01-01' on temporal tables",
+      "passed": true,
+      "evidence": "Line 5: WHERE to_date = '9999-01-01' in the current_salaries CTE filters the salaries temporal table. Line 10: WHERE to_date = '9999-01-01' in the current_dept_emp CTE filters the dept_emp temporal table. Both temporal tables are correctly filtered for current records only."
+    },
+    {
+      "text": "SQL includes employee name columns from the employees table",
+      "passed": true,
+      "evidence": "Lines 15-16: e.first_name, e.last_name are selected from the employees table (aliased as e on line 24). Lines 32-33: first_name and last_name appear in the final SELECT output."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": null,
+  "timing": null,
+  "claims": [
+    {
+      "claim": "CTEs current_salaries and current_dept_emp filter to only current rows (to_date = '9999-01-01')",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Lines 5 and 10 contain WHERE to_date = '9999-01-01' on both CTEs, confirming the claim."
+    },
+    {
+      "claim": "ROW_NUMBER() partitioned by dept_no and ordered by salary DESC assigns rank 1 to the highest salary within each department",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Lines 20-23 define ROW_NUMBER() OVER (PARTITION BY de.dept_no ORDER BY s.salary DESC), and line 36 filters WHERE rn = 1, confirming rank 1 goes to highest salary per department."
+    },
+    {
+      "claim": "If ties for top salary need to be shown, replace ROW_NUMBER() with RANK()",
+      "type": "factual",
+      "verified": true,
+      "evidence": "The approach explanation on lines 52-54 correctly notes that RANK() would return all employees tied for top salary per department, which is standard SQL behavior."
+    }
+  ],
+  "user_notes_summary": null,
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": null,
+        "reason": "No assertion checks whether the result is filtered to only the top row per department (WHERE rn = 1). The query could have ROW_NUMBER, PARTITION BY, and ORDER BY DESC but still return every employee if the rn = 1 filter is missing. Consider adding: 'SQL filters to only the top-ranked row per department (e.g., WHERE rn = 1)'"
+      }
+    ],
+    "overall": "Assertions are generally good and discriminating. The main gap is the missing check for the WHERE rn = 1 filter, which is the critical piece that actually delivers the 'highest paid' result rather than just ranked output."
+  }
+}

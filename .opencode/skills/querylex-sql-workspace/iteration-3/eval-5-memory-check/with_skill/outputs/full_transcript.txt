@@ -1,0 +1,73 @@
+=== QUERYLEX-SQL WORKFLOW TRANSCRIPT ===
+Task: "Show me employees hired in the last 5 years with their salary and department. I think we asked this before — check if there's a cached version."
+Date: 2026-06-08
+
+--- STEP 2: workspace-stats ---
+Command: querylex workspace-stats
+Result: success=true
+Active DB: benchmark-employees-mysql (mysql, status=indexed)
+
+--- STEP 3: resolve ---
+Command: querylex resolve "Show me employees hired in the last 5 years with their salary and department..."
+Result: success=true, confidence=0.95
+Tables: ["departments", "employees", "salaries"]
+
+--- STEP 4a: memory ---
+Command: querylex memory "..."
+Result: match_found=false, similarity=null
+Warning: EMBEDDINGS_UNAVAILABLE
+
+--- STEP 4b: history ---
+Command: querylex history "..."
+Result: success=true, 8 results
+Closest: "show me employees hired in the last 5 years with their salary and department" (similarity=0.343, below 0.86 threshold)
+Referenced dept_emp bridge table pattern noted.
+
+--- STEP 5: terminologies.md ---
+File: ~/.querylex/benchmark-employees-mysql/terminologies.md
+Content: Template with only example_term entry. Note: references current_dept_emp.
+
+--- STEP 6: schema ---
+Command: querylex schema --table departments --table employees --table salaries
+Result: success=true
+employees: emp_no(PK), birth_date, first_name, last_name, gender, hire_date
+salaries: emp_no, salary, from_date, to_date (temporal, to_date='9999-01-01'=current)
+departments: dept_no(PK), dept_name
+
+--- STEP 7: stats ---
+Command: querylex stats --table departments --table employees --table salaries
+Result: success=false (INTERNAL_ERROR, context deadline exceeded)
+Action: Warn and continue (per skill rules).
+
+--- STEP 8: joins ---
+Command: querylex joins --table departments --table employees --table salaries
+Result: success=true
+Key paths:
+  dept_emp -> employees (emp_no, FK, confidence=1.0)
+  dept_emp -> departments (dept_no, FK, confidence=1.0)
+  salaries -> employees (emp_no, FK, confidence=1.0)
+
+--- STEP 9: indexes ---
+Command: querylex indexes --table departments --table employees --table salaries
+Result: success=true
+salaries: PRIMARY(emp_no, from_date), idx_salaries_composite(emp_no, from_date)
+departments: PRIMARY(dept_no), idx_departments_dept_name(dept_name)
+employees: PRIMARY(emp_no) [no index on hire_date]
+
+--- STEP 10: SQL construction ---
+Dialect: MySQL
+Tables used: employees, salaries, dept_emp (bridge), departments
+Temporal filters: to_date = '9999-01-01' for salaries and dept_emp
+Date filter: hire_date >= DATE_SUB(CURDATE(), INTERVAL 5 YEAR) — sargable
+
+--- STEP 11: validate ---
+Command: querylex validate "<SQL>"
+Result: success=true, valid=true, read_only=true
+
+--- STEP 12a: save ---
+Command: querylex save "<question>" "<SQL>"
+Result: success=true, saved=true
+Entry ID: mem_01KTJR10E2WXTV9SBG9XVWEA4F
+
+--- STEP 12b: update terminology ---
+Added entries for: salary, department, hired

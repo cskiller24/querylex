@@ -1,0 +1,77 @@
+{
+  "expectations": [
+    {
+      "text": "SQL is a valid SELECT statement",
+      "passed": true,
+      "evidence": "Output contains a complete SELECT statement: 'SELECT d.dept_name, AVG(s.salary) AS avg_salary FROM departments d ...'"
+    },
+    {
+      "text": "SQL uses AVG() aggregation function",
+      "passed": true,
+      "evidence": "Found 'AVG(s.salary) AS avg_salary' in the SELECT clause."
+    },
+    {
+      "text": "SQL uses GROUP BY on department columns",
+      "passed": true,
+      "evidence": "Found 'GROUP BY d.dept_name' in the query."
+    },
+    {
+      "text": "SQL includes department names in the output",
+      "passed": true,
+      "evidence": "SELECT list includes 'd.dept_name'."
+    },
+    {
+      "text": "SQL filters for current rows using to_date = '9999-01-01'",
+      "passed": true,
+      "evidence": "Two temporal filters present: 'de.to_date = '9999-01-01'' and 's.to_date = '9999-01-01''."
+    },
+    {
+      "text": "Output does NOT include EMBEDDINGS_UNAVAILABLE warnings",
+      "passed": true,
+      "evidence": "Searched entire output.txt and full_transcript.txt — no occurrence of 'EMBEDDINGS_UNAVAILABLE' found."
+    },
+    {
+      "text": "Output includes only the SQL query and a brief explanation",
+      "passed": true,
+      "evidence": "Output.txt contains a SQL code block followed by a single-paragraph 'Explanation:' section. No extraneous content, warnings, or unrelated text present."
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": null,
+  "timing": null,
+  "claims": [
+    {
+      "claim": "Joins departments → dept_emp → salaries via foreign keys (dept_no, emp_no)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Transcript Step 8 confirms: departments↔dept_emp via dept_no (FK, confidence 1.0), salaries↔employees via emp_no (FK, confidence 1.0). Explanation states join path correctly."
+    },
+    {
+      "claim": "Filters both dept_emp and salaries on to_date = '9999-01-01' to get current records",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Both JOIN clauses include the to_date filter: 'de.to_date = '9999-01-01'' and 's.to_date = '9999-01-01''"
+    },
+    {
+      "claim": "Groups by dept_name with AVG(s.salary) aggregation, ordered descending",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Query contains 'GROUP BY d.dept_name' with 'AVG(s.salary) AS avg_salary' and 'ORDER BY avg_salary DESC'"
+    }
+  ],
+  "user_notes_summary": null,
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "SQL is a valid SELECT statement",
+        "reason": "This is trivially satisfied — any output containing SELECT would pass. Not harmful given the other specific assertions, but provides no real discrimination."
+      }
+    ],
+    "overall": "No suggestions, evals look solid. Assertions cover aggregation, grouping, output columns, temporal filtering, output format, and absence of error warnings."
+  }
+}

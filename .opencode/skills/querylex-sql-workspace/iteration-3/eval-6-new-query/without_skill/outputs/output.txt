@@ -1,0 +1,15 @@
+-- Task 5: How many employees does each manager supervise?
+-- Counts distinct employees per department for each current manager.
+
+SELECT
+  e.first_name,
+  e.last_name,
+  d.dept_name,
+  COUNT(DISTINCT de.emp_no) AS supervised_employees
+FROM dept_manager dm
+JOIN employees e ON dm.emp_no = e.emp_no
+JOIN departments d ON dm.dept_no = d.dept_no
+LEFT JOIN dept_emp de ON dm.dept_no = de.dept_no AND de.to_date = '9999-01-01'
+WHERE dm.to_date = '9999-01-01'
+GROUP BY e.emp_no, e.first_name, e.last_name, d.dept_name
+ORDER BY supervised_employees DESC;

@@ -1,0 +1,35 @@
+## Generated SQL (MySQL)
+
+```sql
+SELECT
+    e.first_name,
+    e.last_name,
+    d.dept_name,
+    COUNT(de.emp_no) AS employee_count
+FROM dept_manager dm
+JOIN employees e ON dm.emp_no = e.emp_no
+JOIN departments d ON dm.dept_no = d.dept_no
+LEFT JOIN dept_emp de ON dm.dept_no = de.dept_no AND de.to_date = '9999-01-01'
+WHERE dm.to_date = '9999-01-01'
+GROUP BY dm.emp_no, dm.dept_no, e.first_name, e.last_name, d.dept_name
+ORDER BY employee_count DESC
+```
+
+## Memory ID
+
+`mem_01KTJNDD2KJ0WXQ3M3B0WE8408`
+
+## Warnings
+
+- `EMBEDDINGS_UNAVAILABLE`: Similarity scoring uses lexical methods; embeddings unavailable. Results may have lower precision. (from memory/history/save commands)
+- Stats extraction failed with context deadline exceeded (step 7) — row counts were not available to inform join order.
+
+## Query Explanation
+
+- **Managers** are identified from the `dept_manager` table by filtering `to_date = '9999-01-01'` (current managers).
+- **Manager names** come from `employees` via `dm.emp_no = e.emp_no` (FK join, confidence 1.0).
+- **Department names** come from `departments` via `dm.dept_no = d.dept_no` (FK join, confidence 1.0).
+- **Employee count** per department uses `dept_emp` filtered to current employees (`to_date = '9999-01-01'`), joined via `dm.dept_no = de.dept_no`. LEFT JOIN ensures managers with empty departments still appear (count = 0).
+- **Temporal tables** (`dept_manager`, `dept_emp`) use `to_date = '9999-01-01'` to select only current records, per the MySQL employees benchmark schema convention.
+- **Grouping** is by manager (`dm.emp_no`) and department (`dm.dept_no`), with name columns included for display.
+- **Ordering** is by `employee_count DESC` to show managers of the largest departments first.

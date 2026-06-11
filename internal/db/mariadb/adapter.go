@@ -76,6 +76,17 @@ func (a *MariaDBAdapter) Close(ctx context.Context) error {
 	return nil
 }
 
+func (a *MariaDBAdapter) TestConnect(ctx context.Context, dsn string) error {
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	pingCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	return db.PingContext(pingCtx)
+}
+
 func (a *MariaDBAdapter) DatabaseType() string {
 	return "mariadb"
 }

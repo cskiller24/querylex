@@ -827,6 +827,15 @@ func (a *SQLiteAdapter) Joins(ctx context.Context, tables []string) (*db.JoinsRe
 // DatabaseType / Helpers
 // ---------------------------------------------------------------------------
 
+func (a *SQLiteAdapter) TestConnect(ctx context.Context, dsn string) error {
+	db, err := sql.Open("sqlite", dsn)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	return db.PingContext(ctx)
+}
+
 func (a *SQLiteAdapter) DatabaseType() string {
 	return "sqlite"
 }

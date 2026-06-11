@@ -1,0 +1,38 @@
+=== Generated SQL ===
+
+```sql
+SELECT 
+    `d`.`dept_no`,
+    `d`.`dept_name`,
+    AVG(`s`.`salary`) AS `avg_salary`
+FROM `departments` `d`
+INNER JOIN `dept_emp` `de` ON `d`.`dept_no` = `de`.`dept_no` AND `de`.`to_date` = '9999-01-01'
+INNER JOIN `employees` `e` ON `de`.`emp_no` = `e`.`emp_no`
+INNER JOIN `salaries` `s` ON `e`.`emp_no` = `s`.`emp_no` AND `s`.`to_date` = '9999-01-01'
+GROUP BY `d`.`dept_no`, `d`.`dept_name`
+ORDER BY `avg_salary` DESC;
+```
+
+=== Memory ID ===
+mem_01KTJNEF05DQTJ9CXK65T9EB4J
+
+=== Warnings ===
+1. EMBEDDINGS_UNAVAILABLE: Similarity scoring uses lexical methods; embeddings unavailable. Results may have lower precision. (from memory, history, save commands)
+2. Stats extraction failed: mysql stats rows: context deadline exceeded (querylex stats timed out after 30s)
+3. Terminologies file contains no relevant business term mappings for salary/department (only example_term present)
+
+=== Explanation ===
+Join path (all FK-based, confidence 1.0):
+  salaries.emp_no → employees.emp_no → dept_emp.emp_no
+  dept_emp.dept_no → departments.dept_no
+
+Temporal filtering:
+  - Both salaries and dept_emp are temporal tables with from_date/to_date
+  - Filtered to current records using to_date = '9999-01-01' per the employees sample database convention
+
+Index usage:
+  - All join columns (emp_no, dept_no) are covered by PRIMARY KEY or secondary indexes
+  - salaries has composite index on (emp_no, from_date)
+  - dept_emp has composite index on (emp_no, dept_no)
+
+Dialect: MySQL with backtick identifier quoting

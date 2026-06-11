@@ -1,0 +1,56 @@
+{
+  "expectations": [
+    {
+      "text": "SQL is a valid SELECT statement",
+      "passed": true,
+      "evidence": "Output contains a complete SELECT statement: 'SELECT e.emp_no, e.first_name, e.last_name, e.hire_date, s.salary, d.dept_name FROM employees e ...'"
+    },
+    {
+      "text": "SQL joins employees and departments tables",
+      "passed": true,
+      "evidence": "Found 'JOIN departments d ON de.dept_no = d.dept_no' — departments is joined via dept_emp. 'FROM employees e' is also present."
+    },
+    {
+      "text": "SQL filters by hire_date using date arithmetic",
+      "passed": true,
+      "evidence": "WHERE clause: 'e.hire_date >= DATE_SUB(CURDATE(), INTERVAL 5 YEAR)' — uses MySQL DATE_SUB date arithmetic to compute a 5-year cutoff."
+    },
+    {
+      "text": "SQL includes salary column from salaries table",
+      "passed": true,
+      "evidence": "SELECT list includes 's.salary' and the salaries table is joined: 'JOIN salaries s ON e.emp_no = s.emp_no AND s.to_date = '9999-01-01''"
+    },
+    {
+      "text": "SQL filters for current rows using to_date = '9999-01-01' on temporal tables",
+      "passed": true,
+      "evidence": "Two temporal filters: 's.to_date = '9999-01-01'' on the salaries table and 'de.to_date = '9999-01-01'' on the dept_emp table."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": null,
+  "timing": null,
+  "claims": [
+    {
+      "claim": "Three inner joins: employees→salaries, employees→dept_emp, dept_emp→departments",
+      "type": "factual",
+      "verified": true,
+      "evidence": "The SQL contains exactly three JOIN clauses joining those tables in that order, confirmed by reading the query."
+    },
+    {
+      "claim": "Filter: hire_date within last 5 years using DATE_SUB(CURDATE(), INTERVAL 5 YEAR)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "WHERE clause explicitly contains 'e.hire_date >= DATE_SUB(CURDATE(), INTERVAL 5 YEAR)'"
+    }
+  ],
+  "user_notes_summary": null,
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "No suggestions, evals look solid. No transcript available for without_skill run (only output.txt), but all assertions are verifiable from the output alone."
+  }
+}

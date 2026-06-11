@@ -8,9 +8,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/cskiller24/querylex/internal/credentials"
+	"github.com/cskiller24/querylex/internal/db"
 	"github.com/cskiller24/querylex/internal/format"
 	"github.com/cskiller24/querylex/internal/index"
 	"github.com/cskiller24/querylex/internal/memory"
@@ -32,6 +35,7 @@ type DatabaseHealth struct {
 	CredentialStatus    string            `json:"credential_status"`
 	MemoryIndexState    string            `json:"memory_index_state"`
 	ExplainCacheSummary string            `json:"explain_cache_summary"`
+	Connectivity        string            `json:"connectivity"`
 }
 
 const (
@@ -147,6 +151,42 @@ func buildHealthReport(ws *state.Workspace, home string) *HealthReport {
 	for _, entry := range ws.ConnectedDatabases {
 		dbDir := filepath.Join(home, ".querylex", entry.ID)
 
+		connectivity := "not_checked"
+		cfgPath := filepath.Join(dbDir, "database.json")
+		if cfgData, err := os.ReadFile(cfgPath); err == nil {
+			var cfg DBConfigJSON
+			if json.Unmarshal(cfgData, &cfg) == nil {
+				if cfg.Type == "sqlite" {
+					connectivity = checkConnectivity(dbDir, cfg.Type, cfg.Database)
+				} else {
+					ref := cfg.CredentialRef
+					password := ""
+					if ref != nil {
+						credStore, csErr := credentials.SelectCredentialStore()
+						if csErr == nil {
+							if pwd, getErr := credStore.Retrieve(ref); getErr == nil {
+								password = pwd
+							}
+						}
+					}
+					connConfig := &DBConnectionConfig{
+						ID:       cfg.ID,
+						Name:     cfg.Name,
+						Type:     cfg.Type,
+						Host:     cfg.Host,
+						Port:     cfg.Port,
+						Database: cfg.Database,
+						Username: cfg.Username,
+						SSLMode:  cfg.SSLMode,
+					}
+					dsn := buildDSN(connConfig.Type, connConfig, password)
+					if dsn != "" {
+						connectivity = checkConnectivity(dbDir, connConfig.Type, dsn)
+					}
+				}
+			}
+		}
+
 		dbHealth := DatabaseHealth{
 			DatabaseID:          entry.ID,
 			DatabaseName:        entry.Name,
@@ -156,6 +196,7 @@ func buildHealthReport(ws *state.Workspace, home string) *HealthReport {
 			CredentialStatus:    checkCredentialStatus(dbDir),
 			MemoryIndexState:    checkMemoryHealth(dbDir),
 			ExplainCacheSummary: checkExplainCacheSummary(dbDir),
+			Connectivity:        connectivity,
 		}
 
 		health.Databases = append(health.Databases, dbHealth)
@@ -260,6 +301,57 @@ func checkExplainCacheSummary(dbDir string) string {
 	return fmt.Sprintf("%d entries", count)
 }
 
+// connectivityCache holds ping results keyed by database ID with expiry.
+var connectivityCache sync.Map
+
+type connCacheEntry struct {
+	status    string
+	expiresAt time.Time
+}
+
+// checkConnectivity attempts to ping the database and returns a status string.
+// Results are cached for 30 seconds to avoid hammering unreachable databases.
+func checkConnectivity(dbDir, dbType, dsn string) string {
+	if dbType == "sqlite" {
+		return "online"
+	}
+
+	if cached, ok := connectivityCache.Load(dbDir); ok {
+		entry := cached.(connCacheEntry)
+		if time.Now().Before(entry.expiresAt) {
+			return entry.status
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	adapter, err := db.Open(dbType, dsn)
+	if err != nil {
+		entry := connCacheEntry{status: "unreachable", expiresAt: time.Now().Add(30 * time.Second)}
+		connectivityCache.Store(dbDir, entry)
+		return "unreachable"
+	}
+
+	err = adapter.TestConnect(ctx, dsn)
+
+	var status string
+	switch {
+	case err == nil:
+		status = "online"
+	case ctx.Err() != nil:
+		status = "timeout"
+	case strings.Contains(err.Error(), "access denied") || strings.Contains(err.Error(), "password") || strings.Contains(err.Error(), "login"):
+		status = "auth_failed"
+	default:
+		status = "unreachable"
+	}
+
+	entry := connCacheEntry{status: status, expiresAt: time.Now().Add(30 * time.Second)}
+	connectivityCache.Store(dbDir, entry)
+	return status
+}
+
 // RenderStatsHuman renders workspace stats as a human-readable terminal output.
 func RenderStatsHuman(w io.Writer, data StatsData) {
 	fmt.Fprintf(w, "Querylex Workspace Health\n=========================\n\n")
@@ -282,6 +374,7 @@ func RenderStatsHuman(w io.Writer, data StatsData) {
 		fmt.Fprintf(w, "    Status:         %s\n", db.Status)
 		fmt.Fprintf(w, "    Indexing:       %d%%\n", db.ProgressPercent)
 		fmt.Fprintf(w, "    Credentials:    %s\n", db.CredentialStatus)
+		fmt.Fprintf(w, "    Connectivity:   %s\n", db.Connectivity)
 		fmt.Fprintf(w, "    Memory Index:   %s\n", db.MemoryIndexState)
 		fmt.Fprintf(w, "    Explain Cache:  %s\n", db.ExplainCacheSummary)
 

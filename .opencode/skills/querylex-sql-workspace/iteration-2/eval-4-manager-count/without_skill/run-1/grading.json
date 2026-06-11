@@ -1,0 +1,64 @@
+{
+  "expectations": [
+    {
+      "text": "SQL is a valid SELECT statement",
+      "passed": true,
+      "evidence": "Output starts with 'SELECT' (line 1) and follows with a complete, syntactically valid SELECT query spanning lines 1-16 ending with a semicolon."
+    },
+    {
+      "text": "SQL joins dept_manager and dept_emp tables",
+      "passed": true,
+      "evidence": "Line 8: 'FROM dept_manager dm'; lines 11-13: 'LEFT JOIN dept_emp de ON de.dept_no = dm.dept_no AND de.to_date = '9999-01-01''. Both tables are referenced and joined via dept_no."
+    },
+    {
+      "text": "SQL uses COUNT() aggregation to count employees per manager",
+      "passed": true,
+      "evidence": "Line 7: 'COUNT(de.emp_no) AS employee_count'; line 15: 'GROUP BY dm.dept_no, d.dept_name, dm.emp_no, e.first_name, e.last_name'. The COUNT aggregates employees grouped by manager."
+    },
+    {
+      "text": "SQL filters dept_manager for current rows (dm.to_date = '9999-01-01')",
+      "passed": true,
+      "evidence": "Line 14: 'WHERE dm.to_date = '9999-01-01'' — filters dept_manager to only current managers."
+    },
+    {
+      "text": "SQL filters dept_emp for current rows (de.to_date = '9999-01-01')",
+      "passed": true,
+      "evidence": "Line 13: 'AND de.to_date = '9999-01-01'' — the LEFT JOIN on dept_emp includes this condition, filtering to only current department employees."
+    },
+    {
+      "text": "SQL includes manager name columns from the employees table",
+      "passed": true,
+      "evidence": "Lines 5-6: 'e.first_name AS manager_first_name, e.last_name AS manager_last_name'; line 9: 'JOIN employees e ON e.emp_no = dm.emp_no'. Manager names are selected from the employees table joined on emp_no."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  },
+  "claims": [
+    {
+      "claim": "The query uses LEFT JOIN on dept_emp to show managers with zero employees",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Lines 11-13 use LEFT JOIN (not INNER JOIN) on dept_emp. The explanation on lines 22-23 confirms: 'LEFT JOIN ensures managers with zero employees are shown (count = 0).'"
+    },
+    {
+      "claim": "The query also includes department name (d.dept_name) from departments table",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Line 3: 'd.dept_name'; line 10: 'JOIN departments d ON d.dept_no = dm.dept_no'. This goes beyond the expectations and adds useful context."
+    },
+    {
+      "claim": "Results are ordered by employee_count descending",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Line 16: 'ORDER BY employee_count DESC;'"
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "No suggestions, evals look solid. All 6 expectations are well-crafted, discriminative, and directly verifiable from the SQL output. The query satisfies every expectation with clear, unambiguous evidence."
+  }
+}

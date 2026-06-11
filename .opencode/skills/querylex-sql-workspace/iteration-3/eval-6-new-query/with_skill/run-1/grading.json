@@ -1,0 +1,79 @@
+{
+  "expectations": [
+    {
+      "text": "SQL is a valid SELECT statement",
+      "passed": true,
+      "evidence": "output.txt lines 1-18 contain a well-formed SELECT with columns, FROM dept_manager, multiple JOINs, WHERE, GROUP BY, and ORDER BY clauses"
+    },
+    {
+      "text": "SQL joins dept_manager and dept_emp tables",
+      "passed": true,
+      "evidence": "output.txt line 9: 'FROM dept_manager dm'; line 12: 'LEFT JOIN dept_emp de ON dm.dept_no = de.dept_no'"
+    },
+    {
+      "text": "SQL uses COUNT() aggregation",
+      "passed": true,
+      "evidence": "output.txt line 8: 'COUNT(de.emp_no) AS employees_supervised'"
+    },
+    {
+      "text": "SQL filters for current rows using to_date = '9999-01-01'",
+      "passed": true,
+      "evidence": "output.txt line 13: 'de.to_date = '9999-01-01'' on dept_emp join; line 15: 'WHERE dm.to_date = '9999-01-01'' on dept_manager"
+    },
+    {
+      "text": "SQL includes manager identification from employees table",
+      "passed": true,
+      "evidence": "output.txt lines 3-4: 'e.first_name, e.last_name' selected; line 10: 'JOIN employees e ON dm.emp_no = e.emp_no'"
+    },
+    {
+      "text": "Output does NOT include EMBEDDINGS_UNAVAILABLE warnings",
+      "passed": true,
+      "evidence": "output.txt (20 lines) contains no mention of EMBEDDINGS_UNAVAILABLE anywhere"
+    },
+    {
+      "text": "Output includes only the SQL query and a brief explanation",
+      "passed": true,
+      "evidence": "output.txt contains: SQL code block (lines 1-18) + single paragraph explanation (lines 20). No internal diagnostics, warnings, tool invocations, or extraneous content."
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "output_chars": 1085,
+    "transcript_chars": 3852
+  },
+  "claims": [
+    {
+      "claim": "Memory found no strong match (similarity < 0.86)",
+      "type": "process",
+      "verified": true,
+      "evidence": "Transcript Step 4a: 'match_found: false, similarity: null'"
+    },
+    {
+      "claim": "History found an exact-same-question match with similarity 0.414",
+      "type": "process",
+      "verified": true,
+      "evidence": "Transcript Step 4b: 'Top match: exact same question previously saved with similarity 0.414'"
+    },
+    {
+      "claim": "SQL was validated as read-only",
+      "type": "process",
+      "verified": true,
+      "evidence": "Transcript Step 11: 'valid: true, read_only: true'"
+    },
+    {
+      "claim": "LEFT JOIN ensures departments with zero non-manager employees still appear",
+      "type": "quality",
+      "verified": false,
+      "evidence": "The LEFT JOIN + COUNT(de.emp_no) pattern would indeed produce 0 for empty departments, but we cannot verify this claim against actual database results from available outputs"
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "No suggestions, evals look solid. All assertions are substantive and discriminating — they verify structural correctness of the SQL output and output format. Expectation 7 is particularly good as it ensures internal warnings aren't leaked."
+  }
+}

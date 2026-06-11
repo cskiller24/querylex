@@ -1,0 +1,12 @@
+{
+  "eval_id": 3,
+  "eval_name": "join-optimization",
+  "prompt": "Optimize this MySQL join query joining customer (150K rows) and orders (1.5M rows)...",
+  "assertions": [
+    "Output identifies the GROUP BY temp table or filesort as a key bottleneck",
+    "Output proposes a structural rewrite (derived table with pre-aggregation, subquery-to-join, or join reordering)",
+    "Output includes at least one index recommendation with CREATE INDEX syntax",
+    "Plan comparison is included with before/after metrics on rows examined or cost estimates",
+    "Output explains why the rewrite reduces intermediate result size or eliminates temp table operations"
+  ]
+}

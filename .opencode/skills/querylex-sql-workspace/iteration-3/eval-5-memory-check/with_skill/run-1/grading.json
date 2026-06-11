@@ -1,0 +1,78 @@
+{
+  "expectations": [
+    {
+      "text": "Transcript or output shows querylex memory was executed",
+      "passed": true,
+      "evidence": "Transcript Step 4a: '=== STEP 4a: memory ===' / 'Command: querylex memory \"...\"' / 'Result: match_found=false, similarity=null'"
+    },
+    {
+      "text": "When memory has no match, querylex history is executed as fallback",
+      "passed": true,
+      "evidence": "Transcript Step 4b: '=== STEP 4b: history ===' / 'Command: querylex history \"...\"' / 'Result: success=true, 8 results' / 'Closest: ... similarity=0.343, below 0.86 threshold'"
+    },
+    {
+      "text": "A SQL query is produced (cached or newly generated)",
+      "passed": true,
+      "evidence": "output.txt lines 1-15 contain a full SELECT statement joining employees, salaries, dept_emp, and departments with temporal filters and date arithmetic"
+    },
+    {
+      "text": "Output does NOT include EMBEDDINGS_UNAVAILABLE warnings in the final output",
+      "passed": true,
+      "evidence": "output.txt (17 lines) contains no mention of EMBEDDINGS_UNAVAILABLE. The transcript Step 4a notes 'Warning: EMBEDDINGS_UNAVAILABLE' but this warning was handled internally and excluded from final output."
+    },
+    {
+      "text": "Transcript shows terminologies.md was updated after save",
+      "passed": true,
+      "evidence": "Transcript Step 12b: '=== STEP 12b: update terminology ===' / 'Added entries for: salary, department, hired'"
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "output_chars": 1030,
+    "transcript_chars": 2809
+  },
+  "claims": [
+    {
+      "claim": "Memory found a historical match with similarity 0.34, below the 0.86 threshold",
+      "type": "process",
+      "verified": true,
+      "evidence": "Transcript Step 4b confirms similarity=0.343 and states 'below 0.86 threshold'"
+    },
+    {
+      "claim": "Stats extraction failed with context deadline exceeded, continued with a warning",
+      "type": "process",
+      "verified": true,
+      "evidence": "Transcript Step 7: 'Result: success=false (INTERNAL_ERROR, context deadline exceeded)' / 'Action: Warn and continue'"
+    },
+    {
+      "claim": "SQL was validated successfully as read-only",
+      "type": "process",
+      "verified": true,
+      "evidence": "Transcript Step 11: 'Result: success=true, valid=true, read_only=true'"
+    },
+    {
+      "claim": "Query was saved to memory (entry ID mem_01KTJR10E2WXTV9SBG9XVWEA4F)",
+      "type": "process",
+      "verified": true,
+      "evidence": "Transcript Step 12a: 'Result: success=true, saved=true' / 'Entry ID: mem_01KTJR10E2WXTV9SBG9XVWEA4F'"
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "A SQL query is produced (cached or newly generated)",
+        "reason": "This is trivially satisfied — any SQL-like text would pass. Consider checking that the SQL actually addresses the question (e.g., filters by hire_date within 5 years, includes salary and department columns)."
+      },
+      {
+        "assertion": "Transcript shows terminologies.md was updated after save",
+        "reason": "This only checks that the transcript claims an update happened, not that the terminology entries are correct. The transcript says 'salary, department, hired' were added — a stronger assertion would verify these map to correct tables/columns."
+      }
+    ],
+    "overall": "Evans are generally well-structured. Assertions 1-2 and 4 are discriminating. Assertion 3 is weak (any SQL-like text would pass) and assertion 5 checks process but not content correctness."
+  }
+}

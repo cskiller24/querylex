@@ -1,0 +1,21 @@
+```sql
+SELECT dm.emp_no, e.first_name, e.last_name, d.dept_no, d.dept_name,
+       COUNT(de.emp_no) AS employees_managed
+FROM dept_manager dm
+JOIN employees e ON dm.emp_no = e.emp_no
+JOIN departments d ON dm.dept_no = d.dept_no
+LEFT JOIN dept_emp de ON dm.dept_no = de.dept_no
+     AND de.to_date = '9999-01-01'
+     AND de.emp_no != dm.emp_no
+WHERE dm.to_date = '9999-01-01'
+GROUP BY dm.emp_no, dm.dept_no, e.first_name, e.last_name, d.dept_no, d.dept_name
+ORDER BY employees_managed DESC
+```
+
+## Explanation
+
+- **dept_manager** holds current managers (filtered by `to_date = '9999-01-01'`). Each manager is linked to their department via `dept_no`.
+- **dept_emp** provides the list of current employees per department (filtered by `to_date = '9999-01-01'`). The LEFT JOIN counts all current employees in the same department, excluding the manager themselves (`de.emp_no != dm.emp_no`).
+- **employees** provides manager names (`first_name`, `last_name`).
+- **departments** provides department context (`dept_no`, `dept_name`).
+- Join path: `dept_manager` → `employees` (via `emp_no` FK), `dept_manager` → `departments` (via `dept_no` FK), `dept_manager` → `dept_emp` (via shared `dept_no`). All foreign keys have confidence 1.0.

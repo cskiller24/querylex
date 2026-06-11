@@ -1,0 +1,17 @@
+```sql
+SELECT 
+    e.emp_no, 
+    e.first_name, 
+    e.last_name, 
+    e.hire_date, 
+    s.salary AS current_salary, 
+    d.dept_name AS department
+FROM employees e
+INNER JOIN salaries s ON e.emp_no = s.emp_no AND s.to_date = '9999-01-01'
+INNER JOIN dept_emp de ON e.emp_no = de.emp_no AND de.to_date = '9999-01-01'
+INNER JOIN departments d ON de.dept_no = d.dept_no
+WHERE e.hire_date >= DATE_SUB(CURDATE(), INTERVAL 5 YEAR)
+ORDER BY e.hire_date DESC
+```
+
+**Explanation:** Joins employees to current salary (`salaries.to_date = '9999-01-01'`) and current department via the `dept_emp` bridge table (also filtered to current row). Filters on `hire_date` using sargable `>=` comparison with MySQL's `DATE_SUB(CURDATE(), INTERVAL 5 YEAR)`. Historical match found in memory (similarity 0.34, below threshold) — this is a fresh generation.

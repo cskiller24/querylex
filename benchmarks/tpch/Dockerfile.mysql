@@ -1,0 +1,8 @@
+FROM mysql:8.0
+
+COPY conf/mysql.cnf /etc/mysql/conf.d/tpch.cnf
+RUN chmod 644 /etc/mysql/conf.d/tpch.cnf && chown root:root /etc/mysql/conf.d/tpch.cnf
+
+COPY init/mysql/01-schema.sql /docker-entrypoint-initdb.d/
+COPY init/mysql/02-load.sql /docker-entrypoint-initdb.d/
+COPY init/mysql/03-indexes.sql /docker-entrypoint-initdb.d/

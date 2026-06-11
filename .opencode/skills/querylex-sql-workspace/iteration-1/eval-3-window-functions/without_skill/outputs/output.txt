@@ -1,0 +1,57 @@
+-- Find the highest paid employee in each department (current records only)
+WITH current_salaries AS (
+  SELECT emp_no, salary
+  FROM salaries
+  WHERE to_date = '9999-01-01'
+),
+current_dept_emp AS (
+  SELECT emp_no, dept_no
+  FROM dept_emp
+  WHERE to_date = '9999-01-01'
+),
+ranked_employees AS (
+  SELECT
+    e.emp_no,
+    e.first_name,
+    e.last_name,
+    s.salary,
+    de.dept_no,
+    d.dept_name,
+    ROW_NUMBER() OVER (
+      PARTITION BY de.dept_no
+      ORDER BY s.salary DESC
+    ) AS rn
+  FROM employees e
+  JOIN current_salaries s ON e.emp_no = s.emp_no
+  JOIN current_dept_emp de ON e.emp_no = de.emp_no
+  JOIN departments d ON de.dept_no = d.dept_no
+)
+SELECT
+  dept_name  AS department,
+  emp_no,
+  first_name,
+  last_name,
+  salary
+FROM ranked_employees
+WHERE rn = 1
+ORDER BY salary DESC;
+
+-- Approach explanation:
+--
+-- 1. CTEs `current_salaries` and `current_dept_emp` filter salary and department
+--    assignment records to only the "current" rows (to_date = '9999-01-01'),
+--    since these are temporal tables. This ensures we only consider currently
+--    active salary and department assignments.
+--
+-- 2. The main query joins employees → current salaries → current department
+--    assignments → departments to gather all needed attributes on a single row
+--    per employee-department pair.
+--
+-- 3. ROW_NUMBER() partitioned by dept_no and ordered by salary DESC assigns
+--    rank 1 to the highest salary within each department. ROW_NUMBER is used
+--    rather than RANK or DENSE_RANK because the task asks for "the" highest
+--    paid employee (singular per department). If you need all employees tied
+--    for top salary, replace ROW_NUMBER() with RANK() and keep rn = 1.
+--
+-- 4. The outer query filters to rn = 1 and sorts the final result by salary
+--    descending for readability.

@@ -1,0 +1,44 @@
+{
+  "skill_name": "querylex-optimize",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Optimize this MySQL query that's running slow because YEAR() wraps the date column and prevents index usage:\n\n```sql\nSELECT o_orderkey, o_custkey, o_totalprice, o_orderdate\nFROM orders\nWHERE YEAR(o_orderdate) = 1994\nORDER BY o_orderdate DESC\n```\n\nThis is a TPC-H database. The orders table has 1.5M rows with index idx_orders_date on o_orderdate. The YEAR() function makes the predicate non-sargable. Use QueryLex CLI commands (querylex workspace-stats, querylex explain, querylex schema, querylex indexes, querylex validate) to analyze and optimize. Show the optimized SQL with plan comparison.",
+      "expected_output": "Optimized SQL replacing YEAR(o_orderdate) with sargable range condition (o_orderdate >= '1994-01-01' AND o_orderdate < '1995-01-01'), using idx_orders_date index, with before/after plan comparison.",
+      "files": [],
+      "assertions": [
+        "Output identifies YEAR(o_orderdate) as non-sargable and explains why it prevents index usage",
+        "Rewritten SQL uses a range condition (>= and <) instead of the YEAR() function",
+        "Plan comparison is included with before/after metrics (rows examined, access type, key used)",
+        "Output explicitly mentions the index that would be used (idx_orders_date or idx_orders_o_orderdate)",
+        "Output explains that ORDER BY DESC benefits from backward index scan"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Optimize this MySQL aggregation query that's running a full table scan on 6 million lineitem rows:\n\n```sql\nSELECT DATE(l_shipdate) AS ship_day, COUNT(*) AS order_count, SUM(l_quantity) AS total_qty\nFROM lineitem\nWHERE DATE(l_shipdate) BETWEEN '1996-01-01' AND '1996-12-31'\nGROUP BY DATE(l_shipdate)\nORDER BY ship_day\n```\n\nNote: l_shipdate is already a DATE type — the DATE() wrapping is redundant and prevents index usage on idx_lineitem_shipdate. The BETWEEN clause also has optimization potential. Use QueryLex CLI commands to analyze and rewrite this query. Show the optimized SQL and explain what changed.",
+      "expected_output": "Optimized SQL removing redundant DATE() wrapping, converting BETWEEN to range conditions, potentially recommending a covering index, with plan comparison showing elimination of full table scan.",
+      "files": [],
+      "assertions": [
+        "Output identifies DATE(l_shipdate) as redundant/non-sargable and explains that l_shipdate is already a DATE type",
+        "Rewritten SQL removes DATE() from SELECT, WHERE, and GROUP BY clauses",
+        "Rewritten SQL converts BETWEEN to explicit range conditions or maintains sargable equivalents",
+        "Plan comparison shows expected elimination of full table scan (type changes from ALL to range)",
+        "Output includes or considers an index recommendation (covering index or composite index)"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Optimize this MySQL join query joining customer (150K rows) and orders (1.5M rows) that's hitting a temp table for the GROUP BY sort:\n\n```sql\nSELECT c.c_name, c.c_mktsegment, o.o_orderpriority, COUNT(*) as order_count\nFROM customer c\nJOIN orders o ON c.c_custkey = o.o_custkey\nWHERE o.o_orderdate >= '1995-01-01'\n  AND c.c_mktsegment = 'BUILDING'\nGROUP BY c.c_name, c.c_mktsegment, o.o_orderpriority\nORDER BY order_count DESC\nLIMIT 100\n```\n\nThis is a TPC-H schema with idx_orders_custkey and idx_orders_date on orders, and idx_customer_nationkey on customer. Use QueryLex CLI commands to analyze execution plan, fetch schema/joins/indexes/stats, and generate an optimized rewrite or index recommendation. Show plan comparison.",
+      "expected_output": "Optimized SQL or index recommendation. May include pushing filters into derived table, adding composite index on customer(mktsegment) or orders(custkey, orderdate), with plan comparison.",
+      "files": [],
+      "assertions": [
+        "Output identifies the GROUP BY temp table or filesort as a key bottleneck",
+        "Output proposes a structural rewrite (derived table with pre-aggregation, subquery-to-join, or join reordering)",
+        "Output includes at least one index recommendation with CREATE INDEX syntax",
+        "Plan comparison is included with before/after metrics on rows examined or cost estimates",
+        "Output explains why the rewrite reduces intermediate result size or eliminates temp table operations"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "eval_id": 1,
+  "eval_name": "sargable-predicate-rewrite",
+  "prompt": "Optimize this MySQL query that's running slow because YEAR() wraps the date column...",
+  "assertions": [
+    "Output identifies YEAR(o_orderdate) as non-sargable and explains why it prevents index usage",
+    "Rewritten SQL uses a range condition (>= and <) instead of the YEAR() function",
+    "Plan comparison is included with before/after metrics (rows examined, access type, key used)",
+    "Output explicitly mentions the index that would be used (idx_orders_date or idx_orders_o_orderdate)",
+    "Output explains that ORDER BY DESC benefits from backward index scan"
+  ]
+}

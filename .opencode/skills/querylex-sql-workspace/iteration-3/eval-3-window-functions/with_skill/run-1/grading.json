@@ -1,0 +1,101 @@
+{
+  "expectations": [
+    {
+      "text": "SQL is a valid SELECT statement",
+      "passed": true,
+      "evidence": "Output.txt contains a SELECT statement (line 2). Transcript Step 11 shows querylex validate returned {\"valid\":true,\"read_only\":true}, confirming actual validation, not just syntactic form."
+    },
+    {
+      "text": "SQL uses ROW_NUMBER() or RANK() window function, or a correlated subquery to find max per department",
+      "passed": true,
+      "evidence": "Output.txt line 16: 'ROW_NUMBER() OVER (PARTITION BY de.dept_no ORDER BY s.salary DESC) AS rn' — uses ROW_NUMBER() window function partitioned by department."
+    },
+    {
+      "text": "SQL partitions or groups by department",
+      "passed": true,
+      "evidence": "Output.txt line 16: 'PARTITION BY de.dept_no' — partitions the window function by department."
+    },
+    {
+      "text": "SQL orders by salary descending",
+      "passed": true,
+      "evidence": "Output.txt line 16: 'ORDER BY s.salary DESC' inside the ROW_NUMBER() window function orders by salary descending."
+    },
+    {
+      "text": "SQL filters for current rows using to_date = '9999-01-01'",
+      "passed": true,
+      "evidence": "Output.txt line 19: 'de.to_date = \\'9999-01-01\\'' and line 21: 's.to_date = \\'9999-01-01\\'' — both dept_emp and salaries temporal tables are filtered for current rows."
+    },
+    {
+      "text": "Output does NOT include EMBEDDINGS_UNAVAILABLE warnings",
+      "passed": true,
+      "evidence": "Output.txt (28 lines) contains no occurrence of 'EMBEDDINGS_UNAVAILABLE'. Note: the full transcript does show this warning during memory search (transcript line 19), but the final deliverable output.txt is clean."
+    },
+    {
+      "text": "SQL includes employee name columns from the employees table",
+      "passed": true,
+      "evidence": "Output.txt lines 6-7: 'ranked.first_name, ranked.last_name' — includes first_name and last_name from the employees table (via subquery alias 'ranked')."
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  },
+  "claims": [
+    {
+      "claim": "SQL was validated successfully by querylex validate",
+      "type": "process",
+      "verified": true,
+      "evidence": "Transcript Step 11 (attempt 2) shows validate response: {\"success\":true,\"data\":{\"valid\":true,\"read_only\":true}}"
+    },
+    {
+      "claim": "SQL was saved to memory store",
+      "type": "process",
+      "verified": true,
+      "evidence": "Transcript Step 12 shows save response: {\"success\":true,\"data\":{\"saved\":true,\"updated_existing\":true}}"
+    },
+    {
+      "claim": "Joins use foreign-key-backed paths with confidence=1",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Transcript Step 8 lists all joins with confidence=1: dept_emp->employees (emp_no), dept_emp->departments (dept_no), salaries->employees (emp_no)"
+    },
+    {
+      "claim": "Stats extraction timed out but was handled gracefully",
+      "type": "process",
+      "verified": true,
+      "evidence": "Transcript Step 7: 'Stats timed out (30s). Warning only, proceeding without row counts.' — query continued and produced valid output."
+    },
+    {
+      "claim": "Terminology was updated after save",
+      "type": "process",
+      "verified": true,
+      "evidence": "Transcript Step 12: added terms 'highest paid' and 'highest paid per department' to terminologies.md"
+    },
+    {
+      "claim": "Previous incorrect SQL had column reference error (attempt 1) and was corrected",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Transcript Step 11 attempt 1: 'Error 1054: Unknown column e.emp_no in field list'. Fix: 'Changed outer SELECT to reference subquery alias ranked instead of e'. Attempt 2 validated successfully."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "SQL is a valid SELECT statement",
+        "reason": "Any string starting with 'SELECT' would pass, even syntactically invalid ones. The transcript proves actual validation occurred, but this assertion alone is trivially satisfiable. Consider requiring querylex validate confirmation."
+      },
+      {
+        "assertion": "Output does NOT include EMBEDDINGS_UNAVAILABLE warnings",
+        "reason": "The output.txt is clean, but the full transcript shows EMBEDDINGS_UNAVAILABLE warnings during memory search. This assertion passes trivially by checking the clean deliverable while the actual process had degraded functionality. Consider checking whether memory search produced useful results despite the warning."
+      }
+    ],
+    "overall": "Assertions check coverage of SQL structure and filtering. Assertions 1 and 6 are weak — they pass on surface-level compliance. No assertion checks whether the DENSE_RANK/RANK edge case of ties was handled (ROW_NUMBER is used, which picks one arbitrarily). Consider adding a semantic correctness check for tie-breaking."
+  }
+}

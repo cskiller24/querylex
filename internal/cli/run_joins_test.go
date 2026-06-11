@@ -96,8 +96,9 @@ type joinsMockAdapter struct {
 
 func (m *joinsMockAdapter) Connect(ctx context.Context, dsn string) error { return nil }
 func (m *joinsMockAdapter) Ping(ctx context.Context) error                 { return nil }
-func (m *joinsMockAdapter) Close(ctx context.Context) error                { return nil }
-func (m *joinsMockAdapter) DatabaseType() string                           { return "mock" }
+func (m *joinsMockAdapter) Close(ctx context.Context) error                   { return nil }
+func (m *joinsMockAdapter) TestConnect(ctx context.Context, dsn string) error { return nil }
+func (m *joinsMockAdapter) DatabaseType() string                              { return "mock" }
 
 func (m *joinsMockAdapter) Schema(ctx context.Context, tables []string) (*db.SchemaResult, error) {
 	if m.schemaFn != nil { return m.schemaFn(ctx, tables) }

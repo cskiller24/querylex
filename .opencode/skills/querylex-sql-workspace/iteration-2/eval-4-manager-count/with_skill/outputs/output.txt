@@ -1,0 +1,14 @@
+```sql
+SELECT e.first_name, e.last_name, d.dept_name, COUNT(de.emp_no) AS employee_count
+FROM dept_manager dm
+JOIN employees e ON dm.emp_no = e.emp_no
+JOIN departments d ON dm.dept_no = d.dept_no
+LEFT JOIN dept_emp de ON dm.dept_no = de.dept_no AND de.to_date = '9999-01-01'
+WHERE dm.to_date = '9999-01-01'
+GROUP BY dm.emp_no, dm.dept_no, e.first_name, e.last_name, d.dept_name
+ORDER BY employee_count DESC
+```
+
+Joins `dept_manager` (current managers only, via `to_date = '9999-01-01'`) to `employees` (manager names) and `departments` (department name) on FK-confirmed paths. LEFT JOINs `dept_emp` (current employees only) to count active employees per department. GROUP BY manager and department ensures accurate per-manager counts.
+
+Memory ID: `mem_01KTJNDD2KJ0WXQ3M3B0WE8408` (updated existing entry)

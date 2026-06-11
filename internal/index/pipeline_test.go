@@ -42,6 +42,7 @@ func (m *mockAdapter) Indexes(ctx context.Context, tables []string) (*db.Indexes
 func (m *mockAdapter) Joins(ctx context.Context, tables []string) (*db.JoinsResult, error) {
 	return nil, nil
 }
+func (m *mockAdapter) TestConnect(ctx context.Context, dsn string) error { return nil }
 func (m *mockAdapter) DatabaseType() string {
 	if m.dbType != "" {
 		return m.dbType

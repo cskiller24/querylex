@@ -1,0 +1,29 @@
+SELECT 
+    e.emp_no,
+    e.first_name,
+    e.last_name,
+    d.dept_no,
+    d.dept_name,
+    COUNT(de.emp_no) AS employee_count
+FROM dept_manager dm
+JOIN employees e ON dm.emp_no = e.emp_no
+JOIN departments d ON dm.dept_no = d.dept_no
+LEFT JOIN dept_emp de ON dm.dept_no = de.dept_no 
+    AND de.to_date = '9999-01-01'
+    AND de.emp_no != dm.emp_no
+WHERE dm.to_date = '9999-01-01'
+GROUP BY e.emp_no, e.first_name, e.last_name, d.dept_no, d.dept_name
+ORDER BY employee_count DESC;
+
+--- Explanation ---
+The query identifies current department managers (dept_manager with to_date = '9999-01-01'),
+joins to employees (for name) and departments (for department name), then counts current
+employees in each manager's department (dept_emp with to_date = '9999-01-01').
+
+Key decisions:
+1. Both dept_manager and dept_emp are filtered to current records (to_date = '9999-01-01')
+2. The manager themselves is excluded from the count (de.emp_no != dm.emp_no) since the
+   task asks for "employees they manage" — i.e., subordinates, not the manager themselves
+3. LEFT JOIN on dept_emp ensures departments with zero non-manager employees still appear
+   with a count of 0
+4. Results are ordered by employee_count descending so the largest teams appear first

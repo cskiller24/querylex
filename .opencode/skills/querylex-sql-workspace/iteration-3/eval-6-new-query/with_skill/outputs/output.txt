@@ -1,0 +1,20 @@
+```sql
+SELECT
+    dm.emp_no,
+    e.first_name,
+    e.last_name,
+    d.dept_no,
+    d.dept_name,
+    COUNT(de.emp_no) AS employees_supervised
+FROM dept_manager dm
+JOIN employees e ON dm.emp_no = e.emp_no
+JOIN departments d ON dm.dept_no = d.dept_no
+LEFT JOIN dept_emp de ON dm.dept_no = de.dept_no
+    AND de.to_date = '9999-01-01'
+    AND de.emp_no != dm.emp_no
+WHERE dm.to_date = '9999-01-01'
+GROUP BY dm.emp_no, dm.dept_no, e.first_name, e.last_name, d.dept_name
+ORDER BY employees_supervised DESC;
+```
+
+**Explanation:** Joins `dept_manager` (current managers via `to_date = '9999-01-01'`) to `employees` for manager names and `departments` for department names. Counts employees per department via `LEFT JOIN dept_emp` (current assignments, same `to_date` filter), excluding the manager themselves (`de.emp_no != dm.emp_no`). LEFT JOIN ensures departments with zero non-manager employees still appear.

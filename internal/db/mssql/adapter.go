@@ -76,6 +76,17 @@ func (a *MSSQLAdapter) Close(ctx context.Context) error {
 	return nil
 }
 
+func (a *MSSQLAdapter) TestConnect(ctx context.Context, dsn string) error {
+	db, err := sql.Open("sqlserver", dsn)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	pingCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	return db.PingContext(pingCtx)
+}
+
 func (a *MSSQLAdapter) DatabaseType() string {
 	return "mssql"
 }

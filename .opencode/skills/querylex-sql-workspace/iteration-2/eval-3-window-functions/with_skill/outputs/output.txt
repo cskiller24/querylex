@@ -1,0 +1,15 @@
+```sql
+SELECT dept_no, dept_name, emp_no, first_name, last_name, salary
+FROM (
+  SELECT d.dept_no, d.dept_name, e.emp_no, e.first_name, e.last_name, s.salary,
+    ROW_NUMBER() OVER (PARTITION BY d.dept_no ORDER BY s.salary DESC) AS rn
+  FROM employees e
+  INNER JOIN dept_emp de ON e.emp_no = de.emp_no AND de.to_date = '9999-01-01'
+  INNER JOIN departments d ON de.dept_no = d.dept_no
+  INNER JOIN salaries s ON e.emp_no = s.emp_no AND s.to_date = '9999-01-01'
+) ranked
+WHERE rn = 1
+ORDER BY dept_no;
+```
+
+Uses `ROW_NUMBER()` window function partitioned by department to rank employees by salary within each department. The temporal tables `salaries` and `dept_emp` are filtered to current rows via `to_date = '9999-01-01'`. Foreign key joins: `dept_emp` → `employees` (`emp_no`), `dept_emp` → `departments` (`dept_no`), `salaries` → `employees` (`emp_no`).

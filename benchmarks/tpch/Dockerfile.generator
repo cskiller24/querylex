@@ -1,0 +1,17 @@
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git make gcc ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+RUN git config --global http.sslVerify false && \
+    git clone --depth 1 https://github.com/gregrahn/tpch-kit.git
+
+WORKDIR /build/tpch-kit/dbgen
+RUN make MACHINE=LINUX DATABASE=POSTGRESQL
+
+COPY scripts/generate.sh /generate.sh
+RUN chmod +x /generate.sh
+
+ENTRYPOINT ["/generate.sh"]

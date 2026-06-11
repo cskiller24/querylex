@@ -1,0 +1,36 @@
+{
+  "run_id": "join-optimization-without_skill",
+  "expectations": [
+    {
+      "text": "Output identifies the GROUP BY temp table or filesort as a key bottleneck",
+      "passed": true,
+      "evidence": "Three Bottlenecks: #3 'Temporary table for GROUP BY + sort \u2014 Creates on-disk temp table for aggregation, then filesort for ORDER BY'"
+    },
+    {
+      "text": "Output proposes a structural rewrite (derived table with pre-aggregation, subquery-to-join, or join reordering)",
+      "passed": true,
+      "evidence": "Optimized Query section: derived table with (SELECT o_custkey, o_orderpriority, COUNT(*) as order_count FROM orders WHERE o_orderdate >= '1995-01-01' GROUP BY o_custkey, o_orderpriority) AS o"
+    },
+    {
+      "text": "Output includes at least one index recommendation with CREATE INDEX syntax",
+      "passed": true,
+      "evidence": "Three CREATE INDEX statements: idx_customer_mktsegment, idx_orders_custkey_date, idx_orders_custkey_date_priority"
+    },
+    {
+      "text": "Plan comparison is included with before/after metrics on rows examined or cost estimates",
+      "passed": true,
+      "evidence": "Estimated Performance table with timing estimates and improvement factors; cached EXPLAIN ANALYZE benchmark data"
+    },
+    {
+      "text": "Output explains why the rewrite reduces intermediate result size or eliminates temp table operations",
+      "passed": true,
+      "evidence": "Why this rewrite helps table: 'Joins customer to all matching orders, then groups \u2192 Groups orders first (reducing to ~1 row per customer+priority), then joins'"
+    }
+  ],
+  "summary": {
+    "pass_rate": 1.0,
+    "passed": 5,
+    "failed": 0,
+    "total": 5
+  }
+}

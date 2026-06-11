@@ -1,0 +1,86 @@
+=== querylex-sql Full Transcript ===
+Date: 2026-06-08
+Question: "How many employees does each manager supervise?"
+
+=== STEP 2: workspace-stats ===
+Command: QUERYLEX_KEYCHAIN_PASSPHRASE=querylex-test querylex workspace-stats
+Response: {"success":true,"data":{"active_database_id":"benchmark-employees-mysql","connected_databases":[{"id":"benchmark-employees-mysql","name":"Employees MySQL","type":"mysql","status":"indexed","indexing_progress":100}]}}
+Result: Active DB = benchmark-employees-mysql, type = mysql, status = indexed — proceed normally.
+
+=== STEP 3: resolve ===
+Command: QUERYLEX_KEYCHAIN_PASSPHRASE=querylex-test querylex resolve "How many employees does each manager supervise?"
+Response: {"success":true,"data":{"tables":[{"name":"dept_manager","score":0.7,"match_type":"substring","matched_term":"manager"},{"name":"employees","score":0.95,"match_type":"exact","matched_term":"employees"}],"columns":[],"confidence":0.95}}
+Tables resolved: dept_manager, employees. (Extended to include dept_emp, departments based on schema knowledge.)
+
+=== STEP 4a: memory ===
+Command: QUERYLEX_KEYCHAIN_PASSPHRASE=querylex-test querylex memory "How many employees does each manager supervise?"
+Response: {"success":true,"data":{"match_found":false,"similarity":null,"match_type":null,"entry":null}}
+Result: No strong match (similarity < 0.86).
+
+=== STEP 4b: history ===
+Command: QUERYLEX_KEYCHAIN_PASSPHRASE=querylex-test querylex history "How many employees does each manager supervise?"
+Response: Found 5 related entries. Top match: exact same question previously saved with similarity 0.414.
+Top SQL reference:
+SELECT dm.emp_no, e.first_name, e.last_name, d.dept_no, d.dept_name, COUNT(de.emp_no) AS employees_supervised FROM dept_manager dm JOIN employees e ON dm.emp_no = e.emp_no JOIN departments d ON dm.dept_no = d.dept_no LEFT JOIN dept_emp de ON dm.dept_no = de.dept_no AND de.to_date = '9999-01-01' AND de.emp_no != dm.emp_no WHERE dm.to_date = '9999-01-01' GROUP BY dm.emp_no, dm.dept_no, e.first_name, e.last_name, d.dept_name ORDER BY employees_supervised DESC
+
+=== STEP 5: terminology map ===
+File: $HOME/.querylex/benchmark-employees-mysql/terminologies.md
+Status: Present, parsed successfully. Contains terms for current_salary, department, current_department, hired_in_last_N_years. No manager/supervise terminology yet.
+
+=== STEP 6: schema ===
+Command: QUERYLEX_KEYCHAIN_PASSPHRASE=querylex-test querylex schema --tables-json '["dept_manager","employees","dept_emp","departments"]'
+Response: Success. Schema extracted for all 4 tables.
+Key columns:
+- dept_manager: emp_no(PK), dept_no(PK), from_date, to_date. FK→employees(emp_no), FK→departments(dept_no)
+- employees: emp_no(PK), birth_date, first_name, last_name, gender, hire_date
+- dept_emp: emp_no(PK), dept_no(PK), from_date, to_date. FK→employees(emp_no), FK→departments(dept_no)
+- departments: dept_no(PK), dept_name
+
+=== STEP 7: stats ===
+Command: QUERYLEX_KEYCHAIN_PASSPHRASE=querylex-test querylex stats --tables-json '["dept_manager","employees","dept_emp","departments"]'
+Response: {"success":false,"data":{"tables":null},"error":{"code":"INTERNAL_ERROR","message":"Stats extraction failed: mysql stats rows: context deadline exceeded","retryable":false}}
+Result: Stats failed (timeout). Warning, continuing without row counts.
+
+=== STEP 8: joins ===
+Command: QUERYLEX_KEYCHAIN_PASSPHRASE=querylex-test querylex joins --tables-json '["dept_manager","employees","dept_emp","departments"]'
+Response: Success. Join graph:
+- dept_manager → employees (emp_no = emp_no, confidence=1.0, FK)
+- dept_manager → departments (dept_no = dept_no, confidence=1.0, FK)
+- dept_emp → employees (emp_no = emp_no, confidence=1.0, FK)
+- dept_emp → departments (dept_no = dept_no, confidence=1.0, FK)
+
+=== STEP 9: indexes ===
+Command: QUERYLEX_KEYCHAIN_PASSPHRASE=querylex-test querylex indexes --tables-json '["dept_manager","employees","dept_emp","departments"]'
+Response: Success. Indexes:
+- dept_manager: PRIMARY(emp_no, dept_no), idx_dept_manager_composite(emp_no, dept_no)
+- dept_emp: PRIMARY(emp_no, dept_no), idx_dept_emp_composite(emp_no, dept_no)
+- employees: PRIMARY(emp_no)
+- departments: PRIMARY(dept_no), idx_departments_dept_name(dept_name)
+
+=== STEP 10: construct SQL ===
+Dialect: MySQL
+SQL constructed:
+SELECT dm.emp_no, e.first_name, e.last_name, d.dept_no, d.dept_name, COUNT(de.emp_no) AS employees_supervised
+FROM dept_manager dm
+JOIN employees e ON dm.emp_no = e.emp_no
+JOIN departments d ON dm.dept_no = d.dept_no
+LEFT JOIN dept_emp de ON dm.dept_no = de.dept_no AND de.to_date = '9999-01-01' AND de.emp_no != dm.emp_no
+WHERE dm.to_date = '9999-01-01'
+GROUP BY dm.emp_no, dm.dept_no, e.first_name, e.last_name, d.dept_name
+ORDER BY employees_supervised DESC
+
+=== STEP 11: validate ===
+Command: QUERYLEX_KEYCHAIN_PASSPHRASE=querylex-test querylex validate "SELECT ..."
+Response: {"success":true,"data":{"valid":true,"read_only":true}}
+Result: SQL is valid and read-only.
+
+=== STEP 12a: save ===
+Command: QUERYLEX_KEYCHAIN_PASSPHRASE=querylex-test querylex save "How many employees does each manager supervise?" "SELECT ..."
+Response: {"success":true,"data":{"saved":true,"updated_existing":true,"entry":{"id":"mem_01KTJPQBWTE2D4EJVG19HX2JE4"}}}
+Result: Saved to memory (updated existing entry).
+
+=== STEP 12b: update terminologies.md ===
+Added terms: "manager" (→ dept_manager.emp_no), "employee" (→ employees.emp_no), "supervise" (→ dept_manager.dept_no = dept_emp.dept_no relationship).
+
+=== FINAL OUTPUT ===
+SQL + explanation written to output.txt.

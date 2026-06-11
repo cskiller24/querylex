@@ -930,6 +930,17 @@ func (a *PostgreSQLAdapter) Joins(ctx context.Context, tables []string) (*db.Joi
 // DatabaseType / BuildDSN
 // ---------------------------------------------------------------------------
 
+func (a *PostgreSQLAdapter) TestConnect(ctx context.Context, dsn string) error {
+	conn, err := sql.Open("pgx", dsn)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	pingCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	return conn.PingContext(pingCtx)
+}
+
 func (a *PostgreSQLAdapter) DatabaseType() string {
 	return "postgresql"
 }
