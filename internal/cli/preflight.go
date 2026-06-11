@@ -168,21 +168,6 @@ func PreflightForCommand() (*PreflightResult, *format.Response[any]) {
 	if err != nil {
 		credStore = nil // preflight tolerates nil credStore — error if actually needed
 	}
-	// Auto-unlock EncryptedFileStore when QUERYLEX_KEYCHAIN_PASSPHRASE is set.
-	// This mirrors the interactive promptEncryptedFilePassphrase pattern used
-	// by run_adddb.go and run_ai_config.go but is non-interactive — intended
-	// for CI environments where the passphrase is passed via env var.
-	if encStore, ok := credStore.(*credentials.EncryptedFileStore); ok {
-		if passphrase := os.Getenv("QUERYLEX_KEYCHAIN_PASSPHRASE"); passphrase != "" {
-			if unlockErr := encStore.Unlock(passphrase); unlockErr != nil {
-				// Auto-unlock failed — clear credStore so PreflightForCommand
-				// falls through to the env-var or empty-password path. The
-				// credential store interface already returns nil for
-				// ErrPassphraseRequired; this handles wrong-passphrase too.
-				credStore = nil
-			}
-		}
-	}
 	var password string
 	var credRef *credentials.CredentialReference
 	// Load credential reference from database.json alongside config
