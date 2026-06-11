@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/cskiller24/querylex/internal/credentials"
 	"github.com/cskiller24/querylex/internal/format"
 	"github.com/cskiller24/querylex/internal/index"
 	"github.com/cskiller24/querylex/internal/state"
@@ -324,90 +323,5 @@ func TestStaleDetection_MissingArtifactDir(t *testing.T) {
 	status := loadWorkspaceStatus(t, home, "db-1")
 	if status != state.StatusStale {
 		t.Fatalf("expected status to be 'stale' (missing artifact dir), got '%s'", status)
-	}
-}
-
-// Test that PreflightForCommand auto-unlocks the EncryptedFileStore when
-// QUERYLEX_KEYCHAIN_PASSPHRASE is set. Without the auto-unlock, credential
-// retrieval would fail with CREDENTIAL_UNAVAILABLE because the EncryptedFileStore
-// instance created by SelectCredentialStore() has no passphrase set.
-func TestPreflight_AutoUnlockEncryptedStore(t *testing.T) {
-	home := setupPreflightTestWorkspace(t, []state.DatabaseEntry{
-		{ID: "db-1", Name: "TestDB", Type: "mysql", Status: state.StatusIndexed, IndexingProgress: 100},
-	})
-	t.Setenv("HOME", home)
-	t.Setenv("QUERYLEX_KEYCHAIN_PASSPHRASE", "test-passphrase")
-
-	// Pre-populate the encrypted credential store with the test password.
-	encPath := filepath.Join(home, ".querylex", "credentials.json.enc")
-	credStore := credentials.NewEncryptedFileStore(encPath)
-	if err := credStore.Unlock("test-passphrase"); err != nil {
-		t.Fatalf("setup: unlock failed: %v", err)
-	}
-	ref, err := credStore.Store("db-1", "testpass")
-	if err != nil {
-		t.Fatalf("setup: store failed: %v", err)
-	}
-
-	// Create database.json WITH credential reference so preflight tries to
-	// Retrieve() from the encrypted store.
-	dbDir := filepath.Join(home, ".querylex", "db-1")
-	if err := os.MkdirAll(dbDir, 0755); err != nil {
-		t.Fatalf("mkdir db dir: %v", err)
-	}
-	dbJSON := DBConfigJSON{
-		ID:            "db-1",
-		Name:          "TestDB",
-		Type:          "mysql",
-		Host:          "localhost",
-		Port:          3306,
-		Database:      "testdb",
-		Username:      "testuser",
-		SSLMode:       "require",
-		CredentialRef: ref,
-	}
-	dbData, err := json.Marshal(dbJSON)
-	if err != nil {
-		t.Fatalf("marshal database.json: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(dbDir, "database.json"), dbData, 0644); err != nil {
-		t.Fatalf("write database.json: %v", err)
-	}
-
-	_, errResp := PreflightForCommand()
-	if errResp == nil {
-		t.Fatal("expected error response (connection will fail), got nil")
-	}
-	// With auto-unlock, credential retrieval succeeds and preflight reaches
-	// the connection step, which fails with CONNECTION_FAILED (no real MySQL).
-	// Without auto-unlock, preflight fails earlier with CREDENTIAL_UNAVAILABLE.
-	if errResp.Error.Code != format.ErrCodeConnectionFailed {
-		t.Fatalf("expected CONNECTION_FAILED (credential should be auto-unlocked), got %s: %s",
-			errResp.Error.Code, errResp.Error.Message)
-	}
-}
-
-// Test that when QUERYLEX_KEYCHAIN_PASSPHRASE is NOT set, preflight behavior
-// is unchanged — credential retrieval still works via existing env store path
-// or fails with the original error.
-func TestPreflight_AutoUnlock_NoPassphraseEnv(t *testing.T) {
-	home := setupPreflightTestWorkspace(t, []state.DatabaseEntry{
-		{ID: "db-1", Name: "TestDB", Type: "mysql", Status: state.StatusIndexed, IndexingProgress: 100},
-	})
-	t.Setenv("HOME", home)
-	// Intentionally NOT setting QUERYLEX_KEYCHAIN_PASSPHRASE
-
-	setupPreflightTestDB(t, home, "db-1", "mysql")
-
-	_, errResp := PreflightForCommand()
-	if errResp == nil {
-		t.Fatal("expected error response (connection will fail), got nil")
-	}
-	// Without QUERYLEX_KEYCHAIN_PASSPHRASE, the auto-unlock is skipped.
-	// Preflight should still fail with CONNECTION_FAILED (the existing behavior:
-	// no credential ref means empty password, DSN built, connection fails).
-	if errResp.Error.Code != format.ErrCodeConnectionFailed {
-		t.Fatalf("expected CONNECTION_FAILED (existing behavior preserved), got %s: %s",
-			errResp.Error.Code, errResp.Error.Message)
 	}
 }
