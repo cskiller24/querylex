@@ -9,11 +9,18 @@ import (
 	"github.com/cskiller24/querylex/internal/index"
 )
 
-// ComputeSimilarity computes a 4-component lexical-only weighted similarity score
+// fromRe matches table names after FROM keyword.
+var fromRe = regexp.MustCompile(`(?i)\bFROM\s+(\w+)`)
+
+// joinRe matches table names after JOIN keyword.
+var joinRe = regexp.MustCompile(`(?i)\bJOIN\s+(\w+)`)
+
+// ComputeSimilarity computes a 5-component lexical-only weighted similarity score
 // between the input and a stored memory entry. Returns a value in [0, 1].
 //
 // Components:
-//   - Schema-entity overlap (0.45)
+//   - Schema-entity overlap (0.30)
+//   - SQL structure overlap (0.15)
 //   - Intent classification (0.25)
 //   - Filter/temporal overlap (0.20)
 //   - Recency decay (0.10)
@@ -24,11 +31,12 @@ func ComputeSimilarity(input string, entry MemoryEntry, schemaTokens map[string]
 	}
 
 	entityScore := computeEntityOverlap(inputTokens, schemaTokens)
+	sqlStructureScore := computeSQLStructureScore(input, entry.SQL, schemaTokens)
 	intentScore := computeIntentScore(entry.Input, entry.SQL)
 	filterScore := computeFilterOverlap(input, entry.SQL)
 	recencyScore := computeRecencyScore(entry, now)
 
-	return 0.45*entityScore + 0.25*intentScore + 0.20*filterScore + 0.10*recencyScore
+	return 0.30*entityScore + 0.15*sqlStructureScore + 0.25*intentScore + 0.20*filterScore + 0.10*recencyScore
 }
 
 // ExtractSchemaTokens reads the schema_map.json for the given dbDir and
@@ -85,6 +93,62 @@ func computeEntityOverlap(inputTokens []string, schemaTokens map[string]struct{}
 	}
 
 	score := float64(matches) / float64(max(len(inputTokens), 1))
+	if score > 1.0 {
+		score = 1.0
+	}
+	return score
+}
+
+// computeSQLStructureScore scores how well the input's table/column mentions
+// match the tables and columns used in the saved entry's SQL.
+// It extracts table names (FROM/JOIN) from the SQL and checks them against
+// schema tokens present in both the input and the SQL. Score is the Jaccard
+// similarity between input-schema matches and SQL-schema matches.
+func computeSQLStructureScore(input, entrySQL string, schemaTokens map[string]struct{}) float64 {
+	if len(schemaTokens) == 0 || input == "" || entrySQL == "" {
+		return 0
+	}
+
+	// Extract table names from the saved SQL's FROM and JOIN clauses
+	sqlTables := make(map[string]struct{})
+	for _, m := range fromRe.FindAllStringSubmatch(entrySQL, -1) {
+		if len(m) >= 2 {
+			sqlTables[strings.ToLower(m[1])] = struct{}{}
+		}
+	}
+	for _, m := range joinRe.FindAllStringSubmatch(entrySQL, -1) {
+		if len(m) >= 2 {
+			sqlTables[strings.ToLower(m[1])] = struct{}{}
+		}
+	}
+
+	if len(sqlTables) == 0 {
+		return 0
+	}
+
+	// Find which SQL tables are also in the schema tokens
+	sqlSchemaTables := make(map[string]struct{})
+	for t := range sqlTables {
+		if _, ok := schemaTokens[t]; ok {
+			sqlSchemaTables[t] = struct{}{}
+		}
+	}
+
+	if len(sqlSchemaTables) == 0 {
+		return 0
+	}
+
+	// Find which of those tables appear in the input
+	inputTokens := tokenizeSet(input)
+	inputMatches := 0
+	for t := range sqlSchemaTables {
+		if _, ok := inputTokens[t]; ok {
+			inputMatches++
+		}
+	}
+
+	// Score = matches / total SQL-schema tables (Jaccard-like)
+	score := float64(inputMatches) / float64(len(sqlSchemaTables))
 	if score > 1.0 {
 		score = 1.0
 	}
