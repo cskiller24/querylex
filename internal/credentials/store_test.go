@@ -74,7 +74,6 @@ func TestEncryptedFileRoundTrip(t *testing.T) {
 	tmpDir := t.TempDir()
 	filePath := filepath.Join(tmpDir, "credentials.json.enc")
 	store := NewEncryptedFileStore(filePath)
-	store.SetPassphrase("test-passphrase-123")
 
 	ref, err := store.Store("encrypted-account", "encrypted-secret-456")
 	if err != nil {
@@ -97,7 +96,6 @@ func TestEncryptedFileTampering(t *testing.T) {
 	tmpDir := t.TempDir()
 	filePath := filepath.Join(tmpDir, "credentials.json.enc")
 	store := NewEncryptedFileStore(filePath)
-	store.SetPassphrase("test-passphrase-123")
 
 	_, err := store.Store("test", "test-secret")
 	if err != nil {
@@ -116,7 +114,6 @@ func TestEncryptedFileTampering(t *testing.T) {
 	}
 
 	store2 := NewEncryptedFileStore(filePath)
-	store2.SetPassphrase("test-passphrase-123")
 	_, err = store2.Retrieve(&CredentialReference{Account: "test"})
 	if err == nil {
 		t.Fatal("expected ErrTamperedFile on tampered data, got nil")

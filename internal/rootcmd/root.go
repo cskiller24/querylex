@@ -73,6 +73,54 @@ Shell Completions:
 	},
 }
 
+var listDbsCmd = &cobra.Command{
+	Use:   "list-dbs",
+	Short: "List all connected databases",
+	Long: `Display all database connections registered in the workspace, including connection type, host, port, database name, indexing status, and which one is active. Connection details are read from each database.json file.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		start := time.Now()
+		resp := cli.RunListDBs()
+		resp.Complete(start)
+		outputResponse(resp)
+		if !resp.Success {
+			os.Exit(1)
+		}
+	},
+}
+
+var editDbCmd = &cobra.Command{
+	Use:   "edit-db <id>",
+	Short: "Edit a database connection",
+	Long: `Interactively edit an existing database connection. You will be prompted for updated connection details with the current values as defaults. If you enter a new password, the old credential is deleted and the new one is stored.`,
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		start := time.Now()
+		resp := cli.RunEditDB(args[0])
+		resp.Complete(start)
+		outputResponse(resp)
+		if !resp.Success {
+			os.Exit(1)
+		}
+	},
+}
+
+var deleteDbCmd = &cobra.Command{
+	Use:   "delete-db <id>",
+	Short: "Delete a database connection",
+	Long: `Remove a database connection from the workspace including its credential, indexed artifacts, and configuration. Use --force/-y to skip the confirmation prompt.`,
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		start := time.Now()
+		force, _ := cmd.Flags().GetBool("force")
+		resp := cli.RunDeleteDB(args[0], force)
+		resp.Complete(start)
+		outputResponse(resp)
+		if !resp.Success {
+			os.Exit(1)
+		}
+	},
+}
+
 var addDbCmd = &cobra.Command{
 	Use:   "add-db",
 	Short: "Add a new database connection through guided setup",
@@ -322,7 +370,10 @@ var completionCmd = &cobra.Command{
 }
 
 func init() {
+	RootCmd.AddCommand(listDbsCmd)
 	RootCmd.AddCommand(addDbCmd)
+	RootCmd.AddCommand(editDbCmd)
+	RootCmd.AddCommand(deleteDbCmd)
 	RootCmd.AddCommand(statsCmd)
 	RootCmd.AddCommand(schemaCmd)
 	RootCmd.AddCommand(tableStatsCmd)
@@ -372,6 +423,8 @@ func init() {
 
 	resolveCmd.Flags().String("tables-json", "", "Tables as JSON array")
 	_ = resolveCmd.RegisterFlagCompletionFunc("tables-json", cobra.NoFileCompletions)
+
+	deleteDbCmd.Flags().BoolP("force", "y", false, "Skip confirmation prompt")
 }
 
 func initWorkspace() error {
