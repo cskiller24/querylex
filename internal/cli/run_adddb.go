@@ -65,20 +65,9 @@ func RunAddDB() *format.Response[AddDBData] {
 		)
 	}
 
-	// If the encrypted file store was selected, prompt for passphrase
-	if encStore, ok := credStore.(*credentials.EncryptedFileStore); ok {
-		if ppErr := promptEncryptedFilePassphrase(encStore); ppErr != nil {
-			return format.NewErrorResponse[AddDBData](
-				format.ErrCodeCredentialUnavailable,
-				ppErr.Error(),
-				false,
-				traceID,
-			)
-		}
-	}
-
 	credRef, err := credStore.Store(dbID, answers.Password)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "[FAIL] Storing credentials: %v\n", err)
 		return format.NewErrorResponse[AddDBData](
 			format.ErrCodeCredentialUnavailable,
 			fmt.Sprintf("Failed to store credential: %v", err),
@@ -87,6 +76,7 @@ func RunAddDB() *format.Response[AddDBData] {
 		)
 	}
 	credRef.SecretKind = "database-password"
+	progressStep(2, 5, "Storing credentials... Credentials stored.")
 
 	var dsn string
 	switch answers.DBType {
@@ -117,6 +107,7 @@ func RunAddDB() *format.Response[AddDBData] {
 	defer cancel()
 
 	if err := adapter.Connect(pingCtx, dsn); err != nil {
+		fmt.Fprintf(os.Stderr, "[FAIL] Connection: %v\n", err)
 		return format.NewErrorResponse[AddDBData](
 			format.ErrCodeConnectionFailed,
 			fmt.Sprintf("Connection to %s database failed: %v", answers.DBType, err),
@@ -124,6 +115,7 @@ func RunAddDB() *format.Response[AddDBData] {
 			traceID,
 		)
 	}
+	progressStep(1, 5, fmt.Sprintf("Connecting to %s at %s:%d... Connected.", answers.DBType, answers.Host, answers.Port))
 
 	querylexDir := filepath.Join(home, ".querylex")
 	if err := os.MkdirAll(querylexDir, 0700); err != nil {
@@ -221,10 +213,34 @@ func RunAddDB() *format.Response[AddDBData] {
 	// Run indexing pipeline synchronously
 	indexingStatus := string(state.StatusIndexed)
 	indexingProgress := 100
+
+	// Step 3: Fetching schema
+	progressStep(3, 5, "Fetching schema...")
+
 	pipeline := index.NewPipeline(adapter, dbDir, answers.Name, answers.DBType)
 	pipeCtx, pipeCancel := context.WithTimeout(context.Background(), 5*time.Minute)
+
+	// Step 4: Periodically read indexing progress from status file
+	progressDone := make(chan struct{})
+	go func() {
+		defer close(progressDone)
+		ticker := time.NewTicker(2 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-pipeCtx.Done():
+				return
+			case <-ticker.C:
+				if st, readErr := index.ReadIndexStatus(dbDir); readErr == nil && st != nil {
+					fmt.Fprintf(os.Stderr, "[4/5] Indexing schema... %d%%\n", st.ProgressPercent)
+				}
+			}
+		}
+	}()
+
 	if pipeErr := index.RunPipeline(pipeCtx, pipeline); pipeErr != nil {
 		// Non-fatal — log and report failure
+		fmt.Fprintf(os.Stderr, "[FAIL] Indexing: %v\n", pipeErr)
 		indexingStatus = string(state.StatusIndexFailed)
 		indexingProgress = 0
 
@@ -234,6 +250,7 @@ func RunAddDB() *format.Response[AddDBData] {
 		}
 	}
 	pipeCancel()
+	<-progressDone
 
 	// Update workspace entry status
 	if ws, loadErr := wsStore.Load(); loadErr == nil {
@@ -246,6 +263,9 @@ func RunAddDB() *format.Response[AddDBData] {
 			}
 		}
 	}
+
+	// Step 5: Workspace saved
+	progressStep(5, 5, "Workspace saved.")
 
 	// Close adapter after indexing completes
 	adapter.Close(context.Background())
@@ -286,6 +306,10 @@ func selectCredentialStore() credentials.CredentialStore {
 	}
 
 	return nil
+}
+
+func progressStep(step, total int, message string) {
+	fmt.Fprintf(os.Stderr, "[%d/%d] %s\n", step, total, message)
 }
 
 func generateDBID(name string) string {
