@@ -31,6 +31,12 @@ var ErrWorkspaceStateInvalid = &WorkspaceError{
 	Err:  errors.New("workspace state is missing, malformed, or internally inconsistent"),
 }
 
+// ErrDatabaseNotFound is returned when a database entry is not found by ID.
+var ErrDatabaseNotFound = &WorkspaceError{
+	Code: format.ErrCodeWorkspaceStateInvalid,
+	Err:  errors.New("database entry not found"),
+}
+
 // DatabaseStatus represents the indexing status of a connected database.
 type DatabaseStatus string
 
@@ -72,6 +78,14 @@ type WorkspaceStore interface {
 
 	// AddDatabase appends a new database entry and saves.
 	AddDatabase(entry DatabaseEntry) error
+
+	// UpdateDatabase updates an existing database entry by ID and saves.
+	// Returns ErrDatabaseNotFound if the ID is not found.
+	UpdateDatabase(id string, entry DatabaseEntry) error
+
+	// DeleteDatabase removes a database entry and all its artifacts by ID and saves.
+	// Returns ErrDatabaseNotFound if the ID is not found.
+	DeleteDatabase(id string) error
 
 	// RemoveDatabase removes a database entry by ID and saves.
 	RemoveDatabase(id string) error
@@ -153,6 +167,55 @@ func (s *FileWorkspaceStore) AddDatabase(entry DatabaseEntry) error {
 		return err
 	}
 	ws.ConnectedDatabases = append(ws.ConnectedDatabases, entry)
+	return s.Save(ws)
+}
+
+// UpdateDatabase updates an existing database entry by ID in the workspace.
+// Returns ErrDatabaseNotFound if the ID is not found.
+func (s *FileWorkspaceStore) UpdateDatabase(id string, entry DatabaseEntry) error {
+	ws, err := s.Load()
+	if err != nil {
+		return err
+	}
+
+	for i := range ws.ConnectedDatabases {
+		if ws.ConnectedDatabases[i].ID == id {
+			ws.ConnectedDatabases[i] = entry
+			return s.Save(ws)
+		}
+	}
+
+	return ErrDatabaseNotFound
+}
+
+// DeleteDatabase removes a database entry by ID from the workspace.
+// Returns ErrDatabaseNotFound if the ID is not found.
+func (s *FileWorkspaceStore) DeleteDatabase(id string) error {
+	ws, err := s.Load()
+	if err != nil {
+		return err
+	}
+
+	found := false
+	filtered := make([]DatabaseEntry, 0, len(ws.ConnectedDatabases))
+	for _, entry := range ws.ConnectedDatabases {
+		if entry.ID == id {
+			found = true
+		} else {
+			filtered = append(filtered, entry)
+		}
+	}
+
+	if !found {
+		return ErrDatabaseNotFound
+	}
+	ws.ConnectedDatabases = filtered
+
+	// Clear active database if it was the removed one
+	if ws.ActiveDatabaseID != nil && *ws.ActiveDatabaseID == id {
+		ws.ActiveDatabaseID = nil
+	}
+
 	return s.Save(ws)
 }
 
@@ -247,6 +310,60 @@ func (s *InMemoryWorkspaceStore) AddDatabase(entry DatabaseEntry) error {
 		s.ws = &Workspace{}
 	}
 	s.ws.ConnectedDatabases = append(s.ws.ConnectedDatabases, entry)
+	s.ws.Revision++
+	s.ws.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+	return nil
+}
+
+// UpdateDatabase updates an existing database entry by ID.
+func (s *InMemoryWorkspaceStore) UpdateDatabase(id string, entry DatabaseEntry) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.ws == nil {
+		return ErrDatabaseNotFound
+	}
+
+	for i := range s.ws.ConnectedDatabases {
+		if s.ws.ConnectedDatabases[i].ID == id {
+			s.ws.ConnectedDatabases[i] = entry
+			s.ws.Revision++
+			s.ws.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+			return nil
+		}
+	}
+
+	return ErrDatabaseNotFound
+}
+
+// DeleteDatabase removes a database entry by ID.
+func (s *InMemoryWorkspaceStore) DeleteDatabase(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.ws == nil {
+		return ErrDatabaseNotFound
+	}
+
+	found := false
+	filtered := make([]DatabaseEntry, 0, len(s.ws.ConnectedDatabases))
+	for _, entry := range s.ws.ConnectedDatabases {
+		if entry.ID == id {
+			found = true
+		} else {
+			filtered = append(filtered, entry)
+		}
+	}
+
+	if !found {
+		return ErrDatabaseNotFound
+	}
+	s.ws.ConnectedDatabases = filtered
+
+	if s.ws.ActiveDatabaseID != nil && *s.ws.ActiveDatabaseID == id {
+		s.ws.ActiveDatabaseID = nil
+	}
+
 	s.ws.Revision++
 	s.ws.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
 	return nil
