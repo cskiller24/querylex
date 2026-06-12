@@ -5,7 +5,7 @@ milestone_name: Cleanup
 status: Awaiting next milestone
 stopped_at: Phase 5 context gathered
 last_updated: "2026-06-07T11:55:42.599Z"
-last_activity: 2026-06-11 — Completed quick task 260611-i6z: Execute all improvements from new-improvements.md
+last_activity: 2026-06-12 — Completed quick task 260613-0ym: Simplify credential encryption with generated keys, add CLI commands, enhance workspace-stats connectivity
 progress:
   total_phases: 2
   completed_phases: 2
@@ -52,6 +52,7 @@ Key decisions are logged in PROJECT.md Key Decisions table.
 | 260607-v40 | simplify CI to run only the test job on ubuntu-latest | 2026-06-07 | 6d52bc1 |
 | 260608-8e4 | CLI documentation | 2026-06-08 | 14b845d |
 | 260611-i6z | Execute all improvements from new-improvements.md | 2026-06-11 | 3c58a8b |
+| 260613-0ym | Simplify credential encryption with generated keys, add CLI commands, enhance workspace-stats connectivity | 2026-06-12 | 62f85cc, b13fcda |
 
 ## Deferred Items
 
