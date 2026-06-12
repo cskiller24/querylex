@@ -63,6 +63,10 @@ Getting Started:
   3. Explain a query:    querylex explain "SELECT ..."
   4. Save and search:    querylex save "my query"
 
+Credential Management:
+  querylex generate-encryption  Generate an encryption key for the credential store
+  querylex rotate-encryption    Rotate the encryption key and re-encrypt credentials
+
 Shell Completions:
   querylex completion bash > /path/to/completions`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -76,7 +80,7 @@ Shell Completions:
 var listDbsCmd = &cobra.Command{
 	Use:   "list-dbs",
 	Short: "List all connected databases",
-	Long: `Display all database connections registered in the workspace, including connection type, host, port, database name, indexing status, and which one is active. Connection details are read from each database.json file.`,
+	Long:  `Display all database connections registered in the workspace, including connection type, host, port, database name, indexing status, and which one is active. Connection details are read from each database.json file.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
 		resp := cli.RunListDBs()
@@ -91,8 +95,8 @@ var listDbsCmd = &cobra.Command{
 var editDbCmd = &cobra.Command{
 	Use:   "edit-db <id>",
 	Short: "Edit a database connection",
-	Long: `Interactively edit an existing database connection. You will be prompted for updated connection details with the current values as defaults. If you enter a new password, the old credential is deleted and the new one is stored.`,
-	Args: cobra.ExactArgs(1),
+	Long:  `Interactively edit an existing database connection. You will be prompted for updated connection details with the current values as defaults. If you enter a new password, the old credential is deleted and the new one is stored.`,
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
 		resp := cli.RunEditDB(args[0])
@@ -107,8 +111,8 @@ var editDbCmd = &cobra.Command{
 var deleteDbCmd = &cobra.Command{
 	Use:   "delete-db <id>",
 	Short: "Delete a database connection",
-	Long: `Remove a database connection from the workspace including its credential, indexed artifacts, and configuration. Use --force/-y to skip the confirmation prompt.`,
-	Args: cobra.ExactArgs(1),
+	Long:  `Remove a database connection from the workspace including its credential, indexed artifacts, and configuration. Use --force/-y to skip the confirmation prompt.`,
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
 		force, _ := cmd.Flags().GetBool("force")
@@ -124,7 +128,7 @@ var deleteDbCmd = &cobra.Command{
 var addDbCmd = &cobra.Command{
 	Use:   "add-db",
 	Short: "Add a new database connection through guided setup",
-	Long: `Interactively add a new database connection for Querylex via guided prompts. You will be asked for database type (MySQL or PostgreSQL), connection details (host, port, database name, username), and password. The password is stored in your OS keychain, never in plaintext. After setup, Querylex automatically indexes the database schema.`,
+	Long:  `Interactively add a new database connection for Querylex via guided prompts. You will be asked for database type (MySQL or PostgreSQL), connection details (host, port, database name, username), and password. The password is stored in your OS keychain, never in plaintext. After setup, Querylex automatically indexes the database schema.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
 		resp := cli.RunAddDB()
@@ -139,7 +143,7 @@ var addDbCmd = &cobra.Command{
 var statsCmd = &cobra.Command{
 	Use:   "workspace-stats",
 	Short: "Show workspace status across connected databases",
-	Long: `Display Querylex workspace status including all connected databases, their indexing status and progress, active database indicator, and workspace health information. Use --human flag for a readable summary instead of JSON output.`,
+	Long:  `Display Querylex workspace status including all connected databases, their indexing status and progress, active database indicator, and workspace health information. Use --human flag for a readable summary instead of JSON output.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		human, _ := cmd.Flags().GetBool("human")
 		if human {
@@ -178,7 +182,7 @@ var schemaCmd = &cobra.Command{
 var tableStatsCmd = &cobra.Command{
 	Use:   "stats",
 	Short: "Show table statistics",
-	Long: `Displays row counts, cardinality estimates, data size, index size, and freshness metadata for the specified tables. Requires an indexed active database. Use --table flag (repeatable) to target specific tables or omit for all tables.`,
+	Long:  `Displays row counts, cardinality estimates, data size, index size, and freshness metadata for the specified tables. Requires an indexed active database. Use --table flag (repeatable) to target specific tables or omit for all tables.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
 		tables, _ := cmd.Flags().GetStringArray("table")
@@ -196,7 +200,7 @@ var tableStatsCmd = &cobra.Command{
 var indexesCmd = &cobra.Command{
 	Use:   "indexes",
 	Short: "Show index information for tables",
-	Long: `Displays index metadata including index type (BTREE, HASH, GIN, etc.), uniqueness, columns with their order, cardinality, and visibility. By default reads from schema_map.json for speed. Use --live to query the database directly for real-time index information.`,
+	Long:  `Displays index metadata including index type (BTREE, HASH, GIN, etc.), uniqueness, columns with their order, cardinality, and visibility. By default reads from schema_map.json for speed. Use --live to query the database directly for real-time index information.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
 		tables, _ := cmd.Flags().GetStringArray("table")
@@ -213,11 +217,11 @@ var indexesCmd = &cobra.Command{
 }
 
 var explainCmd = &cobra.Command{
-	Use:   "explain <sql>",
-	Short: "Show execution plan for a SQL query",
-	Long: `Returns a dialect-normalized execution plan with heuristic analysis. The plan format adapts to each database engine — JSON for MySQL/PostgreSQL, structured text for SQLite, and XML-to-structured for MSSQL. Use --analyze to execute the query for actual runtime timing and row counts (with confirmation prompt).`,
+	Use:     "explain <sql>",
+	Short:   "Show execution plan for a SQL query",
+	Long:    `Returns a dialect-normalized execution plan with heuristic analysis. The plan format adapts to each database engine — JSON for MySQL/PostgreSQL, structured text for SQLite, and XML-to-structured for MSSQL. Use --analyze to execute the query for actual runtime timing and row counts (with confirmation prompt).`,
 	Example: `  querylex explain --analyze "SELECT o.id, c.name FROM orders o JOIN customers c ON o.customer_id = c.id"`,
-	Args:  cobra.MinimumNArgs(1),
+	Args:    cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
 		analyze, _ := cmd.Flags().GetBool("analyze")
@@ -233,7 +237,7 @@ var explainCmd = &cobra.Command{
 var validateCmd = &cobra.Command{
 	Use:   "validate <sql>",
 	Short: "Validate SQL against active database schema",
-	Long: `Validates SQL without executing it. Layer 1 checks: rejects DML (INSERT/UPDATE/DELETE) and DCL (GRANT/REVOKE) statements. Layer 2 checks: resolves table and column references against the active database schema. Returns normalized SQL or specific validation errors.`,
+	Long:  `Validates SQL without executing it. Layer 1 checks: rejects DML (INSERT/UPDATE/DELETE) and DCL (GRANT/REVOKE) statements. Layer 2 checks: resolves table and column references against the active database schema. Returns normalized SQL or specific validation errors.`,
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
@@ -249,7 +253,7 @@ var validateCmd = &cobra.Command{
 var joinsCmd = &cobra.Command{
 	Use:   "joins",
 	Short: "Show join relationships for tables",
-	Long: `Returns declared foreign key relationships (confidence=1.0) and inferred column-name pattern matches (confidence<1.0) for the specified tables. Use --table once to see all joins from that table. Use --table twice with two different tables to see the join path between them.`,
+	Long:  `Returns declared foreign key relationships (confidence=1.0) and inferred column-name pattern matches (confidence<1.0) for the specified tables. Use --table once to see all joins from that table. Use --table twice with two different tables to see the join path between them.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
 		tables, _ := cmd.Flags().GetStringArray("table")
@@ -328,14 +332,28 @@ var deleteCmd = &cobra.Command{
 	},
 }
 
-
+var useDbCmd = &cobra.Command{
+	Use:   "use-db <id>",
+	Short: "Switch the active database",
+	Long:  `Set the specified database as the active database for all subsequent commands. The database ID can be found using 'querylex list-dbs'.`,
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		start := time.Now()
+		resp := cli.RunUseDB(args[0])
+		resp.Complete(start)
+		outputResponse(resp)
+		if !resp.Success {
+			os.Exit(1)
+		}
+	},
+}
 
 var resolveCmd = &cobra.Command{
-	Use:   "resolve <question>",
-	Short: "Resolve natural language to table/column candidates",
-	Long:  "Uses multi-pass deterministic matching against schema metadata to find relevant tables and columns. No database connection needed.",
+	Use:     "resolve <question>",
+	Short:   "Resolve natural language to table/column candidates",
+	Long:    "Uses multi-pass deterministic matching against schema metadata to find relevant tables and columns. No database connection needed.",
 	Example: `  querylex resolve "find customer orders"`,
-	Args:  cobra.MinimumNArgs(1),
+	Args:    cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
 		question := strings.Join(args, " ")
@@ -369,6 +387,36 @@ var completionCmd = &cobra.Command{
 	},
 }
 
+var generateEncryptionCmd = &cobra.Command{
+	Use:   "generate-encryption",
+	Short: "Generate or regenerate the encryption key for the encrypted credential store",
+	Long:  "Generates a new random AES-256 encryption key and stores it securely. Re-encrypts any existing encrypted credentials with the new key. Requires interactive confirmation.",
+	Run: func(cmd *cobra.Command, args []string) {
+		start := time.Now()
+		resp := cli.RunGenerateEncryption()
+		resp.Complete(start)
+		outputResponse(resp)
+		if !resp.Success {
+			os.Exit(1)
+		}
+	},
+}
+
+var rotateEncryptionCmd = &cobra.Command{
+	Use:   "rotate-encryption",
+	Short: "Rotate the encryption key for the encrypted credential store",
+	Long:  "Generates a new random AES-256 encryption key and re-encrypts all credentials in the encrypted store. The old key is replaced. Requires interactive confirmation.",
+	Run: func(cmd *cobra.Command, args []string) {
+		start := time.Now()
+		resp := cli.RunRotateEncryption()
+		resp.Complete(start)
+		outputResponse(resp)
+		if !resp.Success {
+			os.Exit(1)
+		}
+	},
+}
+
 func init() {
 	RootCmd.AddCommand(listDbsCmd)
 	RootCmd.AddCommand(addDbCmd)
@@ -385,8 +433,11 @@ func init() {
 	RootCmd.AddCommand(memoryCmd)
 	RootCmd.AddCommand(historyCmd)
 	RootCmd.AddCommand(deleteCmd)
+	RootCmd.AddCommand(useDbCmd)
 	RootCmd.AddCommand(resolveCmd)
 	RootCmd.AddCommand(completionCmd)
+	RootCmd.AddCommand(generateEncryptionCmd)
+	RootCmd.AddCommand(rotateEncryptionCmd)
 
 	RootCmd.CompletionOptions.HiddenDefaultCmd = true
 	RootCmd.Version = version.Version

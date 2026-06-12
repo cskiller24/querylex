@@ -11,13 +11,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/cskiller24/querylex/internal/credentials"
 	"github.com/cskiller24/querylex/internal/db"
 	"github.com/cskiller24/querylex/internal/format"
 	"github.com/cskiller24/querylex/internal/index"
 	"github.com/cskiller24/querylex/internal/memory"
 	"github.com/cskiller24/querylex/internal/state"
+	"github.com/google/uuid"
 )
 
 // HealthReport contains health information for all connected databases.
@@ -57,8 +57,8 @@ var knownArtifactPaths = []string{
 
 type StatsData struct {
 	ActiveDatabaseID   *string               `json:"active_database_id"`
-	ConnectedDatabases []state.DatabaseEntry  `json:"connected_databases"`
-	Health             *HealthReport          `json:"health"`
+	ConnectedDatabases []state.DatabaseEntry `json:"connected_databases"`
+	Health             *HealthReport         `json:"health"`
 }
 
 func RunStats() *format.Response[StatsData] {
@@ -313,6 +313,13 @@ type connCacheEntry struct {
 // Results are cached for 30 seconds to avoid hammering unreachable databases.
 func checkConnectivity(dbDir, dbType, dsn string) string {
 	if dbType == "sqlite" {
+		// For SQLite, check that the database file exists and is accessible.
+		if dsn == "" {
+			return "unreachable"
+		}
+		if _, err := os.Stat(dsn); os.IsNotExist(err) {
+			return "unreachable"
+		}
 		return "online"
 	}
 

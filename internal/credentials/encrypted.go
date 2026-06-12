@@ -187,11 +187,9 @@ func (e *EncryptedFileStore) GenerateKey() error {
 		return fmt.Errorf("generate key: %w", err)
 	}
 
-	// Write hex-encoded key to key file.
-	keyPath := filepath.Join(filepath.Dir(e.filePath), encryptionKeyFile)
-	hexKey := hex.EncodeToString(newKey)
-	if err := os.WriteFile(keyPath, []byte(hexKey), 0600); err != nil {
-		return fmt.Errorf("write encryption key: %w", err)
+	// Write hex-encoded key to key file (ensures directory exists).
+	if err := e.writeKeyFile(newKey); err != nil {
+		return err
 	}
 
 	// Cache the new key.
@@ -225,11 +223,9 @@ func (e *EncryptedFileStore) RotateKey() error {
 		return fmt.Errorf("rotate key: %w", err)
 	}
 
-	// Write hex-encoded key to key file.
-	keyPath := filepath.Join(filepath.Dir(e.filePath), encryptionKeyFile)
-	hexKey := hex.EncodeToString(newKey)
-	if err := os.WriteFile(keyPath, []byte(hexKey), 0600); err != nil {
-		return fmt.Errorf("write encryption key: %w", err)
+	// Write hex-encoded key to key file (ensures directory exists).
+	if err := e.writeKeyFile(newKey); err != nil {
+		return err
 	}
 
 	// Cache the new key.
@@ -439,9 +435,8 @@ func (e *EncryptedFileStore) getEncryptionKey(salt []byte) ([]byte, error) {
 				return nil, fmt.Errorf("generate new key for migration: %w", randErr)
 			}
 
-			// Store the new key.
-			hexKey := hex.EncodeToString(newKey)
-			if writeErr := os.WriteFile(keyPath, []byte(hexKey), 0600); writeErr != nil {
+			// Store the new key (ensures directory exists).
+			if writeErr := e.writeKeyFile(newKey); writeErr != nil {
 				return nil, fmt.Errorf("write encryption key for migration: %w", writeErr)
 			}
 
@@ -456,18 +451,30 @@ func (e *EncryptedFileStore) getEncryptionKey(salt []byte) ([]byte, error) {
 		}
 	}
 
-	// 4. Key file absent AND no credentials file (or credentials file too
-	//    short) — generate a fresh key.
+	//  4. Key file absent AND no credentials file (or credentials file too
+	//     short) — generate a fresh key.
 	newKey := make([]byte, keyLen)
 	if _, err := rand.Read(newKey); err != nil {
 		return nil, fmt.Errorf("generate encryption key: %w", err)
 	}
 
-	hexKey := hex.EncodeToString(newKey)
-	if err := os.WriteFile(keyPath, []byte(hexKey), 0600); err != nil {
+	if err := e.writeKeyFile(newKey); err != nil {
 		return nil, fmt.Errorf("write encryption key: %w", err)
 	}
 
 	e.encryptionKey = newKey
 	return newKey, nil
+}
+
+// writeKeyFile writes the encryption key as hex to the key file, ensuring the
+// parent directory exists.
+func (e *EncryptedFileStore) writeKeyFile(key []byte) error {
+	dir := filepath.Dir(e.filePath)
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return fmt.Errorf("create credential directory: %w", err)
+	}
+
+	keyPath := filepath.Join(dir, encryptionKeyFile)
+	hexKey := hex.EncodeToString(key)
+	return os.WriteFile(keyPath, []byte(hexKey), 0600)
 }
