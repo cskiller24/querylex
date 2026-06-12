@@ -80,8 +80,14 @@ Shell Completions:
 var listDbsCmd = &cobra.Command{
 	Use:   "list-dbs",
 	Short: "List all connected databases",
-	Long:  `Display all database connections registered in the workspace, including connection type, host, port, database name, indexing status, and which one is active. Connection details are read from each database.json file.`,
+	Long:  `Display all database connections registered in the workspace, including connection type, host, port, database name, indexing status, and which one is active. Connection details are read from each database.json file. Use --json for machine-readable JSON output.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		useJSON, _ := cmd.Flags().GetBool("json")
+		if !useJSON {
+			resp := cli.RunListDBs()
+			cli.RenderListDBsHuman(os.Stdout, resp.Data)
+			return
+		}
 		start := time.Now()
 		resp := cli.RunListDBs()
 		resp.Complete(start)
@@ -109,14 +115,27 @@ var editDbCmd = &cobra.Command{
 }
 
 var deleteDbCmd = &cobra.Command{
-	Use:   "delete-db <id>",
+	Use:   "delete-db [id]",
 	Short: "Delete a database connection",
-	Long:  `Remove a database connection from the workspace including its credential, indexed artifacts, and configuration. Use --force/-y to skip the confirmation prompt.`,
-	Args:  cobra.ExactArgs(1),
+	Long:  `Remove a database connection from the workspace including its credential, indexed artifacts, and configuration. Use --force/-y to skip the confirmation prompt. If no ID is provided, you will be prompted to select from connected databases.`,
+	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
 		force, _ := cmd.Flags().GetBool("force")
-		resp := cli.RunDeleteDB(args[0], force)
+
+		id := ""
+		if len(args) == 0 {
+			selected, err := cli.PromptSelectDatabase("Select database to delete:")
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			id = selected
+		} else {
+			id = args[0]
+		}
+
+		resp := cli.RunDeleteDB(id, force)
 		resp.Complete(start)
 		outputResponse(resp)
 		if !resp.Success {
@@ -333,13 +352,26 @@ var deleteCmd = &cobra.Command{
 }
 
 var useDbCmd = &cobra.Command{
-	Use:   "use-db <id>",
+	Use:   "use-db [id]",
 	Short: "Switch the active database",
-	Long:  `Set the specified database as the active database for all subsequent commands. The database ID can be found using 'querylex list-dbs'.`,
-	Args:  cobra.ExactArgs(1),
+	Long:  `Set the specified database as the active database for all subsequent commands. The database ID can be found using 'querylex list-dbs'. If no ID is provided, you will be prompted to select from connected databases.`,
+	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
-		resp := cli.RunUseDB(args[0])
+
+		id := ""
+		if len(args) == 0 {
+			selected, err := cli.PromptSelectDatabase("Select database to use:")
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			id = selected
+		} else {
+			id = args[0]
+		}
+
+		resp := cli.RunUseDB(id)
 		resp.Complete(start)
 		outputResponse(resp)
 		if !resp.Success {
@@ -447,6 +479,8 @@ func init() {
 	)
 
 	statsCmd.Flags().Bool("human", false, "Render as human-readable summary")
+
+	listDbsCmd.Flags().Bool("json", false, "Output as JSON instead of human-readable")
 
 	schemaCmd.Flags().StringArray("table", nil, "Table names (repeatable)")
 	schemaCmd.Flags().String("tables-json", "", "Tables as JSON array")

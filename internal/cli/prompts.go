@@ -3,10 +3,13 @@ package cli
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/AlecAivazis/survey/v2"
 	"golang.org/x/term"
+
+	"github.com/cskiller24/querylex/internal/state"
 )
 
 type DBSetupAnswers struct {
@@ -256,4 +259,52 @@ func PromptConfirm(message string, defaultYes bool) (bool, error) {
 	}
 
 	return confirm, nil
+}
+
+// PromptSelectDatabase prompts the user to select a database from connected databases.
+// It returns the ID of the selected database or an error if no databases are connected
+// or if the user is not in a terminal.
+func PromptSelectDatabase(message string) (string, error) {
+	if !term.IsTerminal(int(os.Stdin.Fd())) {
+		return "", fmt.Errorf("interactive terminal required for database selection")
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("cannot determine home directory: %w", err)
+	}
+
+	querylexDir := filepath.Join(home, ".querylex")
+	workspaceFile := filepath.Join(querylexDir, "querylex.json")
+	wsStore := state.NewFileWorkspaceStore(workspaceFile)
+
+	ws, err := wsStore.Load()
+	if err != nil {
+		return "", fmt.Errorf("failed to load workspace state: %w", err)
+	}
+
+	if len(ws.ConnectedDatabases) == 0 {
+		return "", fmt.Errorf("No databases connected. Run 'querylex add-db' to add one.")
+	}
+
+	// Build options: "NAME  (TYPE — ID)"
+	options := make([]string, len(ws.ConnectedDatabases))
+	for i, entry := range ws.ConnectedDatabases {
+		options[i] = fmt.Sprintf("%s  (%s — %s)", entry.Name, entry.Type, entry.ID)
+	}
+
+	var selected int
+	prompt := &survey.Select{
+		Message: message,
+		Options: options,
+	}
+	if err := survey.AskOne(prompt, &selected); err != nil {
+		return "", err
+	}
+
+	if selected < 0 || selected >= len(ws.ConnectedDatabases) {
+		return "", fmt.Errorf("invalid database selection")
+	}
+
+	return ws.ConnectedDatabases[selected].ID, nil
 }

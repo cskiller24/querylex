@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -100,4 +101,40 @@ func RunListDBs() *format.Response[ListDBsData] {
 	resp := format.NewSuccessResponse(data, traceID, ws.ActiveDatabaseID)
 	resp.Complete(time.Now())
 	return resp
+}
+
+// RenderListDBsHuman renders the list-dbs output as a human-readable terminal table.
+// It follows the same pattern as RenderStatsHuman in run_stats.go.
+func RenderListDBsHuman(w io.Writer, data ListDBsData) {
+	fmt.Fprintln(w, "Connected Databases")
+	fmt.Fprintln(w, "===================")
+
+	if data.Count == 0 {
+		fmt.Fprintln(w, "  (none)")
+		return
+	}
+
+	fmt.Fprintf(w, "  %-25s %-12s %-22s %-15s %-14s %s\n",
+		"NAME", "TYPE", "HOST:PORT", "DATABASE", "STATUS", "ACTIVE")
+	fmt.Fprintf(w, "  %-25s %-12s %-22s %-15s %-14s %s\n",
+		"----", "----", "---------", "--------", "------", "------")
+
+	for _, item := range data.Databases {
+		hostPort := fmt.Sprintf("%s:%d", item.Host, item.Port)
+		if item.Host == "" {
+			hostPort = "-"
+		}
+		database := item.Database
+		if database == "" {
+			database = "-"
+		}
+
+		active := " "
+		if item.IsActive {
+			active = "*"
+		}
+
+		fmt.Fprintf(w, "  %-25s %-12s %-22s %-15s %-14s %s\n",
+			item.Name, item.Type, hostPort, database, item.Status, active)
+	}
 }
