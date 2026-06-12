@@ -4,6 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -24,6 +25,9 @@ const (
 	gcmTagLen = 16
 	// headerOverhead is the total non-secret header: salt + nonce.
 	headerOverhead = saltLen + nonceLen
+	// encryptionKeyFile is the hex-encoded key file stored in the same directory
+	// as the encrypted credentials file.
+	encryptionKeyFile = ".encryption_key"
 )
 
 var (
@@ -39,21 +43,22 @@ var (
 // EncryptedFileStore implements CredentialStore using an AES-256-GCM encrypted
 // file at ~/.querylex/credentials.json.enc.
 //
-// The encryption key is derived from the machine ID (via deriveMachineKey) and
-// a random salt, producing an AES-256 key through SHA-256. The derived key is
-// cached in memory for the lifetime of the process to avoid repeated machine-ID
-// reads. No user-supplied passphrase is required — the key is bound to the
-// machine.
+// The encryption key is a randomly generated AES-256 key (32 bytes) stored as
+// a hex-encoded string in ~/.querylex/.encryption_key. On first use, the key
+// is auto-generated and written with 0600 permissions. If an existing encrypted
+// credentials file was encrypted with the legacy machine-ID-derived key, it is
+// transparently migrated on read: the old key is used to decrypt, a new
+// generated key is stored, and credentials are re-encrypted.
 //
 // File format:
 //
 //	[16-byte salt][12-byte GCM nonce][encrypted data (JSON)][16-byte GCM tag]
 //
-// The encrypted data is a JSON-serialized map[string]string (account → secret).
+// The encrypted data is a JSON-serialized map[string]string (account -> secret).
 type EncryptedFileStore struct {
-	mu         sync.RWMutex
-	filePath   string
-	derivedKey []byte
+	mu            sync.RWMutex
+	filePath      string
+	encryptionKey []byte
 }
 
 // NewEncryptedFileStore creates a new EncryptedFileStore with the given
@@ -77,7 +82,14 @@ func (e *EncryptedFileStore) Store(account string, secret string) (*CredentialRe
 
 	creds, err := e.readCredentials()
 	if err != nil {
-		return nil, fmt.Errorf("encrypted store: %w", err)
+		if errors.Is(err, ErrTamperedFile) {
+			// The file is corrupted or the encryption key has changed since
+			// the credentials were written. Start fresh — the old data is
+			// unrecoverable regardless.
+			creds = make(map[string]string)
+		} else {
+			return nil, fmt.Errorf("encrypted store: %w", err)
+		}
 	}
 
 	creds[account] = secret
@@ -119,6 +131,11 @@ func (e *EncryptedFileStore) Delete(account string) error {
 
 	creds, err := e.readCredentials()
 	if err != nil {
+		if errors.Is(err, ErrTamperedFile) {
+			// File is unreadable — treat as empty so delete succeeds
+			// (the credential is already gone).
+			return nil
+		}
 		return fmt.Errorf("encrypted delete: %w", err)
 	}
 
@@ -148,6 +165,84 @@ func (e *EncryptedFileStore) Available() bool {
 	return true
 }
 
+// GenerateKey generates a fresh random AES-256 encryption key and stores it.
+// If existing encrypted credentials exist, they are re-encrypted with the new key.
+func (e *EncryptedFileStore) GenerateKey() error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	// Read existing credentials (may be empty).
+	creds, err := e.readCredentials()
+	if err != nil {
+		if errors.Is(err, ErrTamperedFile) {
+			creds = make(map[string]string)
+		} else {
+			return fmt.Errorf("generate key: %w", err)
+		}
+	}
+
+	// Generate a fresh random 32-byte key.
+	newKey := make([]byte, keyLen)
+	if _, err := rand.Read(newKey); err != nil {
+		return fmt.Errorf("generate key: %w", err)
+	}
+
+	// Write hex-encoded key to key file.
+	keyPath := filepath.Join(filepath.Dir(e.filePath), encryptionKeyFile)
+	hexKey := hex.EncodeToString(newKey)
+	if err := os.WriteFile(keyPath, []byte(hexKey), 0600); err != nil {
+		return fmt.Errorf("write encryption key: %w", err)
+	}
+
+	// Cache the new key.
+	e.encryptionKey = newKey
+
+	// Re-encrypt credentials with the new key (if any).
+	if len(creds) > 0 {
+		if err := e.writeCredentials(creds); err != nil {
+			return fmt.Errorf("re-encrypt credentials: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// RotateKey generates a fresh random AES-256 encryption key and re-encrypts
+// all existing credentials with it. The old key is replaced.
+func (e *EncryptedFileStore) RotateKey() error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	// Read existing credentials.
+	creds, err := e.readCredentials()
+	if err != nil {
+		return fmt.Errorf("rotate key: %w", err)
+	}
+
+	// Generate a fresh random 32-byte key.
+	newKey := make([]byte, keyLen)
+	if _, err := rand.Read(newKey); err != nil {
+		return fmt.Errorf("rotate key: %w", err)
+	}
+
+	// Write hex-encoded key to key file.
+	keyPath := filepath.Join(filepath.Dir(e.filePath), encryptionKeyFile)
+	hexKey := hex.EncodeToString(newKey)
+	if err := os.WriteFile(keyPath, []byte(hexKey), 0600); err != nil {
+		return fmt.Errorf("write encryption key: %w", err)
+	}
+
+	// Cache the new key.
+	e.encryptionKey = newKey
+
+	// Re-encrypt credentials with the new key.
+	if err := e.writeCredentials(creds); err != nil {
+		return fmt.Errorf("re-encrypt credentials: %w", err)
+	}
+
+	return nil
+}
+
 // readCredentials reads, decrypts, and unmarshals the credentials map from
 // the encrypted file. If the file doesn't exist, returns an empty map.
 // The caller MUST hold at least a read lock.
@@ -170,7 +265,7 @@ func (e *EncryptedFileStore) readCredentials() (map[string]string, error) {
 	nonce := data[saltLen : saltLen+nonceLen]
 	ciphertext := data[saltLen+nonceLen:]
 
-	key, err := e.getDerivedKey(salt)
+	key, err := e.getEncryptionKey(salt)
 	if err != nil {
 		return nil, fmt.Errorf("key derivation: %w", err)
 	}
@@ -219,7 +314,7 @@ func (e *EncryptedFileStore) writeCredentials(creds map[string]string) error {
 		return fmt.Errorf("generate nonce: %w", err)
 	}
 
-	key, err := e.getDerivedKey(salt)
+	key, err := e.getEncryptionKey(salt)
 	if err != nil {
 		return fmt.Errorf("key derivation: %w", err)
 	}
@@ -264,17 +359,115 @@ func (e *EncryptedFileStore) writeCredentials(creds map[string]string) error {
 	return nil
 }
 
-// getDerivedKey derives or returns the cached machine-ID derived key.
-func (e *EncryptedFileStore) getDerivedKey(salt []byte) ([]byte, error) {
-	if e.derivedKey != nil && len(e.derivedKey) == keyLen {
-		return e.derivedKey, nil
+// getEncryptionKey returns the encryption key to use for encrypting/decrypting
+// credentials. It resolves the key using the following priority:
+//
+//  1. Return cached e.encryptionKey if set.
+//  2. Read the hex-encoded key from ~/.querylex/.encryption_key. If present,
+//     decode hex to 32 bytes, cache it, and return it.
+//  3. If the key file is absent AND the credentials file exists: try legacy
+//     machine-ID-derived key for backward compatibility. If successful,
+//     auto-migrate: generate a new random key, store it, re-encrypt, and
+//     return the new key.
+//  4. If the key file is absent AND no credentials file: generate a random
+//     32-byte key, write it hex-encoded to the key file, cache it, return it.
+func (e *EncryptedFileStore) getEncryptionKey(salt []byte) ([]byte, error) {
+	// 1. Return cached key if set.
+	if e.encryptionKey != nil && len(e.encryptionKey) == keyLen {
+		return e.encryptionKey, nil
 	}
 
-	key, err := deriveMachineKey(salt)
-	if err != nil {
-		return nil, err
+	keyPath := filepath.Join(filepath.Dir(e.filePath), encryptionKeyFile)
+
+	// 2. Read the key file if it exists.
+	if keyData, err := os.ReadFile(keyPath); err == nil {
+		key, hexErr := hex.DecodeString(string(keyData))
+		if hexErr != nil || len(key) != keyLen {
+			return nil, fmt.Errorf("encryption key file corrupted: delete %s and run generate-encryption", keyPath)
+		}
+		e.encryptionKey = key
+		return key, nil
 	}
 
-	e.derivedKey = key
-	return key, nil
+	// 3. Key file absent — check if credentials file exists for legacy
+	//    backward-compatible migration.
+	_, statErr := os.Stat(e.filePath)
+	if statErr == nil {
+		// Try decrypting the existing file with the legacy key to verify.
+		data, readErr := os.ReadFile(e.filePath)
+		if readErr != nil {
+			return nil, fmt.Errorf("read encrypted file for migration: %w", readErr)
+		}
+		if len(data) >= headerOverhead {
+			fileSalt := data[:saltLen]
+			fileNonce := data[saltLen : saltLen+nonceLen]
+			fileCiphertext := data[saltLen+nonceLen:]
+
+			// Use the specific salt from the file for key derivation.
+			fileKey, derErr := deriveMachineKey(fileSalt)
+			if derErr != nil {
+				return nil, fmt.Errorf("legacy machine key: %w", derErr)
+			}
+
+			block, blkErr := aes.NewCipher(fileKey)
+			if blkErr != nil {
+				return nil, fmt.Errorf("aes cipher (legacy): %w", blkErr)
+			}
+			gcmBlock, gcmErr := cipher.NewGCM(block)
+			if gcmErr != nil {
+				return nil, fmt.Errorf("gcm (legacy): %w", gcmErr)
+			}
+
+			plaintext, gcmOpenErr := gcmBlock.Open(nil, fileNonce, fileCiphertext, nil)
+			if gcmOpenErr != nil {
+				// Legacy key failed — file may have been encrypted with a
+				// different key. Return ErrTamperedFile so callers can handle.
+				return nil, ErrTamperedFile
+			}
+
+			var creds map[string]string
+			if jsonErr := json.Unmarshal(plaintext, &creds); jsonErr != nil {
+				return nil, ErrTamperedFile
+			}
+
+			// Legacy decryption succeeded — auto-migrate to stored key.
+			fmt.Fprintf(os.Stderr, "Warning: Migrated credentials to stored encryption key. Old machine-ID-derived key is no longer used.\n")
+
+			// Generate a new random key.
+			newKey := make([]byte, keyLen)
+			if _, randErr := rand.Read(newKey); randErr != nil {
+				return nil, fmt.Errorf("generate new key for migration: %w", randErr)
+			}
+
+			// Store the new key.
+			hexKey := hex.EncodeToString(newKey)
+			if writeErr := os.WriteFile(keyPath, []byte(hexKey), 0600); writeErr != nil {
+				return nil, fmt.Errorf("write encryption key for migration: %w", writeErr)
+			}
+
+			e.encryptionKey = newKey
+
+			// Re-encrypt credentials with the new key.
+			if writeErr := e.writeCredentials(creds); writeErr != nil {
+				return nil, fmt.Errorf("re-encrypt credentials for migration: %w", writeErr)
+			}
+
+			return newKey, nil
+		}
+	}
+
+	// 4. Key file absent AND no credentials file (or credentials file too
+	//    short) — generate a fresh key.
+	newKey := make([]byte, keyLen)
+	if _, err := rand.Read(newKey); err != nil {
+		return nil, fmt.Errorf("generate encryption key: %w", err)
+	}
+
+	hexKey := hex.EncodeToString(newKey)
+	if err := os.WriteFile(keyPath, []byte(hexKey), 0600); err != nil {
+		return nil, fmt.Errorf("write encryption key: %w", err)
+	}
+
+	e.encryptionKey = newKey
+	return newKey, nil
 }

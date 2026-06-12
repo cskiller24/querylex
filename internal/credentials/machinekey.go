@@ -10,7 +10,10 @@ import (
 )
 
 // deriveMachineKey derives an AES-256 key from the machine ID and given salt.
-// It uses SHA-256(machineID + salt) to produce a 32-byte AES-256 key.
+//
+// This function is retained for backward-compatible decryption of credentials
+// encrypted with the legacy machine-ID-derived key. The current encrypted file
+// store uses a randomly generated key stored at ~/.querylex/.encryption_key.
 //
 // The machine ID is platform-dependent:
 //   - Linux: content of /etc/machine-id (preferred) or /var/lib/dbus/machine-id
