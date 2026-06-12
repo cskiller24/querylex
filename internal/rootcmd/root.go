@@ -64,8 +64,9 @@ Getting Started:
   4. Save and search:    querylex save "my query"
 
 Credential Management:
-  querylex generate-encryption  Generate an encryption key for the credential store
-  querylex rotate-encryption    Rotate the encryption key and re-encrypt credentials
+  querylex encrypt              Generate an encryption key for the credential store
+  querylex encrypt --rotate     Rotate the encryption key and re-encrypt credentials
+  querylex encrypt --force      Skip the confirmation prompt
 
 Shell Completions:
   querylex completion bash > /path/to/completions`,
@@ -147,10 +148,36 @@ var deleteDbCmd = &cobra.Command{
 var addDbCmd = &cobra.Command{
 	Use:   "add-db",
 	Short: "Add a new database connection through guided setup",
-	Long:  `Interactively add a new database connection for Querylex via guided prompts. You will be asked for database type (MySQL or PostgreSQL), connection details (host, port, database name, username), and password. The password is stored in your OS keychain, never in plaintext. After setup, Querylex automatically indexes the database schema.`,
+	Long:  `Interactively add a new database connection for Querylex via guided prompts. You will be asked for database type (MySQL or PostgreSQL), connection details (host, port, database name, username), and password. The password is stored in your OS keychain, never in plaintext. After setup, Querylex automatically indexes the database schema.
+
+Flags for non-interactive use: --type (mysql|postgres), --name, --host, --port, --database, --username, --password, --ssl-mode. When all required flags are provided, the interactive prompts are skipped.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
-		resp := cli.RunAddDB()
+
+		dbType, _ := cmd.Flags().GetString("type")
+		name, _ := cmd.Flags().GetString("name")
+		host, _ := cmd.Flags().GetString("host")
+		port, _ := cmd.Flags().GetInt("port")
+		database, _ := cmd.Flags().GetString("database")
+		username, _ := cmd.Flags().GetString("username")
+		password, _ := cmd.Flags().GetString("password")
+		sslMode, _ := cmd.Flags().GetString("ssl-mode")
+
+		var flags *cli.AddDBFlags
+		if dbType != "" || name != "" || host != "" || database != "" || username != "" || password != "" {
+			flags = &cli.AddDBFlags{
+				Type:     dbType,
+				Name:     name,
+				Host:     host,
+				Port:     port,
+				Database: database,
+				Username: username,
+				Password: password,
+				SSLMode:  sslMode,
+			}
+		}
+
+		resp := cli.RunAddDB(flags)
 		resp.Complete(start)
 		outputResponse(resp)
 		if !resp.Success {
@@ -419,32 +446,29 @@ var completionCmd = &cobra.Command{
 	},
 }
 
-var generateEncryptionCmd = &cobra.Command{
-	Use:   "generate-encryption",
-	Short: "Generate or regenerate the encryption key for the encrypted credential store",
-	Long:  "Generates a new random AES-256 encryption key and stores it securely. Re-encrypts any existing encrypted credentials with the new key. Requires interactive confirmation.",
+var encryptCmd = &cobra.Command{
+	Use:   "encrypt",
+	Short: "Manage encryption key for the encrypted credential store",
+	Long:  "Generate or rotate the AES-256 encryption key for the encrypted credential store. Without flags, generates a new key (and re-encrypts any existing credentials). Use --rotate to rotate the key (re-encrypt all credentials with a fresh key). Use --force/-y to skip the confirmation prompt.",
 	Run: func(cmd *cobra.Command, args []string) {
-		start := time.Now()
-		resp := cli.RunGenerateEncryption()
-		resp.Complete(start)
-		outputResponse(resp)
-		if !resp.Success {
-			os.Exit(1)
-		}
-	},
-}
+		rotate, _ := cmd.Flags().GetBool("rotate")
+		force, _ := cmd.Flags().GetBool("force")
+		useJSON, _ := cmd.Flags().GetBool("json")
 
-var rotateEncryptionCmd = &cobra.Command{
-	Use:   "rotate-encryption",
-	Short: "Rotate the encryption key for the encrypted credential store",
-	Long:  "Generates a new random AES-256 encryption key and re-encrypts all credentials in the encrypted store. The old key is replaced. Requires interactive confirmation.",
-	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
-		resp := cli.RunRotateEncryption()
+		resp := cli.RunEncrypt(rotate, force)
 		resp.Complete(start)
-		outputResponse(resp)
-		if !resp.Success {
-			os.Exit(1)
+
+		if useJSON {
+			outputResponse(resp)
+			if !resp.Success {
+				os.Exit(1)
+			}
+		} else {
+			cli.RenderEncryptHuman(os.Stdout, resp.Data)
+			if !resp.Success {
+				os.Exit(1)
+			}
 		}
 	},
 }
@@ -468,8 +492,7 @@ func init() {
 	RootCmd.AddCommand(useDbCmd)
 	RootCmd.AddCommand(resolveCmd)
 	RootCmd.AddCommand(completionCmd)
-	RootCmd.AddCommand(generateEncryptionCmd)
-	RootCmd.AddCommand(rotateEncryptionCmd)
+	RootCmd.AddCommand(encryptCmd)
 
 	RootCmd.CompletionOptions.HiddenDefaultCmd = true
 	RootCmd.Version = version.Version
@@ -481,6 +504,10 @@ func init() {
 	statsCmd.Flags().Bool("human", false, "Render as human-readable summary")
 
 	listDbsCmd.Flags().Bool("json", false, "Output as JSON instead of human-readable")
+
+	encryptCmd.Flags().Bool("rotate", false, "Rotate the encryption key (re-encrypt all credentials)")
+	encryptCmd.Flags().BoolP("force", "y", false, "Skip confirmation prompt")
+	encryptCmd.Flags().Bool("json", false, "Output as JSON instead of human-readable")
 
 	schemaCmd.Flags().StringArray("table", nil, "Table names (repeatable)")
 	schemaCmd.Flags().String("tables-json", "", "Tables as JSON array")
@@ -510,6 +537,15 @@ func init() {
 	_ = resolveCmd.RegisterFlagCompletionFunc("tables-json", cobra.NoFileCompletions)
 
 	deleteDbCmd.Flags().BoolP("force", "y", false, "Skip confirmation prompt")
+
+	addDbCmd.Flags().String("type", "", "Database type (mysql|postgres)")
+	addDbCmd.Flags().String("name", "", "Display name for the connection")
+	addDbCmd.Flags().String("host", "", "Database host")
+	addDbCmd.Flags().Int("port", 0, "Database port (default: 3306 for mysql, 5432 for postgres)")
+	addDbCmd.Flags().String("database", "", "Database name")
+	addDbCmd.Flags().String("username", "", "Database username")
+	addDbCmd.Flags().String("password", "", "Database password")
+	addDbCmd.Flags().String("ssl-mode", "", "SSL mode (require, disable, verify-ca, verify-full)")
 }
 
 func initWorkspace() error {

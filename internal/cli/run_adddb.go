@@ -30,17 +30,71 @@ type AddDBData struct {
 	IndexingProgress   int                           `json:"indexing_progress"`
 }
 
-func RunAddDB() *format.Response[AddDBData] {
+// AddDBFlags holds the non-interactive flags for the add-db command.
+// When all required fields are populated, the interactive prompts are skipped.
+type AddDBFlags struct {
+	Type     string
+	Name     string
+	Host     string
+	Port     int
+	Database string
+	Username string
+	Password string
+	SSLMode  string
+}
+
+// HasAllRequired returns true when all required non-interactive flags are populated.
+func (f *AddDBFlags) HasAllRequired() bool {
+	return f.Type != "" && f.Name != "" && f.Host != "" && f.Database != "" && f.Username != "" && f.Password != ""
+}
+
+// ToDBSetupAnswers converts AddDBFlags to the prompt answer struct.
+func (f *AddDBFlags) ToDBSetupAnswers() *DBSetupAnswers {
+	port := f.Port
+	if port == 0 {
+		port = DefaultPort(f.Type)
+	}
+	sslMode := f.SSLMode
+	if sslMode == "" {
+		sslMode = "require"
+	}
+	return &DBSetupAnswers{
+		DBType:   f.Type,
+		Name:     f.Name,
+		Host:     f.Host,
+		Port:     port,
+		Database: f.Database,
+		Username: f.Username,
+		Password: f.Password,
+		SSLMode:  sslMode,
+	}
+}
+
+func RunAddDB(flags *AddDBFlags) *format.Response[AddDBData] {
 	traceID := uuid.New().String()
 
-	answers, err := PromptDatabaseSetup()
-	if err != nil {
+	var answers *DBSetupAnswers
+	var err error
+
+	if flags != nil && flags.HasAllRequired() {
+		answers = flags.ToDBSetupAnswers()
+	} else if flags != nil && !flags.HasAllRequired() {
 		return format.NewErrorResponse[AddDBData](
 			format.ErrCodeInvalidArgument,
-			fmt.Sprintf("Failed to get database setup information: %v", err),
+			"Incomplete flags for non-interactive add-db. Required: --type, --name, --host, --database, --username, --password",
 			false,
 			traceID,
 		)
+	} else {
+		answers, err = PromptDatabaseSetup()
+		if err != nil {
+			return format.NewErrorResponse[AddDBData](
+				format.ErrCodeInvalidArgument,
+				fmt.Sprintf("Failed to get database setup information: %v", err),
+				false,
+				traceID,
+			)
+		}
 	}
 
 	home, err := os.UserHomeDir()
