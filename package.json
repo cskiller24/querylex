@@ -5,9 +5,6 @@
   "bin": {
     "querylex": "./npm/querylex.js"
   },
-  "scripts": {
-    "postinstall": "node npm/install.js"
-  },
   "files": [
     "npm/",
     "skills/"
