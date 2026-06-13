@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.2.2](https://github.com/cskiller24/querylex/compare/v1.2.1...v1.2.2) (2026-06-13)
+
+
+### Bug Fixes
+
+* update querylex bin path in package.json ([1ec9f0c](https://github.com/cskiller24/querylex/commit/1ec9f0c2ecf65c2a0fb9caa0274f87ffc9418423))
+
+
+### Continuous Integration
+
+* re-add --provenance (package now exists on npm) ([70e15e7](https://github.com/cskiller24/querylex/commit/70e15e7e8aa75c9a41bf895e2d3d86dbda63dae6))
+* remove --provenance for first publish (requires existing package) ([1d7df6e](https://github.com/cskiller24/querylex/commit/1d7df6e87bfec6a8775cd94c77efbdcbc5d43436))
+
 ## [1.2.1](https://github.com/cskiller24/querylex/compare/v1.2.0...v1.2.1) (2026-06-13)
 
 
