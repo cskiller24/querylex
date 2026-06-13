@@ -58,6 +58,9 @@ changelog:
       - "^docs:"
       - "^test:"
 
+checksum:
+  name_template: "checksums.txt"
+
 release:
   footer: >-
 
