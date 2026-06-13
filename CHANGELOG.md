@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/cskiller24/querylex/compare/v1.2.0...v1.2.1) (2026-06-13)
+
+
+### Continuous Integration
+
+* switch npm publish to trusted publishing (OIDC) ([f17c135](https://github.com/cskiller24/querylex/commit/f17c13530158032200ef0ae1a3b0cb7c1d9f3859))
+
 ## [1.2.0](https://github.com/cskiller24/querylex/compare/v1.1.0...v1.2.0) (2026-06-13)
 
 
