@@ -42,8 +42,6 @@ scoop install querylex
 3. Move the binary to a directory on your `PATH`:
    ```bash
    sudo mv querylex*/querylex /usr/local/bin/
-   sudo mv querylex*/querylex-add-db /usr/local/bin/
-   sudo mv querylex*/querylex-stats /usr/local/bin/
    ```
 
 ## Shell Completions
@@ -81,10 +79,10 @@ If installed via package manager, completions may be installed automatically —
 
 ```bash
 # 1. Add a database connection
-querylex-add-db
+querylex add-db
 
 # 2. Check workspace status
-querylex-stats
+querylex workspace-stats --human
 
 # 3. Generate SQL from natural language
 querylex sql "show me all users who ordered in the last month"
@@ -97,11 +95,14 @@ querylex optimize "SELECT * FROM orders JOIN users ON orders.user_id = users.id"
 
 ```bash
 # Add your MySQL database
-querylex-add-db
+querylex add-db
 # → Follow the guided prompts to connect to your database
 
 # See your workspace overview
-querylex-stats
+querylex workspace-stats --human
+
+# List all connected databases
+querylex list-dbs
 
 # Ask a natural language question
 querylex sql "list all products with their total sales amount"

@@ -30,17 +30,25 @@ func SelectCredentialStore() (CredentialStore, error) {
 		return keychain, nil
 	}
 
-	// 2. Encrypted File (AES-256-GCM, universal fallback)
 	home, err := os.UserHomeDir()
 	if err == nil {
 		encFile := filepath.Join(home, ".querylex", "credentials.json.enc")
 		encStore := NewEncryptedFileStore(encFile)
 		if encStore.Available() {
+			// If the encrypted file doesn't exist yet, prefer env vars when
+			// available. This avoids forcing users to set up the encrypted
+			// store when they're already using QUERYLEX_DB_PASSWORD.
+			if _, err := os.Stat(encFile); err != nil {
+				envStore := NewEnvStore()
+				if envStore.Available() {
+					return envStore, nil
+				}
+			}
 			return encStore, nil
 		}
 	}
 
-	// 3. Environment Variables (last resort)
+	// 2. Environment Variables (last resort)
 	envStore := NewEnvStore()
 	if envStore.Available() {
 		return envStore, nil

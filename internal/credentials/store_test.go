@@ -168,6 +168,82 @@ func TestEnvStoreStoreAndDeleteErrors(t *testing.T) {
 	}
 }
 
+func TestEncryptedFileStoreRecoversOnTamperedFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	filePath := filepath.Join(tmpDir, "credentials.json.enc")
+	store := NewEncryptedFileStore(filePath)
+
+	// Store initial credential.
+	ref1, err := store.Store("account-1", "secret-1")
+	if err != nil {
+		t.Fatalf("initial Store failed: %v", err)
+	}
+	if ref1.Account != "account-1" {
+		t.Fatalf("expected account-1, got %s", ref1.Account)
+	}
+
+	// Tamper with the encrypted file.
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Fatalf("ReadFile failed: %v", err)
+	}
+	data[len(data)-1] ^= 0xFF
+	if err := os.WriteFile(filePath, data, 0600); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+
+	// Store another credential — should recover from tampered file.
+	ref2, err := store.Store("account-2", "secret-2")
+	if err != nil {
+		t.Fatalf("Store after tamper should recover, got: %v", err)
+	}
+	if ref2.Account != "account-2" {
+		t.Fatalf("expected account-2, got %s", ref2.Account)
+	}
+
+	// The new credential should be retrievable.
+	got, err := store.Retrieve(&CredentialReference{Account: "account-2"})
+	if err != nil {
+		t.Fatalf("Retrieve new credential after recovery failed: %v", err)
+	}
+	if got != "secret-2" {
+		t.Fatalf("expected secret-2, got %s", got)
+	}
+
+	// The old credential is lost (file was corrupted) — but that's expected.
+	_, err = store.Retrieve(&CredentialReference{Account: "account-1"})
+	if err == nil {
+		t.Fatal("expected old credential to be lost after recovery, but it was found")
+	}
+}
+
+func TestEncryptedFileDeleteRecoversOnTamperedFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	filePath := filepath.Join(tmpDir, "credentials.json.enc")
+	store := NewEncryptedFileStore(filePath)
+
+	// Store a credential.
+	_, err := store.Store("account-1", "secret-1")
+	if err != nil {
+		t.Fatalf("Store failed: %v", err)
+	}
+
+	// Tamper with the encrypted file.
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Fatalf("ReadFile failed: %v", err)
+	}
+	data[len(data)-1] ^= 0xFF
+	if err := os.WriteFile(filePath, data, 0600); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+
+	// Delete should succeed even on tampered file.
+	if err := store.Delete("account-1"); err != nil {
+		t.Fatalf("Delete on tampered file should succeed, got: %v", err)
+	}
+}
+
 func TestEncryptedFileStoreAvailable(t *testing.T) {
 	tmpDir := t.TempDir()
 	filePath := filepath.Join(tmpDir, "credentials.json.enc")

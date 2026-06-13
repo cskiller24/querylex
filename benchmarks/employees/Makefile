@@ -20,7 +20,6 @@ up:
 	@echo ""
 	@echo "Databases starting..."
 	@echo "  MySQL 8.0:    localhost:3306 (user: employees, pass: employees, db: employees)"
-	@echo "  PostgreSQL 16: localhost:5432 (user: employees, pass: employees, db: employees)"
 	@echo ""
 	@echo "Wait ~30s for initialization, then check with:"
 	@echo "  docker compose logs -f"

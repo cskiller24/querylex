@@ -58,13 +58,13 @@ QueryLex stores all state under `~/.querylex/`:
 QueryLex uses a credential store chain with fallback:
 
 1. **OS Keychain** (primary) — macOS Keychain, Windows Credential Manager, Linux Secret Service via D-Bus
-2. **Encrypted File** (fallback) — AES-256-GCM encrypted `~/.querylex/credentials.json.enc` with scrypt key derivation. On headless Linux, you'll be prompted for a passphrase
+2. **Encrypted File** (fallback) — AES-256-GCM encrypted `~/.querylex/credentials.json.enc` with a stored generated key. Use `querylex encrypt` to generate or rotate the encryption key. On headless Linux, you may need to set up the encrypted store first with `querylex encrypt`
 3. **Environment Variables** (last resort) — `QUERYLEX_DB_PASSWORD` for database passwords
 
-For CI/non-interactive environments, set:
+For CI/non-interactive environments, use the `QUERYLEX_DB_PASSWORD` environment variable or set up the encrypted store:
 
 ```bash
-export QUERYLEX_KEYCHAIN_PASSPHRASE="your-passphrase"
+querylex encrypt
 ```
 
 ### Environment Variables
@@ -72,7 +72,6 @@ export QUERYLEX_KEYCHAIN_PASSPHRASE="your-passphrase"
 | Variable | Purpose | Default |
 |----------|---------|---------|
 | `QUERYLEX_DB_PASSWORD` | Database password fallback | — |
-| `QUERYLEX_KEYCHAIN_PASSPHRASE` | Passphrase for encrypted file store | — |
 
 ## Adding Your First Database
 
@@ -95,6 +94,12 @@ You'll be guided through an interactive setup:
 ? Username: app_user
 ? Password: [hidden input]
 ? SSL mode: prefer
+```
+
+Or use non-interactive flags for automation:
+
+```bash
+querylex add-db --type mysql --name "my-database" --host localhost --port 3306 --database myapp --username app_user --password mypassword --ssl-mode require
 ```
 
 After setup, QueryLex automatically:
@@ -199,6 +204,35 @@ querylex indexes --table orders --live
 querylex stats --table orders
 ```
 
+### 9. Manage Database Connections
+
+```bash
+# List all connected databases
+querylex list-dbs
+
+# Switch active database (interactive picker if no ID)
+querylex use-db <database-id>
+
+# Edit a connection (interactive with current values as defaults)
+querylex edit-db <database-id>
+
+# Remove a database connection and all its artifacts
+querylex delete-db <database-id>
+```
+
+### 10. Credential Encryption
+
+```bash
+# Generate an encryption key for the credential store
+querylex encrypt
+
+# Rotate the key and re-encrypt all credentials
+querylex encrypt --rotate
+
+# Non-interactive: skip confirmation prompt
+querylex encrypt -y
+```
+
 ### Shell Completions
 
 ```bash
@@ -296,4 +330,4 @@ After adding a database, indexing runs automatically. If it failed, re-add the d
 
 ### Keychain unavailable (headless Linux)
 
-QueryLex falls back to an encrypted file store. You'll be prompted for a passphrase during `add-db`. Set `QUERYLEX_KEYCHAIN_PASSPHRASE` for non-interactive use.
+QueryLex falls back to the encrypted file store. Run `querylex encrypt` to generate an encryption key, then connect databases normally.

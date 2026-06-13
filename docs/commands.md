@@ -1,6 +1,6 @@
 # QueryLex Command Reference
 
-All 14 CLI commands documented with flags, arguments, and JSON response schemas.
+All 19 CLI commands documented with flags, arguments, and JSON response schemas.
 
 ## Response Envelope
 
@@ -87,13 +87,24 @@ querylex add-db
 
 ### Flags
 
-None.
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--type` | string | `""` | Database type: `mysql`, `postgres`, `sqlite`, `mssql`, `mariadb` |
+| `--name` | string | `""` | Display name for the connection |
+| `--host` | string | `""` | Database host |
+| `--port` | int | `0` | Database port (default: 3306 for mysql, 5432 for postgres) |
+| `--database` | string | `""` | Database name or file path (SQLite) |
+| `--username` | string | `""` | Database username |
+| `--password` | string | `""` | Database password |
+| `--ssl-mode` | string | `""` | SSL mode: `require`, `disable`, `verify-ca`, `verify-full` |
+
+When all required flags are provided, interactive prompts are skipped. If flags are omitted, the interactive guided setup runs.
 
 ### Arguments
 
 None.
 
-### Interactive Prompts
+### Interactive Prompts (when flags are omitted)
 
 | Prompt | Description |
 |--------|-------------|
@@ -144,7 +155,300 @@ None.
 
 ---
 
-## 2. `querylex workspace-stats`
+## 2. `querylex edit-db`
+
+Interactively edit an existing database connection.
+
+### Usage
+
+```bash
+querylex edit-db <id>
+```
+
+### Flags
+
+None.
+
+### Arguments
+
+| Position | Name | Required | Description |
+|----------|------|----------|-------------|
+| 1 | id | yes | Database ID (UUID) from `list-dbs` |
+
+### Interactive Prompts
+
+Current values are shown as defaults. You will be prompted for:
+
+| Prompt | Description |
+|--------|-------------|
+| Database type | One of: MySQL/MariaDB, PostgreSQL, SQLite, Microsoft SQL Server |
+| Display name | Updated label |
+| Host | Updated hostname |
+| Port | Updated port |
+| Database name | Updated database name or file path |
+| Username | Updated username |
+| Password | New password (hidden input), old credential is deleted and replaced |
+| SSL mode | Updated SSL mode |
+
+### Response Type
+
+`Response<EditDBData>`
+
+```json
+{
+  "data": {
+    "database_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "updated-name",
+    "type": "mysql",
+    "host": "new-host.example.com",
+    "port": 3306,
+    "database": "myapp_v2",
+    "username": "new_user",
+    "ssl_mode": "require",
+    "password_updated": true,
+    "indexing_required": false
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `database_id` | string | Database UUID |
+| `name` | string | Updated display name |
+| `type` | string | Database engine type |
+| `host` | string | Updated host |
+| `port` | int | Updated port |
+| `database` | string | Updated database name |
+| `username` | string | Updated username |
+| `ssl_mode` | string | Updated SSL mode |
+| `password_updated` | bool | Whether a new password was stored |
+| `indexing_required` | bool | Whether schema re-indexing is needed (true when host/port/database changed) |
+
+---
+
+## 3. `querylex delete-db`
+
+Delete a database connection and all associated artifacts.
+
+### Usage
+
+```bash
+querylex delete-db [id] [--force|-y]
+```
+
+### Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--force` / `-y` | bool | `false` | Skip confirmation prompt |
+
+### Arguments
+
+| Position | Name | Required | Description |
+|----------|------|----------|-------------|
+| 1 | id | no | Database ID to delete. If omitted, interactive prompt for selection. |
+
+### Response Type
+
+`Response<DeleteDBData>`
+
+```json
+{
+  "data": {
+    "deleted": true,
+    "database_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "my-database",
+    "artifacts_removed": [
+      "schema_map.json",
+      "join_graph.json",
+      "memory.sqlite",
+      "database.json"
+    ]
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `deleted` | bool | Whether the database was removed |
+| `database_id` | string | Deleted database UUID |
+| `name` | string | Deleted database name |
+| `artifacts_removed` | string[] | List of removed artifact files |
+
+### Behavior
+
+- Removes the credential from the credential store
+- Deletes the per-database directory and all artifacts
+- If the deleted database was active, the active database is cleared
+
+---
+
+## 4. `querylex use-db`
+
+Switch the active database.
+
+### Usage
+
+```bash
+querylex use-db [id]
+```
+
+### Flags
+
+None.
+
+### Arguments
+
+| Position | Name | Required | Description |
+|----------|------|----------|-------------|
+| 1 | id | no | Database ID to activate. If omitted, interactive prompt for selection. |
+
+### Response Type
+
+`Response<UseDBData>`
+
+```json
+{
+  "data": {
+    "previous_active_id": "old-db-uuid",
+    "new_active_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "new_active_name": "my-database",
+    "new_active_type": "mysql"
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `previous_active_id` | string or null | Previously active database ID |
+| `new_active_id` | string | Newly activated database ID |
+| `new_active_name` | string | Display name of the newly activated database |
+| `new_active_type` | string | Engine type of the newly activated database |
+
+---
+
+## 5. `querylex list-dbs`
+
+List all connected databases.
+
+### Usage
+
+```bash
+querylex list-dbs [--json]
+```
+
+### Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--json` | bool | `false` | Output as JSON instead of human-readable table |
+
+### Arguments
+
+None.
+
+### Response Type (JSON mode)
+
+`Response<ListDBsData>`
+
+```json
+{
+  "data": {
+    "databases": [
+      {
+        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "name": "my-database",
+        "type": "mysql",
+        "host": "db.example.com",
+        "port": 3306,
+        "database": "myapp",
+        "username": "app_user",
+        "ssl_mode": "require",
+        "status": "indexed",
+        "is_active": true
+      }
+    ],
+    "count": 1
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `databases[]` | array | List of connected databases |
+| `databases[].id` | string | Database UUID |
+| `databases[].name` | string | Display name |
+| `databases[].type` | string | Engine type |
+| `databases[].host` | string | Hostname |
+| `databases[].port` | int | Port number |
+| `databases[].database` | string | Database name |
+| `databases[].username` | string | Connection username |
+| `databases[].ssl_mode` | string | SSL mode |
+| `databases[].status` | string | Indexing status |
+| `databases[].is_active` | bool | Whether this is the active database |
+| `count` | int | Total number of connected databases |
+
+### Human-Readable Mode
+
+By default (without `--json`), outputs a formatted table with columns: NAME, TYPE, HOST:PORT, DATABASE, STATUS, ACTIVE. The active database is marked with `*`.
+
+---
+
+## 6. `querylex encrypt`
+
+Manage the encryption key for the encrypted credential store.
+
+### Usage
+
+```bash
+querylex encrypt [--rotate] [--force|-y] [--json]
+```
+
+### Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--rotate` | bool | `false` | Rotate the key (re-encrypt all credentials with a fresh key) |
+| `--force` / `-y` | bool | `false` | Skip confirmation prompt |
+| `--json` | bool | `false` | Output as JSON instead of human-readable message |
+
+### Arguments
+
+None.
+
+### Response Type (JSON mode)
+
+`Response<EncryptData>`
+
+```json
+{
+  "data": {
+    "key_generated": true,
+    "key_rotated": false
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `key_generated` | bool | Whether a new key was generated |
+| `key_rotated` | bool | Whether the key was rotated |
+
+### Behavior
+
+- Without flags: generates a new AES-256-GCM key. If existing encrypted credentials exist, they are re-encrypted.
+- With `--rotate`: generates a new key and re-encrypts all credentials.
+- Without `--force`: displays a confirmation prompt before making changes.
+- By default (without `--json`), prints a human-readable success message.
+
+### Warnings
+
+- `ENCRYPTION_CANCELLED` — Key generation cancelled by user
+- `ENCRYPTION_ROTATION_CANCELLED` — Key rotation cancelled by user
+
+---
+
+## 7. `querylex workspace-stats`
 
 Show workspace status across connected databases.
 
@@ -229,7 +533,7 @@ None.
 
 ---
 
-## 3. `querylex schema`
+## 8. `querylex schema`
 
 Show schema information for tables.
 
@@ -365,7 +669,7 @@ None.
 
 ---
 
-## 4. `querylex stats`
+## 9. `querylex stats`
 
 Show table statistics.
 
@@ -422,7 +726,7 @@ None.
 
 ---
 
-## 5. `querylex indexes`
+## 10. `querylex indexes`
 
 Show index information for tables.
 
@@ -521,7 +825,7 @@ None.
 
 ---
 
-## 6. `querylex explain`
+## 11. `querylex explain`
 
 Show execution plan for a SQL query.
 
@@ -640,7 +944,7 @@ Explain plans are cached by fingerprint (normalized SQL). Cache entries have a T
 
 ---
 
-## 7. `querylex validate`
+## 12. `querylex validate`
 
 Validate SQL against the active database schema.
 
@@ -696,7 +1000,7 @@ querylex validate <sql>
 
 ---
 
-## 8. `querylex joins`
+## 13. `querylex joins`
 
 Show join relationships for tables.
 
@@ -778,7 +1082,7 @@ None.
 
 ---
 
-## 9. `querylex save`
+## 14. `querylex save`
 
 Save a query to memory.
 
@@ -838,7 +1142,7 @@ None.
 
 ---
 
-## 10. `querylex memory`
+## 15. `querylex memory`
 
 Search memory for matching queries.
 
@@ -910,7 +1214,7 @@ When no match is found:
 
 ---
 
-## 11. `querylex history`
+## 16. `querylex history`
 
 Browse query history by topic.
 
@@ -977,7 +1281,7 @@ Results are sorted by a composite score:
 
 ---
 
-## 12. `querylex delete`
+## 17. `querylex delete`
 
 Delete a memory entry.
 
@@ -1039,7 +1343,7 @@ If the entry doesn't exist:
 
 ---
 
-## 13. `querylex resolve`
+## 18. `querylex resolve`
 
 Resolve natural language to table/column candidates.
 
@@ -1120,7 +1424,7 @@ querylex resolve <question>
 
 ---
 
-## 14. `querylex completion`
+## 19. `querylex completion`
 
 Generate shell completion script.
 
@@ -1146,7 +1450,7 @@ Outputs the completion script to stdout. No JSON envelope.
 
 ---
 
-## 15. `querylex version`
+## 20. `querylex version`
 
 Display version information.
 
@@ -1213,6 +1517,11 @@ No JSON envelope.
 | Command | Preflight Type | DB Connection Required? | Schema Indexed Required? |
 |---------|----------------|------------------------|--------------------------|
 | `add-db` | None | No (creates connection) | No |
+| `edit-db` | None | No | No |
+| `delete-db` | Workspace only | No | No |
+| `use-db` | Workspace only | No | No |
+| `list-dbs` | Workspace only | No | No |
+| `encrypt` | None | No | No |
 | `workspace-stats` | Workspace only | No | No |
 | `schema` | Full | Yes | Yes |
 | `stats` | Full | Yes | Yes |

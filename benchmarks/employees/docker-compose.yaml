@@ -18,20 +18,3 @@ services:
       timeout: 5s
       retries: 5
 
-  postgresql:
-    image: postgres:16
-    container_name: employees-postgresql
-    environment:
-      POSTGRES_DB: employees
-      POSTGRES_USER: employees
-      POSTGRES_PASSWORD: employees
-    ports:
-      - "5432:5432"
-    volumes:
-      - ./data/test_db:/employees-data:ro
-      - ./init/postgresql:/docker-entrypoint-initdb.d:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U employees -d employees"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
