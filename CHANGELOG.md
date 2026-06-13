@@ -1,5 +1,45 @@
 # Changelog
 
+## [1.0.1](https://github.com/cskiller24/querylex/compare/v1.0.0...v1.0.1) (2026-06-13)
+
+
+### Bug Fixes
+
+* update querylex bin path in package.json ([1ec9f0c](https://github.com/cskiller24/querylex/commit/1ec9f0c2ecf65c2a0fb9caa0274f87ffc9418423))
+
+
+### Miscellaneous Chores
+
+* **1.x:** release 1.2.0 ([03eaed3](https://github.com/cskiller24/querylex/commit/03eaed3ed08223e4bb675a9d6ae9dfe3b89ab452))
+* **1.x:** release 1.2.0 ([66f1898](https://github.com/cskiller24/querylex/commit/66f1898e99e3f460072e34ffc7198dd4de05a8a2))
+* **1.x:** release 1.2.0 ([55c4646](https://github.com/cskiller24/querylex/commit/55c4646fd55ebaa1784108da2b10725c957b088e))
+* **1.x:** release 1.2.0 ([aa09265](https://github.com/cskiller24/querylex/commit/aa092651e337dcf361275d2c8b839884addc6144))
+* **1.x:** release 1.2.1 ([4108b93](https://github.com/cskiller24/querylex/commit/4108b937105623b8083d7784a7d1a9768d74d000))
+* **1.x:** release 1.2.1 ([ac54815](https://github.com/cskiller24/querylex/commit/ac5481577b6eb26788947be9219720bc330f9f4b))
+* **1.x:** release 1.2.2 ([2e7050d](https://github.com/cskiller24/querylex/commit/2e7050d07cc266a76f3c8286035b0bf9717295d0))
+* **1.x:** release 1.2.2 ([6126c96](https://github.com/cskiller24/querylex/commit/6126c968791085d0bcab50a8388c80ed7bb962ef))
+* **hotfix:** Remove querylex completion scripts for Fish, PowerShell, and Zsh ([eaefb7e](https://github.com/cskiller24/querylex/commit/eaefb7ed44a3a381b417ba1291763f8fc2f361a3))
+* **hotfix:** Remove querylex completion scripts for Fish, PowerShell, and Zsh ([c6154dd](https://github.com/cskiller24/querylex/commit/c6154ddb2ef68f7740ebb2b88001f016f371ca19))
+
+
+### Code Refactoring
+
+* remove installation script and streamline querylex setup process lazy loading ([89040e8](https://github.com/cskiller24/querylex/commit/89040e879399fb17edc811abb7889528f4459d3b))
+
+
+### Continuous Integration
+
+* add automated release pipeline for 1.x branch ([325a342](https://github.com/cskiller24/querylex/commit/325a34292f2cb83ed56e403c4c92953d10f8066a))
+* add release-please manifest with current version 1.1 ([28a113b](https://github.com/cskiller24/querylex/commit/28a113b84a6567d6534c3e2b4584769f18494ab3))
+* fix manifest version to semver 1.1.0 ([310b1c1](https://github.com/cskiller24/querylex/commit/310b1c13122c5ccd5171360065f49f75205975e1))
+* harden release pipeline ([55d518a](https://github.com/cskiller24/querylex/commit/55d518a2c6d474b17a74beeb6792311c294cffba))
+* re-add --provenance (package now exists on npm) ([70e15e7](https://github.com/cskiller24/querylex/commit/70e15e7e8aa75c9a41bf895e2d3d86dbda63dae6))
+* remove --provenance for first publish (requires existing package) ([1d7df6e](https://github.com/cskiller24/querylex/commit/1d7df6e87bfec6a8775cd94c77efbdcbc5d43436))
+* rename config to release-please-config.json (no dot prefix) ([c4f9b92](https://github.com/cskiller24/querylex/commit/c4f9b92ec4d04cfe6c25c4b876f70eed085e0e79))
+* reset manifest to 1.0.0 after stale tag cleanup ([61d7cac](https://github.com/cskiller24/querylex/commit/61d7cac10c0ef2f5336b8edca41ad3ce41caf51f))
+* switch npm publish to trusted publishing (OIDC) ([f17c135](https://github.com/cskiller24/querylex/commit/f17c13530158032200ef0ae1a3b0cb7c1d9f3859))
+* use PAT instead of GITHUB_TOKEN for release-please to trigger downstream workflows ([5f16306](https://github.com/cskiller24/querylex/commit/5f1630668cb87fd768a2ea957a874101e16d9580))
+
 ## [1.2.2](https://github.com/cskiller24/querylex/compare/v1.2.1...v1.2.2) (2026-06-13)
 
 
