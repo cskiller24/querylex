@@ -9,14 +9,14 @@ const binPath = path.join(__dirname, '..', 'bin', binName);
 
 if (!fs.existsSync(binPath)) {
   console.error(
-    'querylex binary not found. Run again to trigger download, or reinstall: npm install -g cskiller24/querylex',
+    'querylex binary not found — reinstall with: npm install -g cskiller24/querylex',
   );
   process.exit(1);
 }
 
 try {
   const args = process.argv.slice(2);
-  execSync(`"${binPath}" ${args.map(a => `"${a}"`).join(' ')}`, {
+  execSync('"' + binPath + '" ' + args.map(function (a) { return '"' + a + '"'; }).join(' '), {
     stdio: 'inherit',
   });
 } catch (err) {
