@@ -18,6 +18,11 @@ builds:
   - id: querylex
     binary: querylex
     main: ./cmd/querylex/
+    ldflags:
+      - -s -w
+      - -X github.com/cskiller24/querylex/internal/version.Version={{ .Version }}
+      - -X github.com/cskiller24/querylex/internal/version.Commit={{ .Commit }}
+      - -X github.com/cskiller24/querylex/internal/version.BuildDate={{ .Date }}
     env:
       - CGO_ENABLED=0
       - GOMEMLIMIT=1400MiB
