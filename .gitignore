@@ -16,6 +16,10 @@ bin/
 # Added by goreleaser init:
 dist/
 
+# npm artifacts
+node_modules/
+npm-debug.log*
+
 # Test dataset download cache (keep directory, ignore contents)
 test/testdata/cache/*
 !test/testdata/cache/.gitkeep

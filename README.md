@@ -4,6 +4,20 @@
 
 ## Installation
 
+### npm (all platforms — recommended)
+
+```bash
+npm install -g cskiller24/querylex
+```
+
+### AI Agent Skills
+
+Install QueryLex skills so your AI agent can generate and optimize SQL from natural language:
+
+```bash
+npx skills add cskiller24/querylex
+```
+
 ### macOS
 
 ```bash
@@ -78,7 +92,7 @@ If installed via package manager, completions may be installed automatically —
 ## Getting Started
 
 ```bash
-# 1. Add a database connection
+# 1. Add a database connection (guides you through setup)
 querylex add-db
 
 # 2. Check workspace status
@@ -94,9 +108,11 @@ querylex optimize "SELECT * FROM orders JOIN users ON orders.user_id = users.id"
 ## Quick Example
 
 ```bash
-# Add your MySQL database
+# Install globally
+npm install -g cskiller24/querylex
+
+# Add your MySQL database (follow the guided prompts)
 querylex add-db
-# → Follow the guided prompts to connect to your database
 
 # See your workspace overview
 querylex workspace-stats --human

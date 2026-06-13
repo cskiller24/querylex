@@ -1,0 +1,43 @@
+{
+  "name": "querylex",
+  "version": "1.0.0",
+  "description": "AI-augmented SQL generation and optimization CLI — generates dialect-correct SQL from natural language using live database context. Supports MySQL, MariaDB, PostgreSQL, SQLite, and Microsoft SQL Server.",
+  "bin": {
+    "querylex": "./npm/querylex.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/install.js"
+  },
+  "files": [
+    "npm/",
+    "scripts/",
+    "skills/"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cskiller24/querylex.git"
+  },
+  "keywords": [
+    "sql",
+    "query",
+    "optimizer",
+    "ai",
+    "cli",
+    "database",
+    "mysql",
+    "postgresql",
+    "sqlite",
+    "mssql",
+    "mariadb",
+    "natural-language",
+    "explain-plan",
+    "schema",
+    "query-builder"
+  ],
+  "author": "cskiller24",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/cskiller24/querylex/issues"
+  },
+  "homepage": "https://github.com/cskiller24/querylex#readme"
+}
