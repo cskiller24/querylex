@@ -1,27 +1,45 @@
 # Querylex
 
-**AI-augmented SQL generation and optimization CLI** — Querylex generates dialect-correct SQL from natural language using live database context (schema, terminology, joins, statistics, indexes) and optimizes existing SQL via plan comparison and rewrite heuristics. Supports MySQL, MariaDB, PostgreSQL, SQLite, and Microsoft SQL Server.
+**Database introspection and query analysis CLI** — QueryLex introspects database schemas, validates SQL, analyzes execution plans, resolves natural language to table/column candidates, and maintains workspace state across multiple database connections. Supports MySQL, and PostgreSQL.
 
-## Installation
+## Quick Start
+
+1. Install querylex 
+```bash
+npm install -g cskiller24/querylex && querylex
+```
+
+2. Generate encryption keys
+```bash
+querylex encrypt
+```
+
+2. Add a database connection:
+```bash
+querylex add-db
+```
+
+3. Install skills
+```bash
+npx skills add cskiller24/querylex
+```
+
+4. Generate SQL using the skill:
+```txt
+/querylex-sql "Find the top 5 customers by total spend in the last month"
+```
+
+5. You can check your database stats with:
+```bash
+querylex workspace-stats
+```
+
+## Other Installations
 
 ### npm (all platforms — recommended)
 
 ```bash
 npm install -g cskiller24/querylex
-```
-
-### AI Agent Skills
-
-Install QueryLex skills so your AI agent can generate and optimize SQL from natural language:
-
-```bash
-npx skills add cskiller24/querylex
-```
-
-### macOS
-
-```bash
-brew install querylex/querylex/querylex
 ```
 
 ### Linux
@@ -38,13 +56,6 @@ sudo dpkg -i querylex_*.deb
 sudo rpm -i querylex_*.rpm
 ```
 
-### Windows
-
-```bash
-scoop bucket add querylex https://github.com/querylex/scoop-bucket
-scoop install querylex
-```
-
 ### Manual (any platform)
 
 1. Download the archive for your platform and architecture from the [latest GitHub Release](https://github.com/cskiller24/querylex/releases/latest).
@@ -58,80 +69,38 @@ scoop install querylex
    sudo mv querylex*/querylex /usr/local/bin/
    ```
 
-## Shell Completions
+## Other useful commands
 
-### bash
-
+- Check all commands
 ```bash
-source <(querylex completion bash)
-echo "source <(querylex completion bash)" >> ~/.bashrc
+querylex --help
 ```
 
-### zsh
+- View list of database connections:
 
 ```bash
-source <(querylex completion zsh)
-echo "source <(querylex completion zsh)" >> ~/.zshrc
+querylex list-dbs
 ```
 
-### fish
-
+- View workspace stats:
 ```bash
-querylex completion fish | source
-echo "querylex completion fish | source" >> ~/.config/fish/config.fish
+querylex workspace-stats --human
 ```
 
-### PowerShell
+- Select active database connection:
+```bash
+querylex use-db
+```
 
-```powershell
-querylex completion powershell | Out-String | Invoke-Expression
+- Remove a database connection:
+```bash
+querylex remove-db
 ```
 
 If installed via package manager, completions may be installed automatically — check your package manager's documentation.
 
-## Getting Started
-
-```bash
-# 1. Add a database connection (guides you through setup)
-querylex add-db
-
-# 2. Check workspace status
-querylex workspace-stats --human
-
-# 3. Generate SQL from natural language
-querylex sql "show me all users who ordered in the last month"
-
-# 4. Optimize a SQL query
-querylex optimize "SELECT * FROM orders JOIN users ON orders.user_id = users.id"
-```
-
-## Quick Example
-
-```bash
-# Install globally
-npm install -g cskiller24/querylex
-
-# Add your MySQL database (follow the guided prompts)
-querylex add-db
-
-# See your workspace overview
-querylex workspace-stats --human
-
-# List all connected databases
-querylex list-dbs
-
-# Ask a natural language question
-querylex sql "list all products with their total sales amount"
-
-# Optimize a slow query
-querylex optimize "SELECT p.name, SUM(oi.quantity * oi.unit_price) as total
-                   FROM products p
-                   LEFT JOIN order_items oi ON p.id = oi.product_id
-                   GROUP BY p.id, p.name"
-```
-
 ## Documentation
 
-For full documentation including command reference, response format specification, and advanced usage, see [QUERYLEX.md](./QUERYLEX.md).
+For full documentation including command reference, response format specification, and advanced usage, see [docs folder](./docs/).
 
 

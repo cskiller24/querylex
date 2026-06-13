@@ -1,7 +1,6 @@
 // Package rootcmd provides the shared RootCmd cobra command definition
-// for both the querylex binary binary and the build-time shell completion
-// generator. Both packages import this library package to avoid Go's
-// restriction on importing "package main".
+// for the querylex binary. The cmd/querylex package imports this library
+// package to avoid Go's restriction on importing "package main".
 package rootcmd
 
 import (
@@ -44,9 +43,7 @@ func mergeTableArgs(tables []string, tablesJSON string) []string {
 	return tables
 }
 
-// RootCmd is the root cobra command for querylex. It is exported so that
-// the build-time shell completion generator (cmd/generate_completions)
-// can generate static completion files for inclusion in release archives.
+// RootCmd is the root cobra command for querylex.
 var RootCmd = &cobra.Command{
 	Use:   "querylex",
 	Short: "Querylex — context-aware SQL query companion for MySQL, MariaDB, PostgreSQL, SQLite, and MSSQL",
@@ -66,10 +63,7 @@ Getting Started:
 Credential Management:
   querylex encrypt              Generate an encryption key for the credential store
   querylex encrypt --rotate     Rotate the encryption key and re-encrypt credentials
-  querylex encrypt --force      Skip the confirmation prompt
-
-Shell Completions:
-  querylex completion bash > /path/to/completions`,
+  querylex encrypt --force      Skip the confirmation prompt`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		return initWorkspace()
 	},
@@ -425,27 +419,6 @@ var resolveCmd = &cobra.Command{
 	},
 }
 
-var completionCmd = &cobra.Command{
-	Use:                   "completion [bash|zsh|fish|powershell]",
-	Short:                 "Generate shell completion script",
-	Long:                  "Generate the autocompletion script for querylex for the specified shell.\n\nSee each sub-command's help for details on how to use the generated script.",
-	DisableFlagsInUseLine: true,
-	ValidArgs:             []string{"bash", "zsh", "fish", "powershell"},
-	Args:                  cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
-	Run: func(cmd *cobra.Command, args []string) {
-		switch args[0] {
-		case "bash":
-			cmd.Root().GenBashCompletionV2(os.Stdout, true)
-		case "zsh":
-			cmd.Root().GenZshCompletion(os.Stdout)
-		case "fish":
-			cmd.Root().GenFishCompletion(os.Stdout, true)
-		case "powershell":
-			cmd.Root().GenPowerShellCompletionWithDesc(os.Stdout)
-		}
-	},
-}
-
 var encryptCmd = &cobra.Command{
 	Use:   "encrypt",
 	Short: "Manage encryption key for the encrypted credential store",
@@ -491,7 +464,6 @@ func init() {
 	RootCmd.AddCommand(deleteCmd)
 	RootCmd.AddCommand(useDbCmd)
 	RootCmd.AddCommand(resolveCmd)
-	RootCmd.AddCommand(completionCmd)
 	RootCmd.AddCommand(encryptCmd)
 
 	RootCmd.CompletionOptions.HiddenDefaultCmd = true

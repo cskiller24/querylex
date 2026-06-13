@@ -1,4 +1,4 @@
-.PHONY: build test clean install lint completions
+.PHONY: build test clean install lint
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -22,9 +22,6 @@ install:
 
 lint:
 	go vet ./...
-
-completions:
-	go run ./cmd/generate_completions/
 
 # GOMAXPROCS limits Go compiler parallelism; --parallelism limits goreleaser task
 # concurrency. Both default to #CPUs which can OOM on low-memory systems (2GB).

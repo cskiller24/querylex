@@ -1,6 +1,8 @@
 # Querylex Optimization Analysis Contract
 
-`ANALYSIS.md` is the normative contract for the `/querylex-optimize` analysis phase and for any command that emits execution-plan heuristics. It defines how Querylex turns an execution plan plus schema context into optimization candidates, how it compares plans across database dialects, and when it must report that no safe improvement was found.
+`ANALYSIS.md` is the normative contract for explain-plan heuristic analysis and optimization strategies. It defines how Querylex turns an execution plan plus schema context into optimization candidates, how it compares plans across database dialects, and when it must report that no safe improvement was found.
+
+**Note:** The heuristic signal detection (Full Scan, Non-Sargable, etc.) and plan normalization are implemented in `internal/analysis/heuristics.go`. The AI-powered SQL rewrite loop, automated index recommendations, and validation loop (`LLM Boundary` section) are design specifications, not implemented in the current codebase.
 
 ## Inputs
 
