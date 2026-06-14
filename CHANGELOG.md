@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/cskiller24/querylex/compare/v1.2.0...v1.2.1) (2026-06-14)
+
+
+### Continuous Integration
+
+* switch npm publish to NPM_TOKEN auth, add commit conventions to AGENTS.md ([aeba724](https://github.com/cskiller24/querylex/commit/aeba724ca252fa65b4c94517e5e43d0962b3ab63))
+
 ## [1.2.0](https://github.com/cskiller24/querylex/compare/v1.1.0...v1.2.0) (2026-06-13)
 
 
