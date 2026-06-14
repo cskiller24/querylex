@@ -157,6 +157,74 @@ QueryLex is a context-aware SQL generator and optimizer CLI tool for AI agents. 
 - Context cancellation checked: `if ctx.Err() != nil { ... }` in main signal handler
 <!-- GSD:conventions-end -->
 
+<!-- GSD:commit-conventions-start source:COMMIT_CONVENTIONS.md -->
+## Commit Conventions
+
+This project uses [release-please](https://github.com/googleapis/release-please) for automated versioning and changelog generation. All commits must follow [Conventional Commits](https://www.conventionalcommits.org/) format to ensure proper semver bumps.
+
+### Format
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer]
+```
+
+### Types and Semver Impact
+
+| Type | Semver | Description |
+|------|--------|-------------|
+| `feat` | MINOR | A new feature |
+| `fix` | PATCH | A bug fix |
+| `perf` | PATCH | A code change that improves performance |
+| `revert` | PATCH | Reverts a previous commit |
+| `refactor` | PATCH | A code change that neither fixes a bug nor adds a feature |
+| `docs` | — | Documentation only changes |
+| `style` | — | Changes that do not affect the meaning of the code (formatting, etc.) |
+| `test` | — | Adding or correcting tests |
+| `chore` | — | Changes to the build process or auxiliary tools |
+| `ci` | — | Changes to CI configuration files and scripts |
+| `build` | PATCH | Changes that affect the build system or external dependencies |
+
+### Breaking Changes
+
+- Append `!` after the type/scope: `feat!: drop support for Node 16`
+- Or include `BREAKING CHANGE:` in the footer — triggers a **MAJOR** bump
+- **Before merging breaking changes**: ensure cross-repo consumers are prepared and coordinate compat windows
+
+### Commit Messages
+
+- Use the **imperative mood** ("add feature" not "added feature" or "adds feature")
+- First line max **72 characters**
+- Reference issues in the footer with `Fixes #123` or `Refs #456`
+- Do not reference Go package paths or file names in the summary — put those in the body
+
+### Release Flow
+
+1. Commits on `1.x` are parsed by release-please
+2. Release-please opens/maintains a release PR with version bump + changelog
+3. Merging the PR triggers a tagged release via GoReleaser
+4. The GitHub release publishes npm via `npm-publish.yml`
+5. `release-please-config.json` auto-bumps `package.json` version alongside the Go module
+
+### `package.json` Version Bump
+
+Release-please syncs the npm package version from the Go release tag (via `extra-files` in `release-please-config.json`). Every release automatically updates `package.json` `$.version` to match the tag without the `v` prefix.
+
+### Commit Examples
+
+```
+feat: add --analyze flag for explain with actual row counts
+fix: handle nil pointer in preflight when workspace is empty
+ci: switch npm publish to token-based auth
+chore: bump go-sql-driver/mysql to v1.10.1
+docs: document --no-index flag in optimize command
+refactor!: rename RunSQL to RunSQLGeneration
+```
+<!-- GSD:commit-conventions-end -->
+
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->
 ## Architecture
 

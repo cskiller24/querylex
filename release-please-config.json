@@ -20,7 +20,14 @@
   ],
   "packages": {
     ".": {
-      "package-name": "querylex"
+      "package-name": "querylex",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "package.json",
+          "jsonpath": "$.version"
+        }
+      ]
     }
   }
 }
