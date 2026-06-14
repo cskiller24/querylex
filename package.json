@@ -1,6 +1,6 @@
 {
   "name": "querylex",
-  "version": "1.0.0",
+  "version": "1.2.1",
   "description": "AI-augmented SQL generation and optimization CLI — generates dialect-correct SQL from natural language using live database context. Supports MySQL, MariaDB, PostgreSQL, SQLite, and Microsoft SQL Server.",
   "bin": {
     "querylex": "npm/querylex.js"
